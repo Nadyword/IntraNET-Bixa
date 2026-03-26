@@ -1,0 +1,105 @@
+import React from 'react';
+import { useAuthStore } from '../store/authStore';
+
+export const HomePage: React.FC = () => {
+  const { user } = useAuthStore();
+
+  return (
+    <div>
+      <div style={{
+        background: 'linear-gradient(135deg, var(--black) 0%, var(--gray-900) 50%, #1a0000 100%)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '48px 40px',
+        marginBottom: '28px',
+        color: 'var(--white)',
+        minHeight: '200px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+      }}>
+        <div>
+          <div style={{ fontSize: '13px', letterSpacing: '2px', textTransform: 'uppercase', opacity: 0.5, marginBottom: '8px' }}>
+            Bienvenida de nuevo
+          </div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: '48px', letterSpacing: '2px', marginBottom: '12px' }}>
+            {user?.nombre?.split(' ')[0] || 'USUARIO'} <span style={{ color: 'var(--red)' }}>GARCÍA</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '24px' }}>
+          <div style={{ fontSize: '13px' }}>
+            <strong style={{ display: 'block', color: 'var(--white)', fontSize: '15px', marginBottom: '2px' }}>
+              {user?.cargo || 'Cargo'}
+            </strong>
+            <span style={{ opacity: 0.6 }}>Departamento de Manufactura</span>
+          </div>
+          <div style={{ fontSize: '13px' }}>
+            <strong style={{ display: 'block', color: 'var(--white)', fontSize: '15px', marginBottom: '2px' }}>
+              5 años, 3 meses
+            </strong>
+            <span style={{ opacity: 0.6 }}>Antigüedad en la empresa</span>
+          </div>
+          <div style={{ fontSize: '13px' }}>
+            <strong style={{ display: 'block', color: 'var(--white)', fontSize: '15px', marginBottom: '2px' }}>
+              15 días
+            </strong>
+            <span style={{ opacity: 0.6 }}>Vacaciones disponibles</span>
+          </div>
+        </div>
+      </div>
+
+      <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px' }}>Mi Resumen de Gestión</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div style={{
+          background: 'var(--white)',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--gray-100)',
+          padding: '24px',
+          boxShadow: 'var(--shadow-sm)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '10px', borderBottom: '1px solid var(--gray-50)' }}>
+            <span>🌴 Vacaciones Disponibles</span>
+            <strong style={{ color: 'var(--red)', fontSize: '16px' }}>15 días</strong>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--gray-50)' }}>
+            <span>📋 Solicitudes Activas</span>
+            <strong>2</strong>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--gray-50)' }}>
+            <span>🏦 Prestaciones Acumuladas</span>
+            <strong>Bs. 12,450</strong>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+            <span>📅 Próximo cumpleaños de colega</span>
+            <strong style={{ color: 'var(--gray-500)', fontSize: '14px' }}>Carlos M. — 18 Jun</strong>
+          </div>
+        </div>
+
+        <div style={{
+          background: 'var(--white)',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--gray-100)',
+          padding: '24px',
+          boxShadow: 'var(--shadow-sm)',
+        }}>
+          <h3 style={{ marginBottom: '16px' }}>Anuncios Corporativos</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '12px', padding: '10px', borderRadius: 'var(--radius)', border: '1px solid var(--gray-100)', background: 'var(--gray-50)' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--red)', marginTop: '6px', flexShrink: 0 }}></div>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 600 }}>Cierre administrativo — Semana Santa</div>
+                <div style={{ fontSize: '12px', color: 'var(--gray-300)', marginTop: '3px' }}>Publicado: 10 Jun 2025 · RRHH</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', padding: '10px', borderRadius: 'var(--radius)', border: '1px solid var(--gray-100)', background: 'var(--gray-50)' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--red)', marginTop: '6px', flexShrink: 0 }}></div>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 600 }}>Actualización de política de uniformes</div>
+                <div style={{ fontSize: '12px', color: 'var(--gray-300)', marginTop: '3px' }}>Publicado: 5 Jun 2025 · Dirección General</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -1,0 +1,323 @@
+.tramites-page {
+  padding: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header */
+.tramites-header {
+  margin-bottom: 32px;
+  animation: fadeIn 0.6s ease-out;
+}
+
+.tramites-header h1 {
+  font-family: var(--font-display);
+  font-size: 48px;
+  color: var(--black);
+  margin-bottom: 8px;
+}
+
+.tramites-header p {
+  font-size: 16px;
+  color: var(--gray-500);
+  margin: 0;
+}
+
+/* Filter Section */
+.filter-section {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 32px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.filter-btn {
+  padding: 10px 16px;
+  border: 2px solid var(--gray-200);
+  border-radius: 20px;
+  background: white;
+  color: var(--gray-500);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.filter-btn:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.filter-btn.active {
+  background: var(--red);
+  border-color: var(--red);
+  color: white;
+}
+
+/* Tramites List */
+.tramites-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tramite-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr;
+  gap: 24px;
+  align-items: center;
+  transition: all var(--transition);
+  border-left: 4px solid transparent;
+}
+
+.tramite-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateX(4px);
+}
+
+.tramite-left {
+  min-width: 0;
+}
+
+.tramite-type h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--black);
+  margin: 0 0 4px 0;
+}
+
+.tramite-type p {
+  color: var(--gray-500);
+  font-size: 14px;
+  margin: 0;
+}
+
+.tramite-date {
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-top: 12px;
+}
+
+.tramite-date span {
+  font-weight: 600;
+}
+
+/* Status Flow */
+.tramite-tracker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.status-flow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.flow-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.flow-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gray-100);
+  border: 2px solid var(--gray-300);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-500);
+  transition: all var(--transition);
+}
+
+.flow-step.completed .flow-circle {
+  background: #27ae60;
+  border-color: #27ae60;
+  color: white;
+}
+
+.flow-step.rejected .flow-circle {
+  background: #c62828;
+  border-color: #c62828;
+  color: white;
+}
+
+.flow-label {
+  font-size: 10px;
+  color: var(--gray-500);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.flow-line {
+  flex: 1;
+  height: 2px;
+  background: var(--gray-200);
+  margin: 0 -2px;
+}
+
+.tramite-status {
+  margin-top: 4px;
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+/* Tramite Right */
+.tramite-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.progress-info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--gray-100);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease-out;
+}
+
+.progress-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-align: right;
+}
+
+.tramite-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.action-link {
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all var(--transition);
+}
+
+.action-link:hover {
+  color: var(--red-dark);
+}
+
+/* No Results */
+.no-results {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--gray-500);
+}
+
+.no-results p {
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .tramite-card {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .tramite-right {
+    align-items: flex-start;
+  }
+
+  .status-flow {
+    font-size: 12px;
+  }
+
+  .flow-circle {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 768px) {
+  .tramites-page {
+    padding: 16px;
+  }
+
+  .tramites-header h1 {
+    font-size: 32px;
+  }
+
+  .filter-section {
+    gap: 8px;
+  }
+
+  .filter-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .tramite-card {
+    padding: 16px;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .status-flow {
+    gap: 2px;
+    overflow-x: auto;
+  }
+
+  .flow-circle {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+    min-width: 24px;
+  }
+
+  .flow-label {
+    font-size: 9px;
+  }
+}
