@@ -6,7 +6,8 @@
       "Bash(dotnet add:*)",
       "Bash(xargs grep:*)",
       "Bash(dotnet build:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { ForgotPasswordModal } from '../components/ui/ForgotPasswordModal';
 import api from '../lib/api';
 import './LoginPage.css';
 
@@ -10,8 +11,8 @@ export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,9 +37,14 @@ export const LoginPage: React.FC = () => {
             BIXA
             <span>PORTAL CORPORATIVO</span>
           </div>
+
+            <div className="brand-center-media">
+              <img src="Logo-login.webp" alt="BIXA" />
+            </div>
+
           <div className="brand-tagline">
             <strong>Tu espacio de trabajo digital</strong>
-            Accede a toda la información de tu gestión, solicitudes y herramientas en un solo lugar. Conectado. Ágil. Seguro.
+            Accede a toda la información de tu gestión, solicitudes y herramientas en un solo lugar, facil, ágil y seguro.
           </div>
         </div>
 
@@ -79,10 +85,14 @@ export const LoginPage: React.FC = () => {
             <button type="submit" className="btn-login" disabled={loading}>
               {loading ? 'Cargando...' : 'Ingresar al Portal →'}
             </button>
-            <div className="forgot-link">¿Olvidaste tu contraseña? Solicitar restablecimiento</div>
+            <div className="forgot-link" onClick={() => setShowForgot(true)}>
+              ¿Olvidaste tu contraseña?
+            </div>
           </form>
         </div>
       </div>
+
+      {showForgot && <ForgotPasswordModal onClose={() => setShowForgot(false)} />}
     </div>
   );
 };

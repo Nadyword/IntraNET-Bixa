@@ -1,19 +1,20 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthStore } from './store/authStore';
-import { useUIStore } from './store/uiStore';
-import { AppLayout } from './components/layout/AppLayout';
-import { LoginPage } from './pages/LoginPage';
 import { ActivateAccountPage } from './pages/ActivateAccountPage';
-import { HomePage } from './pages/HomePage';
-import { MyDataPage } from './pages/MyDataPage';
-import { CulturePage } from './pages/CulturePage';
-import { ConsultasPage } from './pages/ConsultasPage';
-import { SolicitudesPage } from './pages/SolicitudesPage';
-import { TramitesPage } from './pages/TramitesPage';
-import { LeaderPage } from './pages/LeaderPage';
-import { ChatPage } from './pages/ChatPage';
-import { OnboardingPage } from './pages/OnboardingPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { AdminRolesPage } from './pages/admin/AdminRolesPage';
+import { AppLayout } from './components/layout/AppLayout';
+import { SolicitudesPage } from './pages/SolicitudesPage';
+import { OnboardingPage } from './pages/OnboardingPage';
+import { ConsultasPage } from './pages/ConsultasPage';
+import { TramitesPage } from './pages/TramitesPage';
+import { CulturePage } from './pages/CulturePage';
+import { useAuthStore } from './store/authStore';
+import { LeaderPage } from './pages/LeaderPage';
+import { MyDataPage } from './pages/MyDataPage';
+import { LoginPage } from './pages/LoginPage';
+import { useUIStore } from './store/uiStore';
+import { HomePage } from './pages/HomePage';
+import { ChatPage } from './pages/ChatPage';
 import './styles/globals.css';
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/activate" element={<ActivateAccountPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {isAuthenticated && (
           <>

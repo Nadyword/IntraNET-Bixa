@@ -19,6 +19,10 @@ public class ApplicationUser : IdentityUser
     public string? OnboardingToken { get; set; }
     public DateTime? OnboardingTokenExpiry { get; set; }
 
+    // Recuperación de contraseña
+    public string? PasswordResetToken { get; set; }
+    public DateTime? PasswordResetTokenExpiry { get; set; }
+
     // Datos personales adicionales
     public string? Telefono { get; set; }
     public DateTime? FechaNacimiento { get; set; }

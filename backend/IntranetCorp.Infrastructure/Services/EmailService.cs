@@ -9,20 +9,12 @@ public interface IEmailService
     Task SendEmailAsync(string to, string subject, string htmlBody);
 }
 
-public class EmailService : IEmailService
+public class EmailService(string smtpHost, int smtpPort, string smtpUser, string smtpPassword) : IEmailService
 {
-    private readonly string _smtpHost;
-    private readonly int _smtpPort;
-    private readonly string _smtpUser;
-    private readonly string _smtpPassword;
-
-    public EmailService(string smtpHost, int smtpPort, string smtpUser, string smtpPassword)
-    {
-        _smtpHost = smtpHost;
-        _smtpPort = smtpPort;
-        _smtpUser = smtpUser;
-        _smtpPassword = smtpPassword;
-    }
+    private readonly string _smtpHost = smtpHost;
+    private readonly int _smtpPort = smtpPort;
+    private readonly string _smtpUser = smtpUser;
+    private readonly string _smtpPassword = smtpPassword;
 
     public async Task SendEmailAsync(string to, string subject, string htmlBody)
     {

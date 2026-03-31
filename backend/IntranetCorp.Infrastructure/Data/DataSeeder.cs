@@ -84,7 +84,7 @@ public static class DataSeeder
 
         // 3. Crear usuario maestro (superadmin)
         const string adminEmail = "samuelsc1509@gmail.com";
-        const string adminPassword = "Sa75391$";
+        const string adminPassword = "Sa753951.";
 
         var existingAdmin = await userManager.FindByEmailAsync(adminEmail);
         if (existingAdmin == null)

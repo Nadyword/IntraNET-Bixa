@@ -162,6 +162,90 @@ public class AuthController(
         return Ok(new { token, user = new { user.Id, user.Email, user.Nombre, user.Cargo } });
     }
 
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        if (string.IsNullOrEmpty(request.Email))
+            return BadRequest(new { message = "Correo no proporcionado" });
+
+        var user = await _userManager.FindByEmailAsync(request.Email);
+
+        // Siempre devolver OK para no revelar si el correo existe
+        if (user == null || user.IsDeleted || !user.IsProfileComplete)
+            return Ok(new { message = "Si el correo existe, recibirás las instrucciones." });
+
+        // Generar token de recuperación (válido 1 hora)
+        user.PasswordResetToken = Guid.NewGuid().ToString("N");
+        user.PasswordResetTokenExpiry = DateTime.UtcNow.AddHours(1);
+        await _userManager.UpdateAsync(user);
+
+        var resetLink = $"http://localhost:5173/reset-password?token={user.PasswordResetToken}";
+        var emailBody = $@"
+            <h2>Recuperación de contraseña - BIXA</h2>
+            <p>Hola {user.Nombre},</p>
+            <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta.</p>
+            <p>Haz clic en el siguiente enlace para crear una nueva contraseña:</p>
+            <a href='{resetLink}' style='background-color: #D91A1A; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 16px 0;'>
+                Restablecer Contraseña
+            </a>
+            <p>Este enlace es válido por 1 hora.</p>
+            <p>Si no solicitaste este cambio, ignora este correo. Tu contraseña no será modificada.</p>
+        ";
+
+        await _emailService.SendEmailAsync(user.Email!, "Restablece tu contraseña en BIXA", emailBody);
+
+        return Ok(new { message = "Si el correo existe, recibirás las instrucciones." });
+    }
+
+    [HttpGet("validate-reset-token")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ValidateResetToken([FromQuery] string? token)
+    {
+        if (string.IsNullOrEmpty(token))
+            return BadRequest(new { valid = false, message = "Token no proporcionado" });
+
+        var user = await _userManager.Users.Where(u => u.PasswordResetToken == token).FirstOrDefaultAsync();
+        if (user == null)
+            return Ok(new { valid = false, message = "Token inválido" });
+
+        if (user.PasswordResetTokenExpiry == null || user.PasswordResetTokenExpiry < DateTime.UtcNow)
+            return Ok(new { valid = false, message = "El enlace ha expirado. Solicita uno nuevo." });
+
+        return Ok(new { valid = true, email = user.Email, nombre = user.Nombre });
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        if (string.IsNullOrEmpty(request.Token))
+            return BadRequest(new { message = "Token no proporcionado" });
+
+        if (request.Password != request.ConfirmPassword)
+            return BadRequest(new { message = "Las contraseñas no coinciden" });
+
+        var user = await _userManager.Users.Where(u => u.PasswordResetToken == request.Token).FirstOrDefaultAsync();
+        if (user == null)
+            return BadRequest(new { message = "Token inválido" });
+
+        if (user.PasswordResetTokenExpiry == null || user.PasswordResetTokenExpiry < DateTime.UtcNow)
+            return BadRequest(new { message = "El enlace ha expirado. Solicita uno nuevo." });
+
+        // Generar token de Identity para resetear contraseña
+        var identityResetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var resetResult = await _userManager.ResetPasswordAsync(user, identityResetToken, request.Password!);
+        if (!resetResult.Succeeded)
+            return BadRequest(new { errors = resetResult.Errors.Select(e => e.Description) });
+
+        // Limpiar token de recuperación
+        user.PasswordResetToken = null;
+        user.PasswordResetTokenExpiry = null;
+        await _userManager.UpdateAsync(user);
+
+        return Ok(new { message = "Contraseña actualizada correctamente. Ya puedes iniciar sesión." });
+    }
+
     private async Task<string> GenerateJwtToken(ApplicationUser user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? ""));
@@ -234,4 +318,16 @@ public class ActivateAccountRequest
     public DateTime? FechaNacimiento { get; set; }
     public string? Cedula { get; set; }
     public string? Cargo { get; set; }
+}
+
+public class ForgotPasswordRequest
+{
+    public string? Email { get; set; }
+}
+
+public class ResetPasswordRequest
+{
+    public string? Token { get; set; }
+    public string? Password { get; set; }
+    public string? ConfirmPassword { get; set; }
 }

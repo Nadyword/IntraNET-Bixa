@@ -16,6 +16,10 @@ var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "IntranetCorp";
 var connectionString = builder.Configuration.GetConnectionString("Default") ?? throw new InvalidOperationException("Connection string 'Default' not found.");
 var VEnvironment  = builder.Configuration["environment"];
 var PathDocumensClient = builder.Configuration["PathDocumentsClient"] ?? throw new InvalidOperationException("Configuration 'PathDocumentsClient' not found.");
+string HostSMTP = builder.Configuration["Email:Host"] ?? "smtp.gmail.com";
+int PortSMTP = int.TryParse(builder.Configuration["Email:Port"], out var port) ? port : 587;
+string UserSMTP = builder.Configuration["Email:User"] ?? "";
+string AppPasswordSMTP = builder.Configuration["Email:AppPassword"] ?? "";
 
 // Add services to the container
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -59,9 +63,7 @@ builder.Services.AddCors(options =>
 
 // Services
 builder.Services.AddScoped<IEmailService>(sp =>
-    new EmailService("smtp.gmail.com", 587,
-        builder.Configuration["Email:User"] ?? "",
-        builder.Configuration["Email:AppPassword"] ?? ""));
+    new EmailService(HostSMTP, PortSMTP, UserSMTP, AppPasswordSMTP));
 
 builder.Services.AddScoped<IPdfService, PdfService>();
 builder.Services.AddScoped<IChatbotService, ChatbotFaqService>();
