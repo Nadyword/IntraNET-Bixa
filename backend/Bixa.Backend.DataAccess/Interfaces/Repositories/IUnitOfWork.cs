@@ -24,7 +24,7 @@ public interface IUnitOfWork : IDisposable
     /// </summary>
     Task CommitTransactionAsync();
 
-    BudgetaryItemEnum? GetBudgetaryItemEnumFromDescription(string description);
+    BudgetaryItemEnum? GetBudgetaryItemEnumFromDescription(string? description);
 
     /// <summary>
     /// Retrieves the ID of the current authenticated user from the HTTP context.

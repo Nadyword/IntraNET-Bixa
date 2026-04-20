@@ -1,5 +1,7 @@
 using Bixa.Backend.DataAccess.Interfaces.Repositories;
+using Bixa.Backend.DataAccess.Interfaces.Repositories.Proxy;
 using Bixa.Backend.DataAccess.Repository;
+using Bixa.Backend.DataAccess.Repository.Proxy;
 using Bixa.Backend.DataAccess.UnitOfWork;
 using Bixa.Backend.DataAccess.Wrappers;
 using Bixa.Backend.Services.Interfaces;
@@ -19,15 +21,16 @@ public static class ServiceRegistrationExtensions
     /// <param name="configuration">The application's configuration, used to retrieve values like allowed CORS origins.</param>
     /// <param name="environment">The web hosting environment of the application (e.g., Development, Production), used for CORS configuration.</param>
     /// <returns>The same IServiceCollection instance for chaining.</returns>
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services,
-                                                           IConfiguration configuration,
-                                                           IWebHostEnvironment environment)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
         // Infraestructura Central
         AddCoreInfrastructure(services);
 
         // Repositorios
         AddRepositories(services);
+
+        // Repositorios de solo lectura (BD secundaria)
+        AddProxyRepositories(services);
 
         // Servicios de Lógica de Negocio
         AddServices(services);
@@ -63,7 +66,7 @@ public static class ServiceRegistrationExtensions
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IUserRolService, RolService>();
         services.AddScoped<INotificationService, NotificationService>();
-        services.AddHttpClient<IWebhookService, WebhookService>();
+        services.AddScoped<ISendMailServices, SendMailServices>();
     }
 
     /// <summary>
@@ -95,6 +98,15 @@ public static class ServiceRegistrationExtensions
     private static void AddRepositories(IServiceCollection services)
     {
         AddBaseRepositories(services);
+    }
+
+    /// <summary>
+    /// Registra los repositorios y el UnitOfWork de solo lectura para la BD secundaria.
+    /// </summary>
+    private static void AddProxyRepositories(IServiceCollection services)
+    {
+        services.AddScoped<ISnEmpleProxyRepository, SnEmpleProxyRepository>();
+        services.AddScoped<IReadOnlyUnitOfWork, ReadOnlyUnitOfWork>();
     }
 
     /// <summary>

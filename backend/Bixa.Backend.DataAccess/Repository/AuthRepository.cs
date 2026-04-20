@@ -33,7 +33,7 @@ public class AuthRepository : IAuthRepository
     /// </summary>
     /// <param name="taxId">User taxId.</param>
     /// <returns>User entity or null if not found. Exceptions are logged and rethrown.</returns>
-    public async Task<Users?> GetUserByTaxId(string taxId)
+    public async Task<Users?> GetUserByTaxId(string? taxId)
     {
         try
         {
@@ -58,7 +58,7 @@ public class AuthRepository : IAuthRepository
     /// <param name="token">Refresh token.</param>
     /// <param name="date">Refresh token date.</param>
     /// <returns>User entity or null if not found. Exceptions are logged and rethrown.</returns>
-    public async Task<Users?> GetUserByRefreshToken(string token, DateTime date)
+    public async Task<Users?> GetUserByRefreshToken(string? token, DateTime date)
     {
         try
         {

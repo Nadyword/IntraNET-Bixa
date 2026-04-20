@@ -1,9 +1,10 @@
 ﻿using Bixa.Backend.DataAccess.Interfaces.Repositories;
 using Bixa.Backend.Services.Services.JwtControllers;
+using Bixa.Backend.Controllers.SecurityControllers;
 using Bixa.Backend.DataAccess.Wrappers;
 using Microsoft.AspNetCore.Authorization;
 using Bixa.Backend.DataAccess.Context;
-using Bixa.Backend.SecurityControllers;
+using Bixa.Backend.Services.Interfaces;
 using Bixa.Backend.Models.DTOs;
 using Bixa.Backend.Models.Auth;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +19,9 @@ public class LoginController(IManejoJwt manejoJwt,
                        IConfiguration configuration,
                        LoggerWrapper loggerWrapper,
                        IAuthRepository authRepository,
-                       IUnitOfWork unitOfWork) : ControllerBase
+                       IUnitOfWork unitOfWork,
+                       IReadOnlyUnitOfWork _IReadOnlyUnitOfWork,
+                       ISendMailServices sendMailServices) : ControllerBase
 {
     private readonly IAuthRepository _authRepository = authRepository ?? throw new ArgumentNullException(nameof(authRepository));
     private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
@@ -26,6 +29,8 @@ public class LoginController(IManejoJwt manejoJwt,
     private readonly LoggerWrapper _loggerWrapper = loggerWrapper ?? throw new ArgumentNullException(nameof(loggerWrapper));
     private readonly IManejoJwt _manejoJwt = manejoJwt ?? throw new ArgumentNullException(nameof(manejoJwt));
     private readonly IUnitOfWork _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+    private readonly IReadOnlyUnitOfWork _readOnlyUnitOfWork = _IReadOnlyUnitOfWork ?? throw new ArgumentNullException(nameof(_IReadOnlyUnitOfWork));
+    private readonly ISendMailServices _sendMailServices = sendMailServices ?? throw new ArgumentNullException(nameof(sendMailServices));
 
     /// <summary>
     /// Authenticates a user and returns a JWT token along with a refresh token
@@ -101,11 +106,22 @@ public class LoginController(IManejoJwt manejoJwt,
     /// <param name="request">Token validation request</param>
     /// <returns>Validation result</returns>
     [AllowAnonymous]
-    [HttpPost("RecoverKey")]
+    [HttpPost("RetrievePassword")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-    public void RecoverKey([FromBody] UserCredentials request)
+    public async Task<IActionResult> RetrievePassword([FromBody] CiCheckRequestDTO request)
     {
+        if (string.IsNullOrWhiteSpace(request?.Ci))
+            return BadRequest(ApiResponse<object>.BadRequest(null, "La C.I es requerida."));
+
+        var email = await _readOnlyUnitOfWork.SnEmple.GetEmailByCiAsync(request.Ci);
+
+        if (string.IsNullOrEmpty(email))
+            return NotFound(ApiResponse<object>.NotFoundResponse("No se encontró ningún correo asociado a la C.I proporcionada."));
+
+        await _sendMailServices.SendMailRetrievePassword(email, "testToken");
+
+        return Ok(ApiResponse<string>.SuccessResponse(email, "Correo electrónico obtenido correctamente."));
     }
 }

@@ -12,14 +12,14 @@ public class EnumDescriptionNullableConverter<TEnum> : ValueConverter<TEnum?, st
     {
     }
 
-    public static string GetEnumDescription(TEnum value)
+    public static string? GetEnumDescription(TEnum value)
     {
         var fieldInfo = value.GetType().GetField(value.ToString());
         var descriptionAttribute = fieldInfo?.GetCustomAttribute<DescriptionAttribute>();
         return descriptionAttribute?.Description ?? value.ToString();
     }
 
-    private static TEnum GetEnumFromDescription(string description)
+    private static TEnum GetEnumFromDescription(string? description)
     {
         var type = typeof(TEnum);
         foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Static))

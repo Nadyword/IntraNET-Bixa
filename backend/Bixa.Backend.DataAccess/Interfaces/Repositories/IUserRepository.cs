@@ -25,23 +25,23 @@ public interface IUserRepository : IRepository<Users, int>
     /// </summary>
     /// <param name="email">The TaxId address of the user.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the user if found, otherwise null.</returns>
-    Task<Users?> GetUserByTaxIdAsync(string email);
+    Task<Users?> GetUserByTaxIdAsync(string? email);
 
     /// <summary>
     /// Retrieves a user by their refresh token and its expiration date.
     /// </summary>
-    /// <param name="token">The refresh token string.</param>
+    /// <param name="token">The refresh token string?.</param>
     /// <param name="date">The expiration date of the refresh token.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the user if found and the token is valid, otherwise null.</returns>
-    Task<Users?> GetUserByRefreshTokenAsync(string token, DateTime date);
+    Task<Users?> GetUserByRefreshTokenAsync(string? token, DateTime date);
 
     /// <summary>
     /// Saves the refresh token and its creation date for a specific user. Marks the user for update.
     /// </summary>
-    /// <param name="token">The refresh token string to save.</param>
+    /// <param name="token">The refresh token string? to save.</param>
     /// <param name="user">The user entity to update with the new token.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    Task SaveRefreshTokenAsync(string token, Users user);
+    Task SaveRefreshTokenAsync(string? token, Users user);
 
     /// <summary>
     /// Updates a user's password in the database. Marks the user for password update.

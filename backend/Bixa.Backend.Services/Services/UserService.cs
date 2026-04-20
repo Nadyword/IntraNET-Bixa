@@ -1,15 +1,15 @@
-﻿using Microsoft.Extensions.Logging;
-using AutoMapper;
-using Bixa.Backend.Services.Interfaces;
-using Bixa.Backend.Models.DTOs.UserModelDTO;
-using Bixa.Backend.Models.Response;
+﻿using Bixa.Backend.DataAccess.Interfaces.Repositories;
 using Bixa.Backend.Models.DTOs.KeyValuePairModelDTO;
-using Bixa.Backend.Models.Query;
-using Bixa.Backend.Models.Enums;
-using Bixa.Backend.Models.Utilities;
-using Bixa.Backend.DataAccess.Interfaces.Repositories;
-using Bixa.Backend.DataAccess.Entities;
+using Bixa.Backend.Models.DTOs.UserModelDTO;
 using Bixa.Backend.DataAccess.Wrappers;
+using Bixa.Backend.DataAccess.Entities;
+using Bixa.Backend.Services.Interfaces;
+using Bixa.Backend.Models.Response;
+using Bixa.Backend.Models.Utilities;
+using Bixa.Backend.Models.Enums;
+using Microsoft.Extensions.Logging;
+using Bixa.Backend.Models.Query;
+using AutoMapper;
 
 namespace Bixa.Backend.Services.Services;
 

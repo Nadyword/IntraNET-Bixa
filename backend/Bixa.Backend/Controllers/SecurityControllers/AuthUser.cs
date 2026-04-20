@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using Bixa.Backend.Models;
 using System.Text;
 
-namespace Bixa.Backend.SecurityControllers;
+namespace Bixa.Backend.Controllers.SecurityControllers;
 
 /// <summary>
 /// Handles user authentication and token operations (authentication, refresh, validation)

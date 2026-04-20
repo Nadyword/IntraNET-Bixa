@@ -5,6 +5,7 @@ namespace Bixa.Backend.Models.Enums;
 public enum BudgetaryItemEnum
 {
     #region RRHH
+
     [Description("PERSONAL DE PLANTA")]
     [LongValue(2152101000)]
     PERSONAL_DE_PLANTA,
@@ -24,9 +25,11 @@ public enum BudgetaryItemEnum
     [Description("OTRAS PRESTACIONES DE PERSONAL")]
     [LongValue(2152103999)]
     OTRAS_PRESTACIONES_DE_PERSONAL,
+
     #endregion RRHH
 
     #region BIENES DE SERVICIO Y CONSUMO
+
     [Description("ALIMENTOS Y BEBIDAS")]
     [LongValue(2152201000)]
     ALIMENTOS_Y_BEBIDAS,
@@ -311,7 +314,6 @@ public enum BudgetaryItemEnum
     [LongValue(2152211999)]
     OTROS_SERVICIOS_TECNICOS_Y_PROFESIONALES,
 
-
     [Description("GASTOS MENORES")]
     [LongValue(2152212002)]
     GASTOS_MENORES,
@@ -327,9 +329,11 @@ public enum BudgetaryItemEnum
     [Description("OTRAS INDEMNIZACIONES")]
     [LongValue(2152303004)]
     OTRAS_INDEMNIZACIONES,
+
     #endregion BIENES DE SERVICIO Y CONSUMO
 
-    #region OTROS 
+    #region OTROS
+
     [Description("DEVOLUCIONES PPTO.")]
     [LongValue(2152601001)]
     DEVOLUCIONES_PPTO,
@@ -357,6 +361,7 @@ public enum BudgetaryItemEnum
     #endregion OTROS
 
     #region MOBILIARIO MAQUINARIA ETC
+
     [Description("TERRENOS")]
     [LongValue(2152901000)]
     TERRENOS,
@@ -380,19 +385,17 @@ public enum BudgetaryItemEnum
     [Description("PROGRAMAS INFORMATICOS/SISTEMAS DE INFORMACION")]
     [LongValue(2152907000)]
     PROGRAMAS_INFORMATICOS_SISTEMAS_DE_INFORMACION,
+
     #endregion MOBILIARIO MAQUINARIA ETC
-
-
-
 }
 
 [AttributeUsage(AttributeTargets.Field)]
 public class LongValueAttribute : Attribute
 {
-    public long Value { get; }
-
     public LongValueAttribute(long value)
     {
         Value = value;
     }
+
+    public long Value { get; }
 }

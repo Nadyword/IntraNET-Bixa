@@ -12,7 +12,7 @@ public interface IAuthRepository
     /// </summary>
     /// <param name="email">User TaxID.</param>
     /// <returns>The User entity if found, otherwise null.</returns>
-    Task<Users?> GetUserByTaxId(string email);
+    Task<Users?> GetUserByTaxId(string? email);
 
     /// <summary>
     /// Retrieves a user by refresh token and date.
@@ -20,7 +20,7 @@ public interface IAuthRepository
     /// <param name="token">Refresh token.</param>
     /// <param name="date">Refresh token date.</param>
     /// <returns>The User entity if found, otherwise null.</returns>
-    Task<Users?> GetUserByRefreshToken(string token, DateTime date);
+    Task<Users?> GetUserByRefreshToken(string? token, DateTime date);
 
     /// <summary>
     /// Updates a user entity (e.g., setting refresh token details).

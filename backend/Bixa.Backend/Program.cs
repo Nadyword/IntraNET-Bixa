@@ -19,9 +19,18 @@ builder.Services.AddDbContext<AppDbContext>(
     o => o.UseSqlServer(connString, x => x.MigrationsAssembly("Bixa.Backend.DataAccess"))
 );
 
-builder.Services.AddAutoMapper(cfg => { }, typeof(BllMappingProfile).Assembly);
+var proxyConnString = builder.Configuration.GetConnectionString("DbProxi");
+if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DbProxi")))
+    proxyConnString = Environment.GetEnvironmentVariable("DbProxi");
 
-builder.Host.UseSerilog((hostContext, services, loggerConfiguration) => SerilogConfig.ConfigureSerilog(hostContext, loggerConfiguration), true);
+builder.Services.AddDbContext<ProxyDbContext>(
+    o => o.UseSqlServer(proxyConnString, x => x.MigrationsAssembly("Bixa.Backend.DataAccess"))
+          .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
+);
+
+builder.Services.AddAutoMapper(_ => { }, typeof(BllMappingProfile).Assembly);
+
+builder.Host.UseSerilog((hostContext, _, loggerConfiguration) => SerilogConfig.ConfigureSerilog(hostContext, loggerConfiguration), true);
 
 builder.Services.AddApplicationServices(builder.Configuration, builder.Environment);
 
@@ -29,10 +38,7 @@ builder.Services.ConfigureJwtAuthenticationAndServices(builder.Configuration);
 
 builder.Services.AddControllers()
     .AddControllersAsServices()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-    })
+    .AddJsonOptions(options => options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles)
     .ConfigureApiBehavior();
 
 builder.Services.AddFluentValidationAutoValidation()

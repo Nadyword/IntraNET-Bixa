@@ -145,10 +145,10 @@ public class UserRepository : IUserRepository
     /// <summary>
     /// Retrieves a user by their refresh token and its expiration date.
     /// </summary>
-    /// <param name="token">The refresh token string.</param>
+    /// <param name="token">The refresh token string?.</param>
     /// <param name="date">The expiration date of the refresh token.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the user if found and the token is valid, otherwise null.</returns>
-    public async Task<Users?> GetUserByRefreshTokenAsync(string token, DateTime date) =>
+    public async Task<Users?> GetUserByRefreshTokenAsync(string? token, DateTime date) =>
         await _context.Users.Include(x => x.UserRol).Where(u => u.RefreshTokenDate <= date && u.RefreshToken == token).FirstOrDefaultAsync();
 
     /// <summary>
@@ -156,16 +156,16 @@ public class UserRepository : IUserRepository
     /// </summary>
     /// <param name="taxId">The tax ID of the user.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the user if found, otherwise null.</returns>
-    public async Task<Users?> GetUserByTaxIdAsync(string taxId) =>
+    public async Task<Users?> GetUserByTaxIdAsync(string? taxId) =>
         await _context.Users.Include(x => x.UserRol).Where(u => u.TaxId == taxId).FirstOrDefaultAsync();
 
     /// <summary>
     /// Saves the refresh token and its creation date for a specific user. Marks the user for update.
     /// </summary>
-    /// <param name="token">The refresh token string to save.</param>
+    /// <param name="token">The refresh token string? to save.</param>
     /// <param name="user">The user entity to update with the new token.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public Task SaveRefreshTokenAsync(string token, Users user)
+    public Task SaveRefreshTokenAsync(string? token, Users user)
     {
         user.RefreshToken = token;
         user.RefreshTokenDate = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Utc);
