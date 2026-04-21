@@ -21,23 +21,23 @@ public static class Hasher
     /// <exception cref="ArgumentNullException">Thrown if the password is null.</exception>
     public static string HashPassword(string password)
     {
-        if (password == null) throw new ArgumentNullException(nameof(password));
-
+        ArgumentNullException.ThrowIfNull(password);
 
         byte[] salt = RandomNumberGenerator.GetBytes(SaltSize);
 
+        byte[] hash = Rfc2898DeriveBytes.Pbkdf2(
+            password,
+            salt,
+            Iterations,
+            HashAlgorithm,
+            HashSize
+        );
 
-        using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithm))
-        {
-            byte[] hash = pbkdf2.GetBytes(HashSize); // Get desired hash size
+        byte[] hashBytes = new byte[SaltSize + HashSize];
+        Array.Copy(salt, 0, hashBytes, 0, SaltSize);
+        Array.Copy(hash, 0, hashBytes, SaltSize, HashSize);
 
-            byte[] hashBytes = new byte[SaltSize + HashSize];
-            Array.Copy(salt, 0, hashBytes, 0, SaltSize);
-            Array.Copy(hash, 0, hashBytes, SaltSize, HashSize);
-
-            string savedPasswordHash = Convert.ToBase64String(hashBytes);
-            return savedPasswordHash;
-        }
+        return Convert.ToBase64String(hashBytes);
     }
 
     /// <summary>
@@ -50,8 +50,8 @@ public static class Hasher
     /// <exception cref="FormatException">Thrown if storedHash is not a valid Base64 string or has an invalid length.</exception>
     public static bool VerifyPassword(string enteredPassword, string storedHash)
     {
-        if (enteredPassword == null) throw new ArgumentNullException(nameof(enteredPassword));
-        if (storedHash == null) throw new ArgumentNullException(nameof(storedHash));
+        ArgumentNullException.ThrowIfNull(enteredPassword);
+        ArgumentNullException.ThrowIfNull(storedHash);
 
         byte[] hashBytes;
         try
@@ -69,17 +69,19 @@ public static class Hasher
         byte[] salt = new byte[SaltSize];
         Array.Copy(hashBytes, 0, salt, 0, SaltSize);
 
+        byte[] hash = Rfc2898DeriveBytes.Pbkdf2(
+            enteredPassword,
+            salt,
+            Iterations,
+            HashAlgorithm,
+            HashSize
+        );
 
-        using (var pbkdf2 = new Rfc2898DeriveBytes(enteredPassword, salt, Iterations, HashAlgorithm))
+        for (int i = 0; i < HashSize; i++)
         {
-            byte[] hash = pbkdf2.GetBytes(HashSize);
-
-            for (int i = 0; i < HashSize; i++)
+            if (hashBytes[i + SaltSize] != hash[i])
             {
-                if (hashBytes[i + SaltSize] != hash[i])
-                {
-                    return false; // Mismatch found
-                }
+                return false; // Mismatch found
             }
         }
 

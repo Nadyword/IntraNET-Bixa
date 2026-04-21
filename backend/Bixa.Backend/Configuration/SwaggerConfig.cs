@@ -1,5 +1,4 @@
-using Microsoft.Extensions.Options;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using System.Reflection;
 
 namespace Bixa.Backend.Configuration;
@@ -14,24 +13,18 @@ public static class SwaggerConfig
             c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
             {
                 Name = "Authorization",
-                Type = SecuritySchemeType.ApiKey,
+                Type = SecuritySchemeType.Http, // Cambio sugerido: En OpenAPI 3 para Bearer es mejor usar 'Http' en lugar de 'ApiKey'
                 Scheme = "Bearer",
                 BearerFormat = "JWT",
                 In = ParameterLocation.Header,
                 Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: \"Bearer 1safsfsdfdfd\"",
             });
-            c.AddSecurityRequirement(new OpenApiSecurityRequirement {
-                {
-                    new OpenApiSecurityScheme {
-                        Reference = new OpenApiReference {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "Bearer"
-                        }
-                    },
-                    Array.Empty<string>()
-                }
+
+            c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+            {
+                [new OpenApiSecuritySchemeReference("Bearer", document)] = []
             });
-            c.OperationFilter<SwaggerFileOperationFilter>();
+
             var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
             c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
         });

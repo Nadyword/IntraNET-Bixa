@@ -11,7 +11,7 @@ public static class ApiBehaviorConfig
         {
             options.InvalidModelStateResponseFactory = context =>
             {
-                CustomBadRequest problems = new CustomBadRequest(context);
+                CustomBadRequest problems = new(context);
                 return new ResponseService().CreateResponse(ApiResponse<object>.BadRequest(problems, problems?.Title ?? "Invalid Model State"));
             };
         });

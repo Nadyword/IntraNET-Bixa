@@ -48,7 +48,7 @@ public static class AuthConfigurationExtensions
                 ValidIssuer = jwtConfig.Issuer,
                 ValidAudience = jwtConfig.Audience,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfig.Llave)),
-                ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 },
+                ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
                 ClockSkew = TimeSpan.FromMinutes(5),
                 RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
             };

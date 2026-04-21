@@ -33,12 +33,11 @@ public static class SerilogConfig
             .Enrich.WithProperty("EnvironmentName", hostContext.HostingEnvironment.EnvironmentName)
             .MinimumLevel.Is(minimumLevel)
             .WriteTo.File(
-                path: Path.Combine(logsDirectory, $"log-{DateTime.UtcNow.ToString("yyyyMMdd")}-W{ISOWeek.GetWeekOfYear(DateTime.UtcNow)}.txt"),
-                rollingInterval: rollingInterval,
-                fileSizeLimitBytes: fileSizeLimitBytes,
-                retainedFileCountLimit: retainedFileCountLimit,
+                path: Path.Combine(logsDirectory, $"log-{DateTime.UtcNow:yyyyMMdd}-W{ISOWeek.GetWeekOfYear(DateTime.UtcNow)}.txt"),
                 restrictedToMinimumLevel: LogEventLevel.Information,
-                outputTemplate: outputTemplate
-            );
+                outputTemplate: outputTemplate,
+                fileSizeLimitBytes: fileSizeLimitBytes,
+                rollingInterval: rollingInterval,
+                retainedFileCountLimit: retainedFileCountLimit);
     }
 }
