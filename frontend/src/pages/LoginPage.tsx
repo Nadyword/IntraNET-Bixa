@@ -71,10 +71,10 @@ export const LoginPage: React.FC = () => {
 
           <form onSubmit={handleLogin}>
             <div className="form-group">
-              <label className="form-label">Usuario</label>
+              <label className="form-label">Cedula</label>
               <input
                 type="text"
-                placeholder="Usuario"
+                placeholder="Cedula"
                 value={taxId}
                 onChange={(e) => setTaxId(e.target.value)}
                 required

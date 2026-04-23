@@ -1,11 +1,12 @@
-using Bixa.Backend.DataAccess.Entities.DbProxy;
+using Bixa.Backend.DataAccess.Entities.DbProfit;
 using Microsoft.EntityFrameworkCore;
 
 namespace Bixa.Backend.DataAccess.Context;
 
-public class ProxyDbContext(DbContextOptions<ProxyDbContext> options) : DbContext(options)
+public class ProfitDbContext(DbContextOptions<ProfitDbContext> options) : DbContext(options)
 {
     public virtual DbSet<SnEmple> SnEmple { get; set; }
+    public virtual DbSet<GrupoFa> GrupoFa { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -17,5 +18,6 @@ public class ProxyDbContext(DbContextOptions<ProxyDbContext> options) : DbContex
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<SnEmple>().HasNoKey();
+        modelBuilder.Entity<GrupoFa>().HasNoKey();
     }
 }

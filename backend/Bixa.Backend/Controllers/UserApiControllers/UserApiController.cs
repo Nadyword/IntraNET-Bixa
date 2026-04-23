@@ -1,14 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using AutoMapper;
+﻿using Bixa.Backend.Models.DTOs.UserModelDTO;
+using Bixa.Backend.DataAccess.Wrappers;
+using Bixa.Backend.Services.Interfaces;
+using Bixa.Backend.Models.Response;
+using Bixa.Backend.Models.Enums;
+using Bixa.Backend.Models.Query;
+using Microsoft.AspNetCore.Mvc;
 using Bixa.Backend.Models;
 using Bixa.Backend.Base;
-using Bixa.Backend.Services.Interfaces;
-using Bixa.Backend.Models.DTOs.UserModelDTO;
-using Bixa.Backend.Models.Response;
-using Bixa.Backend.Models.Query;
-using Bixa.Backend.Models.Enums;
-using Bixa.Backend.DataAccess.Context;
-using Bixa.Backend.DataAccess.Wrappers;
+using AutoMapper;
 
 namespace Bixa.Backend.Controllers.UserApiControllers;
 
@@ -19,17 +18,15 @@ namespace Bixa.Backend.Controllers.UserApiControllers;
 /// <remarks>
 /// Initializes a new instance of the UserApiController.
 /// </remarks>
-/// <param name="dbContext">Database context dependency.</param>
 /// <param name="mapper">AutoMapper instance for DTO conversions.</param>
 /// <param name="loggerWrapper">Logger wrapper for logging operations.</param>
 /// <param name="userService">The user service instance for business logic.</param>
 [ApiController]
 [Route("api/users")]
 public class UserApiController(
-    AppDbContext dbContext,
     IMapper mapper,
     LoggerWrapper loggerWrapper,
-    IUserService userService) : BaseApiController(dbContext, mapper, loggerWrapper)
+    IUserService userService) : BaseApiController(mapper, loggerWrapper)
 {
     private readonly IUserService _userService = userService;
 
@@ -46,8 +43,8 @@ public class UserApiController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CreateUser([FromBody] UserInsertDTO user)
     {
-        // Solo los administradores pueden crear usuarios.
-        var authResult = RequireUserRol(UserRolEnum.Administrator);
+        // Solo los superintendentes pueden crear usuarios.
+        var authResult = RequireUserRol(UserRolEnum.SuperIntendente);
         if (authResult != null) return authResult;
 
         var result = await _userService.AddAsync(user);
@@ -67,7 +64,7 @@ public class UserApiController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> DeleteUser(int id)
     {
-        var authResult = RequireUserRol(UserRolEnum.Administrator);
+        var authResult = RequireUserRol(UserRolEnum.SuperIntendente);
         if (authResult != null) return authResult;
 
         var result = await _userService.DeleteAsync(id);
@@ -87,7 +84,7 @@ public class UserApiController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetUserById(int id)
     {
-        var authResult = RequireUserRol(UserRolEnum.Administrator, UserRolEnum.Viewer);
+        var authResult = RequireUserRol(UserRolEnum.SuperIntendente, UserRolEnum.Empleado);
         if (authResult != null) return authResult;
 
         var result = await _userService.GetUserByIdAsync(id);
@@ -107,7 +104,7 @@ public class UserApiController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetUsers([FromQuery] SearchQuery<UserFilterDTO> filters)
     {
-        var authResult = RequireUserRol(UserRolEnum.Administrator, UserRolEnum.Viewer);
+        var authResult = RequireUserRol(UserRolEnum.SuperIntendente, UserRolEnum.Empleado);
         if (authResult != null) return authResult;
 
         var result = await _userService.GetAllAsync(filters);
@@ -129,7 +126,7 @@ public class UserApiController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> UpdateUser(int id, [FromBody] UserEditDTO userEdited)
     {
-        var authResult = RequireUserRol(UserRolEnum.Administrator);
+        var authResult = RequireUserRol(UserRolEnum.SuperIntendente);
         if (authResult != null) return authResult;
 
         var validationError = ValidateRequest(
@@ -159,7 +156,7 @@ public class UserApiController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> UpdateUserPassword(int id, [FromBody] UserChangePasswordDTO passwordChange)
     {
-        var authResult = RequireUserRol(UserRolEnum.Administrator);
+        var authResult = RequireUserRol(UserRolEnum.SuperIntendente);
         if (authResult != null) return authResult;
 
         var validationError = ValidateRequest(

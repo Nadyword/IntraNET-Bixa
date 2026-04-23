@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { useUserProfileStore } from '../store/userProfileStore';
+import { userService } from '../services/userService';
 import authService from '../services/authService';
 import './FirstLoginPage.css';
 
@@ -8,6 +10,7 @@ export const FirstLoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login } = useAuthStore();
+  const { setProfile, setError: setProfileError } = useUserProfileStore();
 
   const token = searchParams.get('token') ?? '';
   const taxId = searchParams.get('taxId') ?? '';
@@ -47,6 +50,11 @@ export const FirstLoginPage: React.FC = () => {
       }
 
       login(response.data.token, response.data.refreshToken);
+
+      userService.getProfile(taxId)
+        .then(({ data: res }) => { if (res.success) setProfile(res.data); })
+        .catch(() => setProfileError('No se pudo cargar el perfil del empleado'));
+
       navigate('/home');
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Error al establecer la contraseña';

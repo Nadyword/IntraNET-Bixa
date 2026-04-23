@@ -1,11 +1,15 @@
 import React from 'react';
 import { useAuthStore } from '../../store/authStore';
+import { useUserProfileStore } from '../../store/userProfileStore';
 import { useUIStore } from '../../store/uiStore';
 import './TopHeader.css';
 
 export const TopHeader: React.FC = () => {
-  const { user, logout } = useAuthStore();
+  const { logout } = useAuthStore();
+  const { profile } = useUserProfileStore();
   const { toggleSidebar, toggleNotifPanel } = useUIStore();
+
+  const inicial = profile?.nombres?.charAt(0) ?? 'U';
 
   return (
     <header className="top-header">
@@ -25,7 +29,7 @@ export const TopHeader: React.FC = () => {
           🔔
           <span className="notif-badge"></span>
         </button>
-        <div className="user-avatar">{user?.nombre?.charAt(0) || 'U'}</div>
+        <div className="user-avatar">{inicial}</div>
         <button className="btn btn-sm btn-outline" onClick={logout}>
           Salir
         </button>

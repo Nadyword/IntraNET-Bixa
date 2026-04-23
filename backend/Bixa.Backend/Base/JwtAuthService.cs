@@ -1,7 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.Options;
 using Bixa.Backend.Models.Enums;
+using Microsoft.Extensions.Options;
 using Bixa.Backend.Models.Query;
 using Bixa.Backend.Models.Auth;
 using System.Security.Claims;
@@ -9,21 +9,14 @@ using System.Text;
 
 namespace Bixa.Backend.Base;
 
-public class JwtAuthService : IJwtAuthService
+public class JwtAuthService(
+    IOptions<JwtConfiguration> jwtConfig,
+    IHttpContextAccessor httpContextAccessor,
+    ILogger<JwtAuthService> logger) : IJwtAuthService
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly JwtConfiguration _jwtConfig;
-    private readonly ILogger<JwtAuthService> _logger;
-
-    public JwtAuthService(
-        IOptions<JwtConfiguration> jwtConfig,
-        IHttpContextAccessor httpContextAccessor,
-        ILogger<JwtAuthService> logger)
-    {
-        _jwtConfig = jwtConfig.Value ?? throw new ArgumentNullException(nameof(jwtConfig), "JWT configuration cannot be null.");
-        _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+    private readonly JwtConfiguration _jwtConfig = jwtConfig.Value ?? throw new ArgumentNullException(nameof(jwtConfig), "JWT configuration cannot be null.");
+    private readonly ILogger<JwtAuthService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public ClaimsPrincipal? DecodeToken(string? token)
     {
@@ -49,8 +42,7 @@ public class JwtAuthService : IJwtAuthService
                 ClockSkew = TimeSpan.FromMinutes(5)
             };
 
-            SecurityToken validatedToken;
-            ClaimsPrincipal principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out validatedToken);
+            ClaimsPrincipal principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken validatedToken);
 
             return principal;
         }
@@ -92,10 +84,10 @@ public class JwtAuthService : IJwtAuthService
         (int supervisorId, bool isAdmin) GetSupervisorClaims(ClaimsPrincipal principalLocal)
         {
             var supervisorClaim = principalLocal?.FindFirstValue("SupervisorId");
-            int.TryParse(supervisorClaim, out var parsedSupervisorId);
+            _ = int.TryParse(supervisorClaim, out int parsedSupervisorId);
 
-            var isAdminUser = principalLocal?.IsInRole(UserRolEnum.Administrator.ToString()) == true ||
-                            principalLocal?.IsInRole(UserRolEnum.Administrator.ToString()) == true;
+            var isAdminUser = principalLocal?.IsInRole(nameof(UserRolEnum.SuperIntendente)) == true ||
+                            principalLocal?.IsInRole(nameof(UserRolEnum.Gerente)) == true;
 
             return (parsedSupervisorId, !isAdminUser);
         }
@@ -120,17 +112,17 @@ public class JwtAuthService : IJwtAuthService
             throw new InvalidOperationException("No user principal available in HTTP context.");
         }
 
-        if (user.IsInRole(UserRolEnum.Administrator.ToString()))
-            return (UserRolEnum.Administrator, GetUserIdFromClaims(user));
+        if (user.IsInRole(nameof(UserRolEnum.SuperIntendente)))
+            return (UserRolEnum.SuperIntendente, GetUserIdFromClaims(user));
 
-        if (user.IsInRole(UserRolEnum.Administrator.ToString()))
-            return (UserRolEnum.Administrator, GetUserIdFromClaims(user));
+        if (user.IsInRole(nameof(UserRolEnum.Gerente)))
+            return (UserRolEnum.Gerente, GetUserIdFromClaims(user));
 
-        if (user.IsInRole(UserRolEnum.Requester.ToString()))
-            return (UserRolEnum.Requester, GetUserIdFromClaims(user));
+        if (user.IsInRole(nameof(UserRolEnum.Supervisor)))
+            return (UserRolEnum.Supervisor, GetUserIdFromClaims(user));
 
-        if (user.IsInRole(UserRolEnum.Executive.ToString()))
-            return (UserRolEnum.Executive, GetUserIdFromClaims(user));
+        if (user.IsInRole(nameof(UserRolEnum.Empleado)))
+            return (UserRolEnum.Empleado, GetUserIdFromClaims(user));
 
         _logger.LogWarning("User has no recognized role: {Roles}", string.Join(", ", user.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value)));
 
@@ -139,10 +131,10 @@ public class JwtAuthService : IJwtAuthService
 
     public string? GetToken()
     {
-        var authorizationHeader = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].FirstOrDefault();
+        var authorizationHeader = _httpContextAccessor.HttpContext?.Request.Headers.Authorization.FirstOrDefault();
 
-        if (authorizationHeader != null && authorizationHeader.StartsWith("Bearer "))
-            return authorizationHeader.Substring("Bearer ".Length);
+        if (authorizationHeader?.StartsWith("Bearer ") == true)
+            return authorizationHeader["Bearer ".Length..];
 
         return null;
     }
@@ -160,7 +152,7 @@ public class JwtAuthService : IJwtAuthService
         return int.TryParse(userIdClaim, out var id) ? id : null;
     }
 
-    private int? GetUserIdFromClaims(ClaimsPrincipal user)
+    private static int? GetUserIdFromClaims(ClaimsPrincipal user)
     {
         var userIdClaim = user.FindFirst("id")?.Value;
         return int.TryParse(userIdClaim, out var id) ? id : null;

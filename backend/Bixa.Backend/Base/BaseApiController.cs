@@ -1,12 +1,11 @@
-using Microsoft.AspNetCore.Mvc;
-using AutoMapper;
-using Bixa.Backend.Models;
+using Bixa.Backend.DataAccess.Wrappers;
 using Bixa.Backend.Controllers.Services;
 using Bixa.Backend.Models.Response;
 using Bixa.Backend.Models.Enums;
 using Bixa.Backend.Models.Utilities;
-using Bixa.Backend.DataAccess.Context;
-using Bixa.Backend.DataAccess.Wrappers;
+using Microsoft.AspNetCore.Mvc;
+using Bixa.Backend.Models;
+using AutoMapper;
 
 namespace Bixa.Backend.Base;
 
@@ -18,14 +17,12 @@ namespace Bixa.Backend.Base;
 /// <remarks>
 /// Initializes a new instance of the BaseApiController.
 /// </remarks>
-/// <param name="dbContext">Database context dependency.</param>
 /// <param name="mapper">AutoMapper instance for DTO conversions.</param>
 /// <param name="loggerWrapper">The logger wrapper for creating type-specific loggers.</param>
 [ApiController]
 [Route("api/[controller]/[action]")]
-public abstract class BaseApiController(AppDbContext dbContext, IMapper mapper, LoggerWrapper loggerWrapper) : ControllerBase
+public abstract class BaseApiController(IMapper mapper, LoggerWrapper loggerWrapper) : ControllerBase
 {
-    protected readonly AppDbContext _context = dbContext;
     protected readonly HandleError _handleError = new();
     protected readonly ILogger<BaseApiController> _logger = loggerWrapper.CreateLogger<BaseApiController>();
     protected readonly IMapper _mapper = mapper;

@@ -1,32 +1,29 @@
-using Microsoft.AspNetCore.Mvc;
-using AutoMapper;
+using Bixa.Backend.Models.DTOs.NotificationModelDTO;
+using Bixa.Backend.DataAccess.Wrappers;
 using Microsoft.AspNetCore.Authorization;
-using Bixa.Backend.Models;
-using Bixa.Backend.Base;
 using Bixa.Backend.Services.Interfaces;
 using Bixa.Backend.Models.Response;
 using Bixa.Backend.Models.Query;
-using Bixa.Backend.Models.DTOs.NotificationModelDTO;
-using Bixa.Backend.DataAccess.Context;
-using Bixa.Backend.DataAccess.Wrappers;
+using Microsoft.AspNetCore.Mvc;
+using Bixa.Backend.Models;
+using Bixa.Backend.Base;
+using AutoMapper;
 
 namespace Bixa.Backend.Controllers.NotificationApiControllers;
 
 /// <summary>
 /// Initializes a new instance of the <see cref="NotificationApiController"/> class.
 /// </summary>
-/// <param name="dbContext">Database context dependency.</param>
 /// <param name="mapper">AutoMapper instance for DTO conversions.</param>
 /// <param name="loggerWrapper">Logger wrapper instance for logging.</param>
 /// <param name="notificationService">The user notification service instance for business logic.</param>
 [ApiController]
 [Route("api/notificationsApi")]
 public class NotificationApiController(
-    AppDbContext dbContext,
     IMapper mapper,
     LoggerWrapper loggerWrapper,
     INotificationService notificationService
-        ) : BaseApiController(dbContext, mapper, loggerWrapper)
+        ) : BaseApiController(mapper, loggerWrapper)
 {
     private readonly INotificationService _notificationService = notificationService;
 

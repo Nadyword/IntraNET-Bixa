@@ -1,20 +1,22 @@
 using Bixa.Backend.DataAccess.Context;
-using Bixa.Backend.DataAccess.Entities.DbProxy;
-using Bixa.Backend.DataAccess.Interfaces.Repositories.Proxy;
-using Bixa.Backend.DataAccess.Templates.Proxy;
+using Bixa.Backend.DataAccess.Entities.DbProfit;
+using Bixa.Backend.DataAccess.Interfaces.Repositories.Profit;
+using Bixa.Backend.DataAccess.Templates.Profit;
+using Bixa.Backend.Models.DTOs.UserModelDTO;
+using Bixa.Backend.Models.Enums;
 using Bixa.Backend.Models.Query;
 using Bixa.Backend.Models.Response;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace Bixa.Backend.DataAccess.Repository.Proxy;
+namespace Bixa.Backend.DataAccess.Repository.Profit;
 
 // Repositorio de ejemplo para la BD secundaria.
-// Usa FromSqlRaw con las constantes de ExampleProxySqlTemplates.
-public class SnEmpleProxyRepository(ProxyDbContext context) : ISnEmpleProxyRepository
+// Usa FromSqlRaw con las constantes de ExampleProfitSqlTemplates.
+public class SnEmpleProfitRepository(ProfitDbContext context) : ISnEmpleProfitRepository
 {
-    private readonly ProxyDbContext _context = context;
+    private readonly ProfitDbContext _context = context;
 
     public async Task<bool> AnyAsync(Expression<Func<SnEmple, bool>> predicate)
         => await _context.SnEmple.AnyAsync(predicate);
@@ -24,7 +26,7 @@ public class SnEmpleProxyRepository(ProxyDbContext context) : ISnEmpleProxyRepos
         var page = pagination ?? new Pagination();
 
         var items = await _context.SnEmple
-            .FromSqlRaw(ProxySqlTemplates.GetCiByEmai!)
+            .FromSqlRaw(ProfitSqlTemplates.GetByCi!)
             .Skip((page.PageNumber - 1) * page.PageSize)
             .Take(page.PageSize)
             .ToListAsync();
@@ -35,11 +37,23 @@ public class SnEmpleProxyRepository(ProxyDbContext context) : ISnEmpleProxyRepos
 
     public async Task<IEnumerable<SnEmple?>> GetByIdAsync(int id)
         => await _context.SnEmple
-            .FromSqlRaw(ProxySqlTemplates.GetCiByEmai!, id)
+            .FromSqlRaw(ProfitSqlTemplates.GetByCi!, id)
             .ToListAsync();
 
     public async Task<string?> GetEmailByCiAsync(string? ci)
     => (await _context.SnEmple
-        .FromSqlRaw(ProxySqlTemplates.GetCiByEmai!, new SqlParameter("@ci", ci))
+        .FromSqlRaw(ProfitSqlTemplates.GetEmailByCi!, new SqlParameter("@ci", ci))
         .FirstOrDefaultAsync())?.CorreoE;
+
+    public async Task<Result<SnEmple>> GetFullInfoByCiAsync(string? ci)
+    {
+        var emple = await _context.SnEmple
+            .FromSqlRaw(ProfitSqlTemplates.GetByCi!, new SqlParameter("@ci", ci))
+            .FirstOrDefaultAsync();
+
+        if (emple == null)
+            return Result.Fail<SnEmple>("Usuario no encontrado", ErrorTypeEnum.NotFound);
+
+        return Result.Success(emple);
+    }
 }

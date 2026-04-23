@@ -52,16 +52,16 @@ export const ActivateAccountPage: React.FC = () => {
 
       try {
         const result = await authService.validateToken(token);
-        if (result.valid) {
-          setTokenData(result);
+        if (result.data.valid) {
+          setTokenData(result.data);
           setFormData((prev) => ({
             ...prev,
-            cedula: result.cedula || '',
-            cargo: result.cargo || '',
+            cedula: result.data.cedula || '',
+            cargo: result.data.cargo || '',
           }));
         } else {
           setErrorMessage(
-            result.message || 'Token inválido o expirado. Por favor, solicita un nuevo enlace.'
+            result.data.message || 'Token inválido o expirado. Por favor, solicita un nuevo enlace.'
           );
         }
       } catch (error) {

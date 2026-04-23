@@ -2,6 +2,7 @@
 using Bixa.Backend.Services.Services.JwtControllers;
 using Bixa.Backend.DataAccess.Wrappers;
 using Bixa.Backend.DataAccess.Context;
+using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.Controllers.Services;
 using System.IdentityModel.Tokens.Jwt;
 using Bixa.Backend.Services.Services;
@@ -116,6 +117,16 @@ public class AuthUser
             success => _responseService.CreateResponse(ApiResponse<LoginDTO>.SuccessResponse(success)),
             error => _handleError.HandleErrorResult(error)
         );
+    }
+
+    /// <summary>
+    /// Refreshes a JWT token using a refresh token
+    /// </summary>
+    /// <param name="users">User entity containing the refresh token</param>
+    /// <returns>Refresh token result</returns>
+    public async Task<string> RefreshToken(Users users)
+    {
+        return await _authService.Refresh(users);
     }
 
     /// <summary>

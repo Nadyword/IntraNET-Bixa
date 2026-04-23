@@ -19,12 +19,12 @@ builder.Services.AddDbContext<AppDbContext>(
     o => o.UseSqlServer(connString, x => x.MigrationsAssembly("Bixa.Backend.DataAccess"))
 );
 
-var proxyConnString = builder.Configuration.GetConnectionString("DbProxi");
+var ProfitConnString = builder.Configuration.GetConnectionString("DbProxi");
 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DbProxi")))
-    proxyConnString = Environment.GetEnvironmentVariable("DbProxi");
+    ProfitConnString = Environment.GetEnvironmentVariable("DbProxi");
 
-builder.Services.AddDbContext<ProxyDbContext>(
-    o => o.UseSqlServer(proxyConnString, x => x.MigrationsAssembly("Bixa.Backend.DataAccess"))
+builder.Services.AddDbContext<ProfitDbContext>(
+    o => o.UseSqlServer(ProfitConnString, x => x.MigrationsAssembly("Bixa.Backend.DataAccess"))
           .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)
 );
 
@@ -32,7 +32,7 @@ builder.Services.AddAutoMapper(_ => { }, typeof(BllMappingProfile).Assembly);
 
 builder.Host.UseSerilog((hostContext, _, loggerConfiguration) => SerilogConfig.ConfigureSerilog(hostContext, loggerConfiguration), true);
 
-builder.Services.AddApplicationServices(builder.Configuration, builder.Environment);
+builder.Services.AddApplicationServices();
 
 builder.Services.ConfigureJwtAuthenticationAndServices(builder.Configuration);
 
@@ -57,7 +57,6 @@ var configuration = app.Services.GetRequiredService<IConfiguration>();
 var appVersion = configuration["APP_VERSION"] ?? "LOCAL-DEBUG-NO-HASH";
 
 logger.LogInformation("Bixa Backend API Initialized.");
-logger.LogInformation("Version: {Version}", appVersion);
 
 app.UseMiddleware<ExceptionMiddleware>();
 

@@ -58,7 +58,7 @@ public class AuthService(
                 return Result.Fail<LoginDTO>("Credenciales inválidas", ErrorTypeEnum.Unauthorized);
             }
 
-            if (!Hasher.VerifyPassword(credentials.Password, user.PasswordHash))
+            if (!Hasher.VerifyPassword(credentials.Password, user!.PasswordHash!))
             {
                 Logger.LogWarning("Autenticación fallida para el usuario {UserId}: Contraseña inválida.", user.Id);
                 return Result.Fail<LoginDTO>("Credenciales inválidas", ErrorTypeEnum.Unauthorized);
@@ -182,6 +182,42 @@ public class AuthService(
         }
     }
 
+    /// <summary>
+    /// Refreshes a JWT token using a refresh token.
+    /// </summary>
+    /// <param name="user">User associated with the refresh token.</param>
+    /// <returns>Refreshed token or error result.</returns>
+    // Removed unused _lock field.
+    public async Task<string> Refresh(Users user)
+    {
+        if (string.IsNullOrWhiteSpace(user.RefreshToken))
+        {
+            return "Intento de refresco de token con token nulo o vacío.";
+        }
+
+        try
+        {
+            if (user == null)
+            {
+                return $"Fallo en el refresco del token {user!.RefreshToken}: Usuario no encontrado o token expirado/inválido.";
+            }
+
+            var (token, newRefreshToken) = await GenerateAndSaveRefreshToken(user).ConfigureAwait(false);
+
+            var result = new LoginDTO
+            {
+                Token = token,
+                RefreshToken = newRefreshToken,
+            };
+
+            return token;
+        }
+        catch (Exception ex)
+        {
+            return $"Error al refrescar token con token {user.RefreshToken}. Error: {ex.Message}";
+        }
+    }
+
     #region Private Methods
 
     /// <summary>
@@ -228,7 +264,7 @@ public class AuthService(
         {
             Id = user.Id,
             Name = user.FirstName ?? "",
-            Email = user.TaxId ?? "",
+            Ci = user.TaxId ?? "",
             RolName = userRolName,
             RolId = userRolIdEnum
         };

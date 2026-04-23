@@ -95,7 +95,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 LastName = "Sanchez",
                 IsActive = true,
                 TaxId = "26.624.498",
-                IdUserRol = (int)UserRolEnum.Administrator,
+                IdUserRol = (int)UserRolEnum.SuperIntendente,
                 CreatedAt = new DateTime(2025, 1, 1),
                 UpdatedAt = new DateTime(2025, 1, 1),
                 ModifiedById = null,

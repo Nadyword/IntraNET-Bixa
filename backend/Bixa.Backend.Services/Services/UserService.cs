@@ -59,7 +59,7 @@ public class UserService(
 
             var userCreate = _mapper.Map<UserInsertDTO, Users>(userDto);
             userCreate.IsActive = true;
-            userCreate.PasswordHash = CheckIfNewPassword(userCreate.PasswordHash, string.Empty);
+            userCreate.PasswordHash = CheckIfNewPassword(userCreate.PasswordHash!, string.Empty);
 
             await _userRepository.AddAsync(userCreate);
             var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
@@ -105,7 +105,7 @@ public class UserService(
                 return Result.Fail<bool>("Usuario no encontrado.", ErrorTypeEnum.NotFound);
             }
 
-            if (userToDelete.IdUserRol == (int)UserRolEnum.Administrator)
+            if (userToDelete.IdUserRol == (int)UserRolEnum.SuperIntendente)
             {
                 var isLastAdmin = await CheckIfLastAdmin(userToDelete.IdUserRol);
 
@@ -283,7 +283,7 @@ public class UserService(
             }
 
             // Si pasa validación, hasheamos y asignamos la nueva contraseña
-            user.PasswordHash = CheckIfNewPassword(userEdited.Password ?? string.Empty, user.PasswordHash);
+            user.PasswordHash = CheckIfNewPassword(userEdited.Password ?? string.Empty, user.PasswordHash!);
 
             var successfullyMarked = await _userRepository.UpdateUserPasswordAsync(user);
 
@@ -317,7 +317,7 @@ public class UserService(
 
     private async Task<bool> CheckIfLastAdmin(int currentRoleId)
     {
-        const int AdminRoleId = (int)UserRolEnum.Administrator;
+        const int AdminRoleId = (int)UserRolEnum.SuperIntendente;
 
         if (currentRoleId == AdminRoleId)
             return await _unitOfWork.Users.CountAdminUsersAsync(AdminRoleId) <= 1;

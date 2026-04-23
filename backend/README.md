@@ -42,7 +42,7 @@ Bixa Backend es una solución basada en .NET 9 diseñada para gestionar y proces
 
      - Para aplicar las migraciones y actualizar la base de datos:
        ```bash
-       dotnet ef database update -p Bixa.Backend.DataAccess -s Bixa.Backend
+       dotnet ef database update --context AppDbContext -p Bixa.Backend.DataAccess -s Bixa.Backend
        ```
    ```
 

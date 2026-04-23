@@ -12,6 +12,29 @@ export interface ApiResponse<T> {
   statusCode: number;
 }
 
+export interface ValidateTokenResponse {
+  valid: boolean;
+  message?: string;
+  nombre?: string;
+  cedula?: string;
+  cargo?: string;
+}
+
+export interface ActivateAccountRequest {
+  token: string;
+  password: string;
+  confirmPassword: string;
+  telefono: string;
+  fechaNacimiento: Date;
+  cedula: string;
+  cargo: string;
+}
+
+export interface ActivateAccountResponse {
+  user: string;
+  token: string;
+}
+
 export const authService = {
   login: (taxId: string, password: string) =>
     api.post<ApiResponse<LoginDTO>>('/login/AuthenticateLogin', { taxId, password }),
@@ -20,10 +43,13 @@ export const authService = {
     api.post<ApiResponse<LoginDTO>>('/login/FirstLogin', { taxId, newPassword, token }),
 
   validateToken: (token: string) =>
-    api.post<{ valid: boolean; message?: string }>('/login/validateToken', { token }),
+    api.post<ValidateTokenResponse>('/login/validateToken', { token }),
 
   refreshToken: (refreshToken: string) =>
     api.post<ApiResponse<LoginDTO>>('/login/RefreshToken', { refreshToken }),
+
+  activateAccount: (data: ActivateAccountRequest) =>
+    api.post<ActivateAccountResponse>('/login/ActivateAccount', data).then((r) => r.data),
 };
 
 export default authService;

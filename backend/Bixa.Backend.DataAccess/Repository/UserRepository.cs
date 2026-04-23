@@ -1,11 +1,11 @@
-﻿using Bixa.Backend.DataAccess.Context;
-using Bixa.Backend.DataAccess.Entities;
+﻿using Bixa.Backend.Models.DTOs.KeyValuePairModelDTO;
 using Bixa.Backend.DataAccess.Interfaces.Repositories;
-using Bixa.Backend.Models.DTOs.KeyValuePairModelDTO;
-using Bixa.Backend.Models.Query;
+using Bixa.Backend.DataAccess.Context;
+using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.Models.Response;
-using Bixa.Backend.Models.Utilities;
 using Microsoft.EntityFrameworkCore;
+using Bixa.Backend.Models.Utilities;
+using Bixa.Backend.Models.Query;
 using System.Linq.Expressions;
 
 namespace Bixa.Backend.DataAccess.Repository;
@@ -13,19 +13,14 @@ namespace Bixa.Backend.DataAccess.Repository;
 /// <summary>
 /// Provides data access operations for User entities.
 /// </summary>
-public class UserRepository : IUserRepository
+/// <remarks>
+/// Initializes a new instance of the <see cref="UserRepository"/> class.
+/// </remarks>
+/// <param name="dbContext">The application's database context.</param>
+/// <exception cref="ArgumentNullException">Thrown if the provided database context is null.</exception>
+public class UserRepository(AppDbContext dbContext) : IUserRepository
 {
-    private readonly AppDbContext _context;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="UserRepository"/> class.
-    /// </summary>
-    /// <param name="dbContext">The application's database context.</param>
-    /// <exception cref="ArgumentNullException">Thrown if the provided database context is null.</exception>
-    public UserRepository(AppDbContext dbContext)
-    {
-        _context = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-    }
+    private readonly AppDbContext _context = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
 
     /// <summary>
     /// Adds a new user to the database. Marks the user for addition.
@@ -133,9 +128,6 @@ public class UserRepository : IUserRepository
 
         // Aplicar filtros genéricos
         query = query.ApplyFilters(filters);
-
-        var keyPropertyName = string.IsNullOrWhiteSpace(config.KeyField) ? "Id" : config.KeyField;
-        var valuePropertyName = string.IsNullOrWhiteSpace(config.ValueField) ? "Name" : config.ValueField;
 
         var projectedQuery = query.ApplyKeyValueProjection(config);
 

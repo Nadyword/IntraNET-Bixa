@@ -1,4 +1,4 @@
-using Bixa.Backend.DataAccess.Interfaces.Repositories.Proxy;
+using Bixa.Backend.DataAccess.Interfaces.Repositories.Profit;
 
 namespace Bixa.Backend.DataAccess.Interfaces.Repositories;
 
@@ -8,14 +8,7 @@ namespace Bixa.Backend.DataAccess.Interfaces.Repositories;
 /// </summary>
 public interface IReadOnlyUnitOfWork : IDisposable
 {
-    // Agregar una propiedad por cada repositorio de la BD secundaria.
-    ISnEmpleProxyRepository SnEmple { get; }
+    ISnEmpleProfitRepository SnEmple { get; }
 
-    /// <summary>
-    /// Search for a user by Tax ID
-    /// </summary>
-    /// <param name="taxId">The Tax ID of the user</param>
-    /// <returns>Email of the user</returns>
-
-    Task<string?> GetUserByTaxidAsync(string? taxId);
+    IGrupoFaProfitRepository GrupoFa { get; }
 }

@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import { jwtDecode } from 'jwt-decode';
+import { useUserProfileStore } from './userProfileStore';
 
 export interface User {
   id: string;
   taxId: string;
-  nombre: string;
   role: string;
   rolId: string;
 }
@@ -35,9 +35,8 @@ function decodeUser(token: string): User | null {
     const decoded: any = jwtDecode(token);
     return {
       id: decoded.id || '',
-      taxId: decoded.email || '',
-      nombre: decoded.unique_name || decoded.name || '',
-      role: decoded.role || '',
+      taxId: decoded.ci || '',
+      role: decoded.Rol || '',
       rolId: decoded.RolId || '',
     };
   } catch {
@@ -46,8 +45,8 @@ function decodeUser(token: string): User | null {
 }
 
 export const useAuthStore = create<AuthState>((set, get) => {
-  const savedToken = localStorage.getItem('accessToken');
-  const savedRefresh = localStorage.getItem('refreshToken');
+  const savedToken = sessionStorage.getItem('accessToken');
+  const savedRefresh = sessionStorage.getItem('refreshToken');
 
   let initialToken: string | null = null;
   let initialUser: User | null = null;
@@ -57,8 +56,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
       initialToken = savedToken;
       initialUser = decodeUser(savedToken);
     } else {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      sessionStorage.removeItem('accessToken');
+      sessionStorage.removeItem('refreshToken');
     }
   }
 
@@ -69,15 +68,16 @@ export const useAuthStore = create<AuthState>((set, get) => {
     isAuthenticated: !!initialToken,
 
     login: (token: string, refreshToken: string) => {
-      localStorage.setItem('accessToken', token);
-      localStorage.setItem('refreshToken', refreshToken);
+      sessionStorage.setItem('accessToken', token);
+      sessionStorage.setItem('refreshToken', refreshToken);
       const user = decodeUser(token);
       set({ user, accessToken: token, refreshToken, isAuthenticated: true });
     },
 
     logout: () => {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      sessionStorage.removeItem('accessToken');
+      sessionStorage.removeItem('refreshToken');
+      useUserProfileStore.getState().clearProfile();
       set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
     },
 

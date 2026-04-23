@@ -19,20 +19,20 @@ public static class AuthorizationUtils
         services.AddSingleton<IAuthorizationPolicyProvider, AdministratorPolicyProvider>();
 
         services.AddAuthorizationBuilder()
-            .AddPolicy(UserRolEnum.Requester.GetDescriptionPolicy(), policy =>
-                policy.RequireRole(nameof(UserRolEnum.Requester)))
-            .AddPolicy(UserRolEnum.Executive.GetDescriptionPolicy(), policy =>
-                policy.RequireRole(nameof(UserRolEnum.Executive)))
-            .AddPolicy(UserRolEnum.Executive.GetDescriptionPolicy(), policy =>
-                policy.RequireRole(nameof(UserRolEnum.Executive)))
+            .AddPolicy(UserRolEnum.Gerente.GetDescriptionPolicy(), policy =>
+                policy.RequireRole(nameof(UserRolEnum.Gerente)))
+            .AddPolicy(UserRolEnum.SuperIntendente.GetDescriptionPolicy(), policy =>
+                policy.RequireRole(nameof(UserRolEnum.Supervisor)))
+            .AddPolicy(UserRolEnum.Supervisor.GetDescriptionPolicy(), policy =>
+                policy.RequireRole(nameof(UserRolEnum.Supervisor)))
             .AddPolicy("RequesterWithEstablishmentPolicy", policy =>
             {
-                policy.RequireRole(nameof(UserRolEnum.Requester));
+                policy.RequireRole(nameof(UserRolEnum.Gerente));
                 policy.RequireClaim("HasEstablishment", "true");
             })
             .AddPolicy("ExecutiveWithEstablishmentPolicy", policy =>
             {
-                policy.RequireRole(nameof(UserRolEnum.Executive));
+                policy.RequireRole(nameof(UserRolEnum.Supervisor));
                 policy.RequireClaim("HasEstablishment", "true");
             });
     }

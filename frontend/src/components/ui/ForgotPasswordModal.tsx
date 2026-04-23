@@ -36,7 +36,7 @@ export const ForgotPasswordModal: React.FC<Props> = ({ onClose }) => {
             <div className="modal-success-icon">✉</div>
             <h3>Usuario enviado</h3>
             <p>
-              Si el Usuario está registrado, recibirás un enlace para restablecer
+              Si el Cedula está registrado, recibirás un enlace para restablecer
               tu contraseña. Revisa también la bandeja de spam.
             </p>
             <button className="modal-btn-primary" onClick={onClose}>
@@ -46,14 +46,14 @@ export const ForgotPasswordModal: React.FC<Props> = ({ onClose }) => {
         ) : (
           <>
             <h3>Recuperar contraseña</h3>
-            <p>Ingresa tu Usuario y te enviaremos un enlace para restablecer tu contraseña.</p>
+            <p>Ingresa tu Cedula y te enviaremos un enlace para restablecer tu contraseña.</p>
 
             <form onSubmit={handleSubmit}>
               <div className="modal-field">
-                <label>Usuario</label>
+                <label>Cedula</label>
                 <input
-                  type="email"
-                  placeholder="Usuario a recuperar"
+                  type="text"
+                  placeholder="Cedula a recuperar"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

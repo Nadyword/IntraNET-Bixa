@@ -5,16 +5,10 @@ using System.Net;
 
 namespace Bixa.Backend.Controllers.Services;
 
-public class CustomUnauthorizedMiddleware
+public class CustomUnauthorizedMiddleware(RequestDelegate next, ILogger<CustomUnauthorizedMiddleware> logger)
 {
-    private readonly ILogger<CustomUnauthorizedMiddleware> _logger;
-    private readonly RequestDelegate _next;
-
-    public CustomUnauthorizedMiddleware(RequestDelegate next, ILogger<CustomUnauthorizedMiddleware> logger)
-    {
-        _next = next;
-        _logger = logger;
-    }
+    private readonly ILogger<CustomUnauthorizedMiddleware> _logger = logger;
+    private readonly RequestDelegate _next = next;
 
     public async Task Invoke(HttpContext context)
     {
@@ -48,8 +42,7 @@ public class CustomUnauthorizedMiddleware
                 var responseService = new ResponseService();
                 var formattedResponse = responseService.CreateResponse(apiResponse);
 
-                var objectResult = formattedResponse as Microsoft.AspNetCore.Mvc.ObjectResult;
-                if (objectResult != null)
+                if (formattedResponse is Microsoft.AspNetCore.Mvc.ObjectResult objectResult)
                 {
                     await context.Response.WriteAsync(JsonSerializer.Serialize(objectResult.Value));
                 }
@@ -57,7 +50,7 @@ public class CustomUnauthorizedMiddleware
         }
     }
 
-    private string FormatResponse(HttpResponse response)
+    private static string FormatResponse(HttpResponse response)
     {
         ApiResponse<object> apiResponse;
 
@@ -73,13 +66,13 @@ public class CustomUnauthorizedMiddleware
         var responseService = new ResponseService();
         var formattedResponse = responseService.CreateResponse(apiResponse);
 
-        var objectResult = formattedResponse as Microsoft.AspNetCore.Mvc.ObjectResult;
-        if (objectResult != null)
+        if (formattedResponse is Microsoft.AspNetCore.Mvc.ObjectResult objectResult)
         {
-            var serializerOptions = new JsonSerializerOptions
+            JsonSerializerOptions jsonSerializerOptions = new()
             {
                 ReferenceHandler = ReferenceHandler.IgnoreCycles
             };
+            var serializerOptions = jsonSerializerOptions;
             return JsonSerializer.Serialize(objectResult.Value, serializerOptions);
         }
 

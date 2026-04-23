@@ -1,7 +1,7 @@
 using Bixa.Backend.DataAccess.Interfaces.Repositories;
-using Bixa.Backend.DataAccess.Interfaces.Repositories.Proxy;
+using Bixa.Backend.DataAccess.Interfaces.Repositories.Profit;
 using Bixa.Backend.DataAccess.Repository;
-using Bixa.Backend.DataAccess.Repository.Proxy;
+using Bixa.Backend.DataAccess.Repository.Profit;
 using Bixa.Backend.DataAccess.UnitOfWork;
 using Bixa.Backend.DataAccess.Wrappers;
 using Bixa.Backend.Services.Interfaces;
@@ -18,10 +18,8 @@ public static class ServiceRegistrationExtensions
     /// to the Dependency Injection service collection.
     /// </summary>
     /// <param name="services">The service collection to which the services will be added.</param>
-    /// <param name="configuration">The application's configuration, used to retrieve values like allowed CORS origins.</param>
-    /// <param name="environment">The web hosting environment of the application (e.g., Development, Production), used for CORS configuration.</param>
     /// <returns>The same IServiceCollection instance for chaining.</returns>
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         // Infraestructura Central
         AddCoreInfrastructure(services);
@@ -30,7 +28,7 @@ public static class ServiceRegistrationExtensions
         AddRepositories(services);
 
         // Repositorios de solo lectura (BD secundaria)
-        AddProxyRepositories(services);
+        AddProfitRepositories(services);
 
         // Servicios de Lógica de Negocio
         AddServices(services);
@@ -103,9 +101,9 @@ public static class ServiceRegistrationExtensions
     /// <summary>
     /// Registra los repositorios y el UnitOfWork de solo lectura para la BD secundaria.
     /// </summary>
-    private static void AddProxyRepositories(IServiceCollection services)
+    private static void AddProfitRepositories(IServiceCollection services)
     {
-        services.AddScoped<ISnEmpleProxyRepository, SnEmpleProxyRepository>();
+        services.AddScoped<ISnEmpleProfitRepository, SnEmpleProfitRepository>();
         services.AddScoped<IReadOnlyUnitOfWork, ReadOnlyUnitOfWork>();
     }
 

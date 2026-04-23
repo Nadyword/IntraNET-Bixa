@@ -1,8 +1,8 @@
 import React from 'react';
-import { useAuthStore } from '../store/authStore';
+import { useUserProfileStore } from '../store/userProfileStore';
 
 export const HomePage: React.FC = () => {
-  const { user } = useAuthStore();
+  const { profile } = useUserProfileStore();
 
   return (
     <div>
@@ -22,15 +22,15 @@ export const HomePage: React.FC = () => {
             Bienvenida de nuevo
           </div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: '48px', letterSpacing: '2px', marginBottom: '12px' }}>
-            {user?.nombre?.split(' ')[0] || 'USUARIO'} <span style={{ color: 'var(--red)' }}>GARCÍA</span>
+            {profile?.nombres?.split(' ')[0] || 'USUARIO'} <span style={{ color: 'var(--red)' }}>{profile?.apellidos?.split(' ')[0] || ''}</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '24px' }}>
           <div style={{ fontSize: '13px' }}>
             <strong style={{ display: 'block', color: 'var(--white)', fontSize: '15px', marginBottom: '2px' }}>
-              {user?.cargo || 'Cargo'}
+              {profile?.desCargo || 'Cargo'}
             </strong>
-            <span style={{ opacity: 0.6 }}>Departamento de Manufactura</span>
+            <span style={{ opacity: 0.6 }}>{profile?.desDepart || 'Departamento'}</span>
           </div>
           <div style={{ fontSize: '13px' }}>
             <strong style={{ display: 'block', color: 'var(--white)', fontSize: '15px', marginBottom: '2px' }}>

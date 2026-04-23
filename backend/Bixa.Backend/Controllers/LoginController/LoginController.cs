@@ -1,16 +1,17 @@
-﻿using Bixa.Backend.DataAccess.Interfaces.Repositories;
-using Bixa.Backend.Services.Services.JwtControllers;
-using Bixa.Backend.Controllers.SecurityControllers;
-using Bixa.Backend.DataAccess.Wrappers;
-using Microsoft.AspNetCore.Authorization;
+﻿using Bixa.Backend.Controllers.SecurityControllers;
 using Bixa.Backend.DataAccess.Context;
-using Bixa.Backend.Services.Interfaces;
-using Bixa.Backend.Models.DTOs;
-using Bixa.Backend.Models.Auth;
-using Microsoft.AspNetCore.Mvc;
+using Bixa.Backend.DataAccess.Interfaces.Repositories;
+using Bixa.Backend.DataAccess.Wrappers;
 using Bixa.Backend.Models;
+using Bixa.Backend.Models.Auth;
+using Bixa.Backend.Models.DTOs;
+using Bixa.Backend.Services.Interfaces;
+using Bixa.Backend.Services.Services.JwtControllers;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Runtime.Intrinsics.X86;
 
-namespace Bixa.Backend.Controllers;
+namespace Bixa.Backend.Controllers.LoginController;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -112,15 +113,24 @@ public class LoginController(IManejoJwt manejoJwt,
     [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> RetrievePassword([FromBody] CiCheckRequestDTO request)
     {
-        if (string.IsNullOrWhiteSpace(request?.Ci))
+        if (string.IsNullOrWhiteSpace(request.Ci))
             return BadRequest(ApiResponse<object>.BadRequest(null, "La C.I es requerida."));
+
+        var user = await _unitOfWork.Users.GetUserByTaxIdAsync(request.Ci);
+
+        if (user == null)
+            return NotFound(ApiResponse<object>.NotFoundResponse("No se encontró ningún usuario asociado a la C.I proporcionada."));
 
         var email = await _readOnlyUnitOfWork.SnEmple.GetEmailByCiAsync(request.Ci);
 
-        if (string.IsNullOrEmpty(email))
+        if (email == null || string.IsNullOrWhiteSpace(email))
             return NotFound(ApiResponse<object>.NotFoundResponse("No se encontró ningún correo asociado a la C.I proporcionada."));
 
-        await _sendMailServices.SendMailRetrievePassword(email, "testToken");
+        var authUser = new AuthUser(_manejoJwt, _context, _loggerWrapper, _configuration, _authRepository, _unitOfWork);
+
+        string token = await authUser.RefreshToken(user);
+
+        await _sendMailServices.SendMailRetrievePassword(email, token);
 
         return Ok(ApiResponse<string>.SuccessResponse(email, "Correo electrónico obtenido correctamente."));
     }

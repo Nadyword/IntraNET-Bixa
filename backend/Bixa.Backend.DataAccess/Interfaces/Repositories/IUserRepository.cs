@@ -1,5 +1,5 @@
-using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.Models.DTOs.KeyValuePairModelDTO;
+using Bixa.Backend.DataAccess.Entities;
 
 namespace Bixa.Backend.DataAccess.Interfaces.Repositories;
 
@@ -23,9 +23,9 @@ public interface IUserRepository : IRepository<Users, int>
     /// <summary>
     /// Retrieves a user by their TaxId.
     /// </summary>
-    /// <param name="email">The TaxId address of the user.</param>
+    /// <param name="taxId">The TaxId of the user.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the user if found, otherwise null.</returns>
-    Task<Users?> GetUserByTaxIdAsync(string? email);
+    Task<Users?> GetUserByTaxIdAsync(string taxId);
 
     /// <summary>
     /// Retrieves a user by their refresh token and its expiration date.

@@ -1,7 +1,7 @@
-using Bixa.Backend.DataAccess.Context;
+using Bixa.Backend.DataAccess.Interfaces.Repositories.Profit;
 using Bixa.Backend.DataAccess.Interfaces.Repositories;
-using Bixa.Backend.DataAccess.Interfaces.Repositories.Proxy;
-using Bixa.Backend.DataAccess.Repository.Proxy;
+using Bixa.Backend.DataAccess.Repository.Profit;
+using Bixa.Backend.DataAccess.Context;
 
 namespace Bixa.Backend.DataAccess.UnitOfWork;
 
@@ -11,27 +11,23 @@ namespace Bixa.Backend.DataAccess.UnitOfWork;
 /// </summary>
 public class ReadOnlyUnitOfWork : IReadOnlyUnitOfWork
 {
-    private readonly ProxyDbContext _context;
+    private readonly ProfitDbContext _context;
     private bool _disposed = false;
 
-    public ReadOnlyUnitOfWork(ProxyDbContext context)
+    public ReadOnlyUnitOfWork(ProfitDbContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
-        SnEmple = new SnEmpleProxyRepository(_context);
+        SnEmple = new SnEmpleProfitRepository(_context);
+        GrupoFa = new GrupoFaProfitRepository(_context);
     }
 
-    public ISnEmpleProxyRepository SnEmple { get; private set; }
+    public ISnEmpleProfitRepository SnEmple { get; }
+    public IGrupoFaProfitRepository GrupoFa { get; }
 
     public void Dispose()
     {
         Dispose(true);
         GC.SuppressFinalize(this);
-    }
-
-    public async Task<string?> GetUserByTaxidAsync(string? taxId)
-    {
-        var user = await _context.SnEmple.FindAsync(taxId);
-        return user?.CorreoE ?? string.Empty;
     }
 
     protected virtual void Dispose(bool disposing)
