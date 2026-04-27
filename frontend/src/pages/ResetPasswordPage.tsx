@@ -8,12 +8,13 @@ export const ResetPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token') ?? '';
+  const TaxId = searchParams.get('taxId') ?? '';
 
   const [validating, setValidating] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
   const [tokenError, setTokenError] = useState('');
 
-  const [password, setPassword] = useState('');
+  const [NewPassword, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -28,7 +29,7 @@ export const ResetPasswordPage: React.FC = () => {
     }
 
     api
-      .get(`/auth/validate-reset-token?token=${token}`)
+      .post('/Login/validateToken', { token })
       .then(({ data }) => {
         if (data.valid) {
           setTokenValid(true);
@@ -46,19 +47,19 @@ export const ResetPasswordPage: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    if (password !== confirmPassword) {
+    if (NewPassword !== confirmPassword) {
       setError('Las contraseñas no coinciden.');
       return;
     }
 
-    if (password.length < 8) {
+    if (NewPassword.length < 8) {
       setError('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
 
     setLoading(true);
     try {
-      await api.post('/auth/reset-password', { token, password, confirmPassword });
+      await api.post('/Login/ChangePassword', { TaxId, NewPassword, token });
       setSuccess(true);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
@@ -124,28 +125,21 @@ export const ResetPasswordPage: React.FC = () => {
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">Nueva Contraseña</label>
-            <div className="password-input-wrapper">
+            <div className="NewPassword-input-wrapper">
               <input
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? 'text' : 'NewPassword'}
                 placeholder="Mínimo 8 caracteres"
-                value={password}
+                value={NewPassword}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-              <button
-                type="button"
-                className="password-toggle-btn"
-                onClick={() => setShowPassword((prev) => !prev)}
-              >
-                {showPassword ? 'Ocultar' : 'Mostrar'}
-              </button>
             </div>
           </div>
 
           <div className="form-group">
             <label className="form-label">Confirmar Contraseña</label>
             <input
-              type={showPassword ? 'text' : 'password'}
+              type={showPassword ? 'text' : 'NewPassword'}
               placeholder="Repite la contraseña"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}

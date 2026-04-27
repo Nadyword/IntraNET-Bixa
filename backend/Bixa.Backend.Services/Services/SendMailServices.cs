@@ -15,10 +15,10 @@ public class SendMailServices(IConfiguration configuration) : ISendMailServices
     private readonly bool enableSsl = bool.Parse(configuration["EmailSettings:EnableSsl"]!);
     private readonly string host = configuration["EmailSettings:Host"]!;
 
-    public async Task<bool> SendMailRetrievePassword(string destinatario, string Tokken)
+    public async Task<bool> SendMailRetrievePassword(string destinatario, string Tokken, string TaxId)
     {
         const string asunto = "Recuperación de contraseña";
-        var cuerpo = new RetrievePassword(host, Tokken).GetBodyMail();
+        var cuerpo = new RetrievePassword(host, Tokken, TaxId).GetBodyMail();
         try
         {
             var message = new MimeMessage();

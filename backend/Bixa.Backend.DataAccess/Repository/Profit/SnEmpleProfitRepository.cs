@@ -1,14 +1,13 @@
-using Bixa.Backend.DataAccess.Context;
-using Bixa.Backend.DataAccess.Entities.DbProfit;
 using Bixa.Backend.DataAccess.Interfaces.Repositories.Profit;
+using Bixa.Backend.DataAccess.Entities.DbProfit;
 using Bixa.Backend.DataAccess.Templates.Profit;
-using Bixa.Backend.Models.DTOs.UserModelDTO;
+using Bixa.Backend.DataAccess.Context;
+using Bixa.Backend.Models.Response;
+using Microsoft.EntityFrameworkCore;
 using Bixa.Backend.Models.Enums;
 using Bixa.Backend.Models.Query;
-using Bixa.Backend.Models.Response;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using Microsoft.Data.SqlClient;
 
 namespace Bixa.Backend.DataAccess.Repository.Profit;
 
@@ -40,12 +39,13 @@ public class SnEmpleProfitRepository(ProfitDbContext context) : ISnEmpleProfitRe
             .FromSqlRaw(ProfitSqlTemplates.GetByCi!, id)
             .ToListAsync();
 
-    public async Task<string?> GetEmailByCiAsync(string? ci)
-    => (await _context.SnEmple
-        .FromSqlRaw(ProfitSqlTemplates.GetEmailByCi!, new SqlParameter("@ci", ci))
-        .FirstOrDefaultAsync())?.CorreoE;
+    public async Task<string?> GetEmailByCiAsync(string ci)
+        => await _context.SnEmple
+            .FromSqlRaw(ProfitSqlTemplates.GetEmailByCi!, new SqlParameter("@ci", ci))
+            .Select(e => e.CorreoE)
+            .FirstOrDefaultAsync();
 
-    public async Task<Result<SnEmple>> GetFullInfoByCiAsync(string? ci)
+    public async Task<Result<SnEmple>> GetFullInfoByCiAsync(string ci)
     {
         var emple = await _context.SnEmple
             .FromSqlRaw(ProfitSqlTemplates.GetByCi!, new SqlParameter("@ci", ci))

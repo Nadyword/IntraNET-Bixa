@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -13,6 +14,7 @@ namespace Bixa.Backend.Controllers.Services
 
         public async Task HandleAsync(RequestDelegate next, HttpContext context, AuthorizationPolicy policy, PolicyAuthorizationResult authorizeResult)
         {
+            JsonSerializerOptions serializerOptions;
             if (authorizeResult == null)
             {
                 await _defaultHandler.HandleAsync(next, context, policy, authorizeResult!);
@@ -25,15 +27,14 @@ namespace Bixa.Backend.Controllers.Services
                     .SelectMany(r =>
                     {
                         var prop = r.GetType().GetProperty("AllowedRoles");
-                        if (prop == null) return Enumerable.Empty<string>();
-                        var value = prop.GetValue(r) as System.Collections.IEnumerable;
-                        if (value == null) return Enumerable.Empty<string>();
+                        if (prop == null) return [];
+                        if (prop.GetValue(r) is not System.Collections.IEnumerable value) return [];
                         return value.Cast<object>().Select(o => o?.ToString() ?? string.Empty);
                     })
                     .Where(s => !string.IsNullOrWhiteSpace(s))
                     .Distinct()
                     .ToArray()
-                    ?? System.Array.Empty<string>();
+                    ?? [];
 
                 string message = allowedRoles.Length > 0
                     ? $"Acceso denegado: se requiere uno de los roles: {string.Join(", ", allowedRoles)}."
@@ -47,7 +48,7 @@ namespace Bixa.Backend.Controllers.Services
                 var responseService = context.RequestServices.GetService<ResponseService>() ?? new ResponseService();
                 var formatted = responseService.CreateResponse(apiResponse) as ObjectResult;
 
-                var serializerOptions = new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.IgnoreCycles };
+                serializerOptions = new() { ReferenceHandler = ReferenceHandler.IgnoreCycles };
                 var payload = JsonSerializer.Serialize(formatted?.Value, serializerOptions);
 
                 await context.Response.WriteAsync(payload ?? string.Empty);
@@ -63,7 +64,7 @@ namespace Bixa.Backend.Controllers.Services
                 var responseService = context.RequestServices.GetService<ResponseService>() ?? new ResponseService();
                 var formatted = responseService.CreateResponse(apiResponse) as ObjectResult;
 
-                var serializerOptions = new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.IgnoreCycles };
+                serializerOptions = new() { ReferenceHandler = ReferenceHandler.IgnoreCycles };
                 var payload = JsonSerializer.Serialize(formatted?.Value, serializerOptions);
 
                 await context.Response.WriteAsync(payload ?? string.Empty);

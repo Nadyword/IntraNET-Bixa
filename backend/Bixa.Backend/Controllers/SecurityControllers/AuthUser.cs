@@ -5,6 +5,7 @@ using Bixa.Backend.DataAccess.Context;
 using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.Controllers.Services;
 using System.IdentityModel.Tokens.Jwt;
+using Bixa.Backend.Services.Interfaces;
 using Bixa.Backend.Services.Services;
 using Microsoft.IdentityModel.Tokens;
 using Bixa.Backend.Models.Utilities;
@@ -24,41 +25,46 @@ public class AuthUser
     private readonly IAuthRepository _authRepository;
     private readonly AuthService _authService;
     private readonly IConfiguration _configuration;
-    private readonly AppDbContext _context;
     private readonly HandleError _handleError;
     private readonly ILogger<AuthUser> _logger;
     private readonly IManejoJwt _manejoJwt;
     private readonly ResponseService _responseService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IReadOnlyUnitOfWork _readOnlyUnitOfWork;
+    private readonly ISendMailServices _sendMailServices;
 
     /// <summary>
     /// Initializes a new instance of the AuthUser
     /// </summary>
     /// <param name="manejoJwt">JWT management service</param>
-    /// <param name="context">Database context</param>
     /// <param name="loggerWrapper">Logger wrapper instance</param>
     /// <param name="configuration">Application configuration</param>
-    /// <param name="authRepository">The repository for authentication data access.</param> // New param
-    /// <param name="unitOfWork">The Unit of Work for managing database transactions.</param> // New param
+    /// <param name="authRepository">The repository for authentication data access.</param>
+    /// <param name="unitOfWork">The Unit of Work for managing database transactions.</param>
+    /// <param name="readOnlyUnitOfWork">The Read-Only Unit of Work for read-only database operations.</param>
+    /// <param name="sendMailServices">Service for sending emails.</param>
     public AuthUser(IManejoJwt manejoJwt,
-                    AppDbContext context,
                     LoggerWrapper loggerWrapper,
                     IConfiguration configuration,
                     IAuthRepository authRepository,
-                    IUnitOfWork unitOfWork)
+                    IUnitOfWork unitOfWork,
+                    IReadOnlyUnitOfWork readOnlyUnitOfWork,
+                    ISendMailServices sendMailServices)
     {
         _manejoJwt = manejoJwt ?? throw new ArgumentNullException(nameof(manejoJwt));
-        _context = context ?? throw new ArgumentNullException(nameof(context));
         _logger = loggerWrapper?.CreateLogger<AuthUser>() ?? throw new ArgumentNullException(nameof(loggerWrapper));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _authRepository = authRepository ?? throw new ArgumentNullException(nameof(authRepository));
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        _readOnlyUnitOfWork = readOnlyUnitOfWork ?? throw new ArgumentNullException(nameof(readOnlyUnitOfWork));
+        _sendMailServices = sendMailServices ?? throw new ArgumentNullException(nameof(sendMailServices));
 
         _authService = new AuthService(
             _authRepository,
             _unitOfWork,
             loggerWrapper,
-            _manejoJwt
+            _manejoJwt,
+            _readOnlyUnitOfWork
         );
 
         _responseService = new ResponseService();
@@ -134,7 +140,7 @@ public class AuthUser
     /// </summary>
     /// <param name="request">Token validation request containing the token string.</param>
     /// <returns>An <see cref="IActionResult"/> indicating the validation result (OK, BadRequest, Unauthorized, InternalServerError).</returns>
-    public IActionResult ValidateToken(TokenValidationRequest? request)
+    public async Task<IActionResult> ValidateToken(TokenValidationRequest? request)
     {
         try
         {
@@ -193,5 +199,28 @@ public class AuthUser
             _logger.LogError(ex, "An unexpected error occurred during token validation. Token: {Token}", request?.Token);
             return new ObjectResult(new { Valid = false, Message = "An unexpected error occurred." }) { StatusCode = StatusCodes.Status500InternalServerError };
         }
+    }
+
+    public async Task<IActionResult> RetrievePassword(string ci)
+    {
+        if (string.IsNullOrWhiteSpace(ci))
+            return new BadRequestObjectResult(new { Valid = false, Message = "La C.I es requerida." });
+
+        string normalizetTaxId = UtilityService.NormalizeCiFormat(ci);
+        var user = await _unitOfWork.Users.GetUserByTaxIdAsync(normalizetTaxId);
+
+        if (user == null)
+            return new BadRequestObjectResult(new { Valid = false, Message = "No se encontró ningún usuario asociado a la C.I proporcionada." });
+
+        var email = await _readOnlyUnitOfWork.SnEmple.GetEmailByCiAsync(normalizetTaxId);
+
+        if (string.IsNullOrWhiteSpace(email))
+            return new BadRequestObjectResult(new { Valid = false, Message = "No se encontró ningún correo asociado a la C.I proporcionada." });
+
+        string token = await RefreshToken(user);
+
+        _ = Task.Run(async () => _ = _sendMailServices.SendMailRetrievePassword(email, token, normalizetTaxId));
+
+        return new OkObjectResult(new { Valid = true, Message = "Se ha enviado un correo para recuperar la contraseña." });
     }
 }

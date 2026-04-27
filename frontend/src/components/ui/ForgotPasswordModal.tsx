@@ -7,7 +7,7 @@ interface Props {
 }
 
 export const ForgotPasswordModal: React.FC<Props> = ({ onClose }) => {
-  const [email, setEmail] = useState('');
+  const [Ci, setCi] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
@@ -17,7 +17,7 @@ export const ForgotPasswordModal: React.FC<Props> = ({ onClose }) => {
     setError('');
     setLoading(true);
     try {
-      await api.post('/auth/forgot-password', { email });
+      await api.post('/Login/RetrievePassword', { Ci });
       setSent(true);
     } catch {
       setError('Ocurrió un error. Intenta de nuevo.');
@@ -36,7 +36,7 @@ export const ForgotPasswordModal: React.FC<Props> = ({ onClose }) => {
             <div className="modal-success-icon">✉</div>
             <h3>Usuario enviado</h3>
             <p>
-              Si el Cedula está registrado, recibirás un enlace para restablecer
+              Si la cedula está registrado, recibirás un enlace para restablecer
               tu contraseña. Revisa también la bandeja de spam.
             </p>
             <button className="modal-btn-primary" onClick={onClose}>
@@ -54,8 +54,8 @@ export const ForgotPasswordModal: React.FC<Props> = ({ onClose }) => {
                 <input
                   type="text"
                   placeholder="Cedula a recuperar"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={Ci}
+                  onChange={(e) => setCi(e.target.value)}
                   required
                   autoFocus
                 />

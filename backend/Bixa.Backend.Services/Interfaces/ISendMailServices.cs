@@ -2,6 +2,6 @@
 {
     public interface ISendMailServices
     {
-        public Task<bool> SendMailRetrievePassword(string destinatario, string Tokken);
+        public Task<bool> SendMailRetrievePassword(string destinatario, string Tokken, string TaxId);
     }
 }

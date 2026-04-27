@@ -1,22 +1,19 @@
-﻿using Bixa.Backend.Controllers.SecurityControllers;
-using Bixa.Backend.DataAccess.Context;
-using Bixa.Backend.DataAccess.Interfaces.Repositories;
-using Bixa.Backend.DataAccess.Wrappers;
-using Bixa.Backend.Models;
-using Bixa.Backend.Models.Auth;
-using Bixa.Backend.Models.DTOs;
-using Bixa.Backend.Services.Interfaces;
+﻿using Bixa.Backend.DataAccess.Interfaces.Repositories;
 using Bixa.Backend.Services.Services.JwtControllers;
+using Bixa.Backend.Controllers.SecurityControllers;
+using Bixa.Backend.DataAccess.Wrappers;
 using Microsoft.AspNetCore.Authorization;
+using Bixa.Backend.Services.Interfaces;
+using Bixa.Backend.Models.DTOs;
+using Bixa.Backend.Models.Auth;
 using Microsoft.AspNetCore.Mvc;
-using System.Runtime.Intrinsics.X86;
+using Bixa.Backend.Models;
 
 namespace Bixa.Backend.Controllers.LoginController;
 
 [ApiController]
 [Route("api/[controller]")]
 public class LoginController(IManejoJwt manejoJwt,
-                       AppDbContext dbContext,
                        IConfiguration configuration,
                        LoggerWrapper loggerWrapper,
                        IAuthRepository authRepository,
@@ -26,7 +23,6 @@ public class LoginController(IManejoJwt manejoJwt,
 {
     private readonly IAuthRepository _authRepository = authRepository ?? throw new ArgumentNullException(nameof(authRepository));
     private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-    private readonly AppDbContext _context = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
     private readonly LoggerWrapper _loggerWrapper = loggerWrapper ?? throw new ArgumentNullException(nameof(loggerWrapper));
     private readonly IManejoJwt _manejoJwt = manejoJwt ?? throw new ArgumentNullException(nameof(manejoJwt));
     private readonly IUnitOfWork _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
@@ -46,7 +42,7 @@ public class LoginController(IManejoJwt manejoJwt,
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Authenticate([FromBody] UserCredentials credentials)
     {
-        var authUser = new AuthUser(_manejoJwt, _context, _loggerWrapper, _configuration, _authRepository, _unitOfWork);
+        var authUser = new AuthUser(_manejoJwt, _loggerWrapper, _configuration, _authRepository, _unitOfWork, _readOnlyUnitOfWork, _sendMailServices);
         return await authUser.Authenticate(credentials);
     }
 
@@ -61,10 +57,10 @@ public class LoginController(IManejoJwt manejoJwt,
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> FirstLogin([FromBody] UserFirstLoginDTO? credentials)
+    public async Task<IActionResult> FirstLogin([FromBody] UserFirstLoginDTO credentials)
     {
         // Pass all required dependencies to AuthUser constructor
-        var authUser = new AuthUser(_manejoJwt, _context, _loggerWrapper, _configuration, _authRepository, _unitOfWork);
+        var authUser = new AuthUser(_manejoJwt, _loggerWrapper, _configuration, _authRepository, _unitOfWork, _readOnlyUnitOfWork, _sendMailServices);
         return await authUser.ChangePasswordReturnCredentials(credentials);
     }
 
@@ -81,7 +77,7 @@ public class LoginController(IManejoJwt manejoJwt,
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDTO request)
     {
-        var authUser = new AuthUser(_manejoJwt, _context, _loggerWrapper, _configuration, _authRepository, _unitOfWork);
+        var authUser = new AuthUser(_manejoJwt, _loggerWrapper, _configuration, _authRepository, _unitOfWork, _readOnlyUnitOfWork, _sendMailServices);
         return await authUser.RefreshToken(request);
     }
 
@@ -95,10 +91,10 @@ public class LoginController(IManejoJwt manejoJwt,
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-    public IActionResult ValidateToken([FromBody] TokenValidationRequest? request)
+    public async Task<IActionResult> ValidateToken([FromBody] TokenValidationRequest? request)
     {
-        var authUser = new AuthUser(_manejoJwt, _context, _loggerWrapper, _configuration, _authRepository, _unitOfWork);
-        return authUser.ValidateToken(request);
+        var authUser = new AuthUser(_manejoJwt, _loggerWrapper, _configuration, _authRepository, _unitOfWork, _readOnlyUnitOfWork, _sendMailServices);
+        return await authUser.ValidateToken(request);
     }
 
     /// <summary>
@@ -113,25 +109,23 @@ public class LoginController(IManejoJwt manejoJwt,
     [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> RetrievePassword([FromBody] CiCheckRequestDTO request)
     {
-        if (string.IsNullOrWhiteSpace(request.Ci))
-            return BadRequest(ApiResponse<object>.BadRequest(null, "La C.I es requerida."));
+        var authUser = new AuthUser(_manejoJwt, _loggerWrapper, _configuration, _authRepository, _unitOfWork, _readOnlyUnitOfWork, _sendMailServices);
+        return await authUser.RetrievePassword(request.Ci);
+    }
 
-        var user = await _unitOfWork.Users.GetUserByTaxIdAsync(request.Ci);
-
-        if (user == null)
-            return NotFound(ApiResponse<object>.NotFoundResponse("No se encontró ningún usuario asociado a la C.I proporcionada."));
-
-        var email = await _readOnlyUnitOfWork.SnEmple.GetEmailByCiAsync(request.Ci);
-
-        if (email == null || string.IsNullOrWhiteSpace(email))
-            return NotFound(ApiResponse<object>.NotFoundResponse("No se encontró ningún correo asociado a la C.I proporcionada."));
-
-        var authUser = new AuthUser(_manejoJwt, _context, _loggerWrapper, _configuration, _authRepository, _unitOfWork);
-
-        string token = await authUser.RefreshToken(user);
-
-        await _sendMailServices.SendMailRetrievePassword(email, token);
-
-        return Ok(ApiResponse<string>.SuccessResponse(email, "Correo electrónico obtenido correctamente."));
+    /// <summary>
+    /// change password
+    /// </summary>
+    /// <param name="request">Change password request</param>
+    /// <returns>Change password result</returns>
+    [AllowAnonymous]
+    [HttpPost("ChangePassword")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ChangePassword([FromBody] UserFirstLoginDTO request)
+    {
+        var authUser = new AuthUser(_manejoJwt, _loggerWrapper, _configuration, _authRepository, _unitOfWork, _readOnlyUnitOfWork, _sendMailServices);
+        return await authUser.ChangePasswordReturnCredentials(request);
     }
 }

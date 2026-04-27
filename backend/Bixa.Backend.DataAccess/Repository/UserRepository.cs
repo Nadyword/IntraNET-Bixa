@@ -148,7 +148,7 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
     /// </summary>
     /// <param name="taxId">The tax ID of the user.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the user if found, otherwise null.</returns>
-    public async Task<Users?> GetUserByTaxIdAsync(string? taxId) =>
+    public async Task<Users?> GetUserByTaxIdAsync(string taxId) =>
         await _context.Users.Include(x => x.UserRol).Where(u => u.TaxId == taxId).FirstOrDefaultAsync();
 
     /// <summary>

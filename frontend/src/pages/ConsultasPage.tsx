@@ -37,8 +37,8 @@ export const ConsultasPage: React.FC = () => {
     <div className="consultas-page">
       {/* Header */}
       <div className="consultas-header">
-        <h1>Consultas de Beneficios</h1>
-        <p>Revisa tu información de vacaciones, prestaciones y solicitudes activas</p>
+        <h1>Consultas de tramites y solicitudes</h1>
+        <p>Aquí encontrás toda la información necesaria para poder realizar cualquier tipo de trámite permitido en la empresa</p>
       </div>
 
       {/* Stats Cards */}
@@ -144,22 +144,6 @@ export const ConsultasPage: React.FC = () => {
       </div>
 
       {/* Info Section */}
-      <div className="info-section">
-        <div className="info-card">
-          <h3>💡 Tip</h3>
-          <p>
-            Recuerda que puedes solicitar tus días de vacaciones con una anticipación de 10 días hábiles.
-            Consulta con tu líder directo antes de presentar la solicitud.
-          </p>
-        </div>
-        <div className="info-card">
-          <h3>📞 Necesitas ayuda?</h3>
-          <p>
-            Si tienes dudas sobre tus beneficios o prestaciones, contacta al equipo de RRHH o usa nuestro
-            asistente virtual disponible 24/7.
-          </p>
-        </div>
-      </div>
     </div>
   );
 };

@@ -27,11 +27,13 @@ public class AuthService(
     IAuthRepository authRepository,
     IUnitOfWork unitOfWork,
     LoggerWrapper loggerWrapper,
-    IManejoJwt manejoJwt)
+    IManejoJwt manejoJwt,
+    IReadOnlyUnitOfWork readOnlyUnitOfWork)
 {
-    private readonly IAuthRepository _authRepository = authRepository ?? throw new ArgumentNullException(nameof(authRepository)); private readonly IManejoJwt _manejoJwt = manejoJwt ?? throw new ArgumentNullException(nameof(manejoJwt));
+    private readonly IAuthRepository _authRepository = authRepository ?? throw new ArgumentNullException(nameof(authRepository));
+    private readonly IManejoJwt _manejoJwt = manejoJwt ?? throw new ArgumentNullException(nameof(manejoJwt));
     private readonly IUnitOfWork _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
-
+    private readonly IReadOnlyUnitOfWork _readOnlyUnitOfWork = readOnlyUnitOfWork ?? throw new ArgumentNullException(nameof(readOnlyUnitOfWork));
     public ILogger<AuthService> Logger { get; } = loggerWrapper?.CreateLogger<AuthService>() ?? throw new ArgumentNullException(nameof(loggerWrapper));
 
     /// <summary>
@@ -108,13 +110,7 @@ public class AuthService(
 
             if (user == null)
             {
-                Logger.LogWarning("Intento de autenticación con credenciales inválidas o faltantes para el correo electrónico {TaxID}.", credentials.TaxId);
-                return Result.Fail<LoginDTO>("Credenciales inválidas", ErrorTypeEnum.Unauthorized);
-            }
-
-            if (credentials.Token != user.RefreshToken)
-            {
-                Logger.LogWarning("Intento de autenticación con credenciales inválidas o faltantes para el correo electrónico {Email}.", credentials.TaxId);
+                Logger.LogWarning("Intento de autenticación con credenciales inválidas o faltantes para el usuario {TaxID}.", credentials.TaxId);
                 return Result.Fail<LoginDTO>("Credenciales inválidas", ErrorTypeEnum.Unauthorized);
             }
 
