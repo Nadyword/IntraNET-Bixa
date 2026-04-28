@@ -160,30 +160,22 @@ interface ProfileHeaderProps {
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   nombres, apellidos, desCargo, desDepart, desCont, fechaIng, onRequestCorrection,
 }) => {
-  const initials = [nombres?.[0], apellidos?.[0]].filter(Boolean).join('').toUpperCase() || '?';
-  const fullName = [nombres, apellidos].filter(Boolean).join(' ') || '—';
+  const name = [nombres].filter(Boolean).join(' ') || '—';
+  const lastName = [apellidos].filter(Boolean).join(' ') || '—';
   const subtitle = [desCargo, desDepart].filter(Boolean).join(' · ') || null;
   const timeLabel = calcTimeAtCompany(fechaIng);
 
   return (
     <div style={{
-      background: 'var(--black)', padding: '24px 28px', borderRadius: 'var(--radius-lg)',
+      background: 'linear-gradient(346deg,var(--red) 0%, var(--white)', padding: '4% 3%', borderRadius: 'var(--radius-lg)',
       border:'3px solid var(--red)', marginBottom: '16px',
       display: 'flex', alignItems: 'center', gap: '20px',
     }}>
-      {/* Avatar */}
-      <div style={{
-        width: '58px', height: '58px', borderRadius: '50%', flexShrink: 0,
-        background: '#7c6355', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: '#fff', fontSize: '20px', fontWeight: 700, letterSpacing: '1px',
-      }}>
-        {initials}
-      </div>
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--white)', marginBottom: '3px' }}>
-          {fullName}
+        <div style={{ fontSize: '35px', fontWeight: 700, color: 'var(--black)', marginBottom: '3px' }}>
+          <p>{name} <span style={{ color: 'var(--red)' }}>{lastName} </span></p>
         </div>
         {subtitle && (
           <div style={{ fontSize: '13px', color: 'var(--gray-500)', marginBottom: '10px' }}>
@@ -254,10 +246,6 @@ export const MyDataPage: React.FC = () => {
   return (
     <>
       <div>
-        <h1 style={{ marginBottom: '6px' }}>Mis Datos</h1>
-        <p style={{ color: 'var(--gray-500)', marginBottom: '24px' }}>
-          Información personal y laboral registrada en el sistema de nómina
-        </p>
 
         <ProfileHeader
           nombres={profile.nombres}

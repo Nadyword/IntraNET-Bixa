@@ -5,7 +5,6 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { AdminRolesPage } from './pages/admin/AdminRolesPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { SolicitudesPage } from './pages/SolicitudesPage';
-import { OnboardingPage } from './pages/OnboardingPage';
 import { ConsultasPage } from './pages/ConsultasPage';
 import { TramitesPage } from './pages/TramitesPage';
 import { CulturePage } from './pages/CulturePage';
@@ -14,7 +13,6 @@ import { LeaderPage } from './pages/LeaderPage';
 import { MyDataPage } from './pages/MyDataPage';
 import { LoginPage } from './pages/LoginPage';
 import { useUIStore } from './store/uiStore';
-import { HomePage } from './pages/HomePage';
 import { ChatPage } from './pages/ChatPage';
 import './styles/globals.css';
 
@@ -39,7 +37,6 @@ export default function App() {
               path="*"
               element={
                 <AppLayout>
-                  {activeSection === 'home' && <HomePage />}
                   {activeSection === 'mydata' && <MyDataPage />}
                   {activeSection === 'culture' && <CulturePage />}
                   {activeSection === 'consultas' && <ConsultasPage />}
@@ -47,7 +44,6 @@ export default function App() {
                   {activeSection === 'tramites' && <TramitesPage />}
                   {activeSection === 'leader' && <LeaderPage />}
                   {activeSection === 'chatbot' && <ChatPage />}
-                  {activeSection === 'onboarding' && <OnboardingPage />}
                 </AppLayout>
               }
             />
@@ -58,7 +54,7 @@ export default function App() {
 
         <Route
           path="/"
-          element={<Navigate to={isAuthenticated ? '/home' : '/login'} replace />}
+          element={<Navigate to={isAuthenticated ? '/mydata' : '/login'} replace />}
         />
       </Routes>
     </Router>

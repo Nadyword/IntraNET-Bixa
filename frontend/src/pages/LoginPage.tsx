@@ -37,7 +37,7 @@ export const LoginPage: React.FC = () => {
       }
 
       login(token, refreshToken);
-      navigate('/home');
+      navigate('/mydata');
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Credenciales inválidas';
       setError(msg);

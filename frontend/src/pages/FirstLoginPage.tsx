@@ -55,7 +55,7 @@ export const FirstLoginPage: React.FC = () => {
         .then(({ data: res }) => { if (res.success) setProfile(res.data); })
         .catch(() => setProfileError('No se pudo cargar el perfil del empleado'));
 
-      navigate('/home');
+      navigate('/mydata');
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Error al establecer la contraseña';
       setError(msg);

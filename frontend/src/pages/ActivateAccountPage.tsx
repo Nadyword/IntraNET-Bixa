@@ -143,9 +143,9 @@ export const ActivateAccountPage: React.FC = () => {
       setSuccessMessage('¡Bienvenido! Iniciando sesión...');
       login(response.user, response.token);
 
-      // Redirigir a home después de 1 segundo
+      // Redirigir a mydata después de 1 segundo
       setTimeout(() => {
-        navigate('/home');
+        navigate('/mydata');
       }, 1000);
     } catch (error: any) {
       const message =

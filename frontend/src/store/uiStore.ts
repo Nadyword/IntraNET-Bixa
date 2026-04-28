@@ -22,7 +22,7 @@ export const useUIStore = create<UIState>((set) => ({
   sidebarOpen: false,
   notifPanelOpen: false,
   toasts: [],
-  activeSection: 'home',
+  activeSection: 'mydata',
 
   toggleSidebar: () =>
     set((state) => ({ sidebarOpen: !state.sidebarOpen })),

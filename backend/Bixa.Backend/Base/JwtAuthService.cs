@@ -87,7 +87,7 @@ public class JwtAuthService(
             _ = int.TryParse(supervisorClaim, out int parsedSupervisorId);
 
             var isAdminUser = principalLocal?.IsInRole(nameof(UserRolEnum.SuperIntendente)) == true ||
-                            principalLocal?.IsInRole(nameof(UserRolEnum.Gerente)) == true;
+                            principalLocal?.IsInRole(nameof(UserRolEnum.Supervisor)) == true;
 
             return (parsedSupervisorId, !isAdminUser);
         }
@@ -114,9 +114,6 @@ public class JwtAuthService(
 
         if (user.IsInRole(nameof(UserRolEnum.SuperIntendente)))
             return (UserRolEnum.SuperIntendente, GetUserIdFromClaims(user));
-
-        if (user.IsInRole(nameof(UserRolEnum.Gerente)))
-            return (UserRolEnum.Gerente, GetUserIdFromClaims(user));
 
         if (user.IsInRole(nameof(UserRolEnum.Supervisor)))
             return (UserRolEnum.Supervisor, GetUserIdFromClaims(user));

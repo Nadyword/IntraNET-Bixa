@@ -19,17 +19,10 @@ public static class AuthorizationUtils
         services.AddSingleton<IAuthorizationPolicyProvider, AdministratorPolicyProvider>();
 
         services.AddAuthorizationBuilder()
-            .AddPolicy(UserRolEnum.Gerente.GetDescriptionPolicy(), policy =>
-                policy.RequireRole(nameof(UserRolEnum.Gerente)))
             .AddPolicy(UserRolEnum.SuperIntendente.GetDescriptionPolicy(), policy =>
                 policy.RequireRole(nameof(UserRolEnum.Supervisor)))
             .AddPolicy(UserRolEnum.Supervisor.GetDescriptionPolicy(), policy =>
                 policy.RequireRole(nameof(UserRolEnum.Supervisor)))
-            .AddPolicy("RequesterWithEstablishmentPolicy", policy =>
-            {
-                policy.RequireRole(nameof(UserRolEnum.Gerente));
-                policy.RequireClaim("HasEstablishment", "true");
-            })
             .AddPolicy("ExecutiveWithEstablishmentPolicy", policy =>
             {
                 policy.RequireRole(nameof(UserRolEnum.Supervisor));

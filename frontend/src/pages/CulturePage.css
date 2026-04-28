@@ -25,6 +25,70 @@
   margin: 0 auto;
 }
 
+/* Support Section */
+.support-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.support-box {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-md);
+  text-align: center;
+  transition: all var(--transition);
+  border-top: 4px solid var(--red);
+}
+
+.support-box:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+}
+
+.support-box h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--black);
+  margin: 0 0 12px 0;
+}
+
+.support-box p {
+  color: var(--gray-500);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.support-link {
+  display: inline-block;
+  color: var(--red);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all var(--transition);
+  padding: 8px 0;
+  border-bottom: 2px solid transparent;
+}
+
+.support-link:hover {
+  color: var(--red-dark);
+  border-bottom-color: var(--red-dark);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Tabs */
 .culture-tabs {
   display: flex;

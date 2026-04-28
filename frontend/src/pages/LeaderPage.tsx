@@ -86,13 +86,6 @@ export const LeaderPage: React.FC = () => {
     },
   ];
 
-  const stats = [
-    { label: 'Miembros del equipo', value: 12, icon: '👥' },
-    { label: 'Solicitudes pendientes', value: 3, icon: '📋' },
-    { label: 'Desempeño promedio', value: '8.8/10', icon: '⭐' },
-    { label: 'Ausencias este mes', value: 2, icon: '📅' },
-  ];
-
   const handleApprove = (id: number) => {
     setActionedRequests([...actionedRequests, id]);
   };
@@ -111,17 +104,6 @@ export const LeaderPage: React.FC = () => {
           <h1>Portal del Líder</h1>
           <p>Gestiona tu equipo, aprueba solicitudes y monitorea el desempeño</p>
         </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="stats-grid">
-        {stats.map((stat, idx) => (
-          <div key={idx} className="stat-box">
-            <div className="stat-icon">{stat.icon}</div>
-            <h3>{stat.value}</h3>
-            <p>{stat.label}</p>
-          </div>
-        ))}
       </div>
 
       {/* Tabs */}
