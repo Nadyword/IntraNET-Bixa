@@ -32,17 +32,17 @@ public class UserApiProfitController(
     /// Retrieves a single user by their ID.
     /// GET /api/users/{id}
     /// </summary>
-    /// <param name="taxId">The tax ID of the user to retrieve.</param>
+    /// <param name="Ci">The tax ID of the user to retrieve.</param>
     /// <returns>API response containing the GrupoFa if found.</returns>
-    [HttpGet("{taxId}/GrupoFa")]
+    [HttpGet("{ci}/GrupoFa")]
     [ProducesResponseType(typeof(ApiResponse<GrupoFa[]>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetGrupoFaById(string taxId)
+    public async Task<IActionResult> GetGrupoFaById(string ci)
     {
-        var normalizedTaxId = UtilityService.NormalizeCiFormat(taxId);
-        var result = await _readOnlyUnitOfWork.GrupoFa.GetFullInfoByCiAsync(normalizedTaxId);
+        var normalizedCi = UtilityService.NormalizeCiFormat(ci);
+        var result = await _readOnlyUnitOfWork.GrupoFa.GetFullInfoByCiAsync(normalizedCi);
         return HandleServiceResult(result);
     }
 
@@ -50,17 +50,17 @@ public class UserApiProfitController(
     /// Retrieves a single user by their ID.
     /// GET /api/users/{id}
     /// </summary>
-    /// <param name="taxId">The tax ID of the user to retrieve.</param>
+    /// <param name="ci">The tax ID of the user to retrieve.</param>
     /// <returns>API response containing the SnEmple if found.</returns>
-    [HttpGet("{taxId}/SnEmple")]
+    [HttpGet("{ci}/SnEmple")]
     [ProducesResponseType(typeof(ApiResponse<SnEmple>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetUserById(string taxId)
+    public async Task<IActionResult> GetUserById(string ci)
     {
-        var normalizedTaxId = UtilityService.NormalizeCiFormat(taxId);
-        var result = await _readOnlyUnitOfWork.SnEmple.GetFullInfoByCiAsync(normalizedTaxId);
+        var normalizedCi = UtilityService.NormalizeCiFormat(ci);
+        var result = await _readOnlyUnitOfWork.SnEmple.GetFullInfoByCiAsync(normalizedCi);
         return HandleServiceResult(result);
     }
 }

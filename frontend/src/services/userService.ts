@@ -12,9 +12,9 @@ export interface GrupoFamiliar {
 }
 
 export const userService = {
-  getProfile: (taxId: string) =>
-    api.get<ApiResponse<UserProfile>>(`/usersProfit/${taxId}/SnEmple`),
+  getProfile: (ci: string) =>
+    api.get<ApiResponse<UserProfile>>(`/usersProfit/${ci}/SnEmple`),
 
-  getFamilyGroup: (taxId: string) =>
-    api.get<ApiResponse<GrupoFamiliar[]>>(`/usersProfit/${taxId}/GrupoFa`),
+  getFamilyGroup: (ci: string) =>
+    api.get<ApiResponse<GrupoFamiliar[]>>(`/usersProfit/${ci}/GrupoFa`),
 };

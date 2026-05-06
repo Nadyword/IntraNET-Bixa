@@ -24,12 +24,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   } = useUserProfileStore();
 
   useEffect(() => {
-    if (!user?.taxId) return;
+    if (!user?.ci) return;
 
     // SnEmple: solo si no está en sessionStorage (primer login o sesión nueva)
     if (!profile) {
       setLoading(true);
-      userService.getProfile(user.taxId)
+      userService.getProfile(user.ci)
         .then(({ data: res }) => {
           if (res.success) setProfile(res.data);
           else setError(res.message);
@@ -40,13 +40,13 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     // GrupoFa: siempre al montar (no persiste entre recargas)
     if (familyGroup.length === 0) {
       setFamilyGroupLoading(true);
-      userService.getFamilyGroup(user.taxId)
+      userService.getFamilyGroup(user.ci)
         .then(({ data: res }) => {
           setFamilyGroup(res.success ? (res.data ?? []) : []);
         })
         .catch(() => setFamilyGroup([]));
     }
-  }, [user?.taxId]);
+  }, [user?.ci]);
 
   return (
     <div className="app-layout">

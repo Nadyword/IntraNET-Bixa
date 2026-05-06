@@ -21,11 +21,11 @@ public interface IUserRepository : IRepository<Users, int>
     Task<IEnumerable<KeyValuePairDTO<object, object>>> GetKeyValuePairsAsync(object filters, KeyFieldConfigurationDTO config);
 
     /// <summary>
-    /// Retrieves a user by their TaxId.
+    /// Retrieves a user by their Ci.
     /// </summary>
-    /// <param name="taxId">The TaxId of the user.</param>
+    /// <param name="ci">The Ci of the user.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the user if found, otherwise null.</returns>
-    Task<Users?> GetUserByTaxIdAsync(string taxId);
+    Task<Users?> GetUserByCiAsync(string ci);
 
     /// <summary>
     /// Retrieves a user by their refresh token and its expiration date.

@@ -14,7 +14,7 @@ public class JwtConfiguration
     /// Gets or sets the token expiration time in minutes.
     /// This should be aligned with the 'expires' property in the generated token.
     /// </summary>
-    public int ExpirationMinutes { get; set; } = 60;
+    public int ExpirationMinutes { get; set; } = 120;
 
     public required string Issuer { get; set; }
     public required string Llave { get; set; }

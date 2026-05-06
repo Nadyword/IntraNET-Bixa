@@ -2,6 +2,6 @@
 
 public class UserCredentials
 {
-    public string TaxId { get; set; } = string.Empty;
+    public string Ci { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
 }

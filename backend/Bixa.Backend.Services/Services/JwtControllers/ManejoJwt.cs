@@ -15,10 +15,10 @@ public class ManejoJwt(IConfiguration _configuration) : IManejoJwt
     {
         var claims = new List<Claim>
             {
-                new("Nombre", authToken.Name),
+                new(ClaimTypes.Name, authToken.Name),
                 new("ci", authToken.Ci),
                 new("id", Convert.ToString(authToken.Id)),
-                new("Rol", authToken.RolName),
+                new(ClaimTypes.Role, authToken.RolName),
                 new("RolId", authToken.RolId)
             };
 

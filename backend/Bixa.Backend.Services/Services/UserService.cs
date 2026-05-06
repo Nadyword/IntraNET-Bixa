@@ -1,5 +1,5 @@
-﻿using Bixa.Backend.DataAccess.Interfaces.Repositories;
-using Bixa.Backend.Models.DTOs.KeyValuePairModelDTO;
+﻿using Bixa.Backend.Models.DTOs.KeyValuePairModelDTO;
+using Bixa.Backend.DataAccess.Interfaces.Repositories;
 using Bixa.Backend.Models.DTOs.UserModelDTO;
 using Bixa.Backend.DataAccess.Wrappers;
 using Bixa.Backend.DataAccess.Entities;
@@ -27,37 +27,44 @@ public class UserService(
     IUnitOfWork unitOfWork,
     IMapper mapper,
     IUserRepository userRepository,
-    LoggerWrapper loggerWrapper) : IUserService
+    LoggerWrapper loggerWrapper,
+    IReadOnlyUnitOfWork readOnlyUnitOfWork) : IUserService
 {
     private readonly ILogger<UserService> _logger = loggerWrapper.CreateLogger<UserService>();
     private readonly IMapper _mapper = mapper;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IUserRepository _userRepository = userRepository;
+    private readonly IReadOnlyUnitOfWork _readOnlyUnitOfWork = readOnlyUnitOfWork;
 
     /// <summary>
     /// Adds a new user to the system.
     /// </summary>
-    /// <param name="userDto">The DTO containing the user's data for creation.</param>
+    /// <param name="userDto">The user data transfer object containing information for the new user.</param>
     /// <returns>A <see cref="Result{T}"/> indicating success or failure, with the ID of the newly created user on success.</returns>
     public async Task<Result<int>> AddAsync(UserInsertDTO userDto)
     {
-        var passwordValidationErrors = ValidationUtils.IsValidPassword(userDto.Password);
-        if (passwordValidationErrors.Count != 0)
-        {
-            return Result.Fail<int>(string.Join("; ", passwordValidationErrors), ErrorTypeEnum.Validation);
-        }
-
         await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var validationResult = await ValidateUserExistenceAsync(userDto.TaxId, null);
+            string ciNormalized = UtilityService.NormalizeCiFormat(userDto.Ci);
+            var validationResult = await ValidateUserExistenceAsync(ciNormalized, null);
+
             if (!validationResult.IsSuccess)
             {
                 await _unitOfWork.RollbackTransactionAsync();
                 return Result.Fail<int>(validationResult.Error!, ErrorTypeEnum.Conflict);
             }
 
-            var userCreate = _mapper.Map<UserInsertDTO, Users>(userDto);
+            var snEmple = await _readOnlyUnitOfWork.SnEmple.GetFullInfoByCiAsync(userDto.Ci);
+
+            if (snEmple == null)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return Result.Fail<int>("Empleado no encontrado en la BD secundaria.", ErrorTypeEnum.NotFound);
+            }
+
+            Users userCreate = _mapper.Map<UserInsertDTO, Users>(userDto);
+            userCreate = _mapper.Map(snEmple, userCreate);
             userCreate.IsActive = true;
             userCreate.PasswordHash = CheckIfNewPassword(userCreate.PasswordHash!, string.Empty);
 
@@ -78,7 +85,7 @@ public class UserService(
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
-            _logger?.LogError(ex, "Error al agregar usuario. Email:{Email} TaxId:{TaxId}", userDto?.Email, userDto?.TaxId);
+            _logger?.LogError(ex, "Error al agregar usuario. Ci:{Ci}", userDto?.Ci);
             return Result.Fail<int>("Ocurrió un error al agregar el usuario.", ErrorTypeEnum.Database);
         }
     }
@@ -338,16 +345,16 @@ public class UserService(
     /// Validates if a user with the given email or Tax ID already exists,
     /// excluding a specific user ID for update scenarios.
     /// </summary>
-    /// <param name="taxId">The Tax ID to check for existence.</param>
+    /// <param name="ci">The CI to check for existence.</param>
     /// <param name="currentUserId">The ID of the user being updated. If provided, this user will be excluded from the existence check.</param>
     /// <returns>A <see cref="Result"/> indicating success if validation passes, or failure with an appropriate error.</returns>
-    private async Task<Result> ValidateUserExistenceAsync(string? taxId, int? currentUserId)
+    private async Task<Result> ValidateUserExistenceAsync(string? ci, int? currentUserId)
     {
-        if (!string.IsNullOrEmpty(taxId))
+        if (!string.IsNullOrEmpty(ci))
         {
-            var existingUserByTaxId = await _userRepository.GetUserByTaxIdAsync(taxId);
-            if (existingUserByTaxId != null && existingUserByTaxId.Id != currentUserId)
-                return Result.Fail($"Ya existe un usuario con el RUT {taxId}", ErrorTypeEnum.Conflict);
+            var existingUserByCi = await _userRepository.GetUserByCiAsync(ci);
+            if (existingUserByCi != null && existingUserByCi.Id != currentUserId)
+                return Result.Fail($"Ya existe un usuario con el RUT {ci}", ErrorTypeEnum.Conflict);
         }
 
         return Result.Success();
@@ -366,7 +373,7 @@ public class UserService(
 
     private async Task<Result<bool>> ValidateUserUpdateAsync(UserEditDTO dto)
     {
-        var validationResult = await ValidateUserExistenceAsync(dto.TaxId, dto.Id);
+        var validationResult = await ValidateUserExistenceAsync(dto.Ci, dto.Id);
         if (!validationResult.IsSuccess)
             return Result.Fail<bool>(validationResult.Error!);
         return Result.Success(true);

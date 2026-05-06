@@ -20,14 +20,11 @@ public static class AuthorizationUtils
 
         services.AddAuthorizationBuilder()
             .AddPolicy(UserRolEnum.SuperIntendente.GetDescriptionPolicy(), policy =>
-                policy.RequireRole(nameof(UserRolEnum.Supervisor)))
+                policy.RequireRole(nameof(UserRolEnum.SuperIntendente)))
             .AddPolicy(UserRolEnum.Supervisor.GetDescriptionPolicy(), policy =>
                 policy.RequireRole(nameof(UserRolEnum.Supervisor)))
-            .AddPolicy("ExecutiveWithEstablishmentPolicy", policy =>
-            {
-                policy.RequireRole(nameof(UserRolEnum.Supervisor));
-                policy.RequireClaim("HasEstablishment", "true");
-            });
+            .AddPolicy(UserRolEnum.Empleado.GetDescriptionPolicy(), policy =>
+                policy.RequireRole(nameof(UserRolEnum.Empleado)));
     }
 
     public static string GetDescriptionPolicy(this Enum value) => value.GetDescription() + "Policy";

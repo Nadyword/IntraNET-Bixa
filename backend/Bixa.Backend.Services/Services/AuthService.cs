@@ -43,7 +43,7 @@ public class AuthService(
     /// <returns>Login DTO or error result.</returns>
     public async Task<Result<LoginDTO>> Authenticate(UserCredentials? credentials)
     {
-        if (credentials == null || string.IsNullOrWhiteSpace(credentials.TaxId) || string.IsNullOrWhiteSpace(credentials.Password))
+        if (credentials == null || string.IsNullOrWhiteSpace(credentials.Ci) || string.IsNullOrWhiteSpace(credentials.Password))
         {
             Logger.LogWarning("Intento de autenticación con credenciales inválidas o faltantes.");
             return Result.Fail<LoginDTO>("Credenciales inválidas", ErrorTypeEnum.BadRequest);
@@ -51,12 +51,12 @@ public class AuthService(
 
         try
         {
-            var normalizetTaxId = UtilityService.NormalizeCiFormat(credentials.TaxId);
-            var user = await _authRepository.GetUserByTaxId(normalizetTaxId);
+            var normalizedCi = UtilityService.NormalizeCiFormat(credentials.Ci);
+            var user = await _authRepository.GetUserByCi(normalizedCi);
 
             if (user == null)
             {
-                Logger.LogWarning("Intento de autenticación con credenciales inválidas o faltantes para el correo electrónico {Email}.", credentials.TaxId);
+                Logger.LogWarning("Intento de autenticación con credenciales inválidas o faltantes para el CI {Ci}.", credentials.Ci);
                 return Result.Fail<LoginDTO>("Credenciales inválidas", ErrorTypeEnum.Unauthorized);
             }
 
@@ -85,7 +85,7 @@ public class AuthService(
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error al autenticar usuario con correo electrónico {Email}.", credentials?.TaxId);
+            Logger.LogError(ex, "Error al autenticar usuario con CI {Ci}.", credentials?.Ci);
             return Result.Fail<LoginDTO>("Error al autenticar el usuario", ErrorTypeEnum.General);
         }
     }
@@ -97,7 +97,7 @@ public class AuthService(
     /// <returns>Login DTO or error result.</returns>
     public async Task<Result<LoginDTO>> ChangePasswordReturnCredentials(UserFirstLoginDTO? credentials)
     {
-        if (credentials == null || string.IsNullOrWhiteSpace(credentials.TaxId))
+        if (credentials == null || string.IsNullOrWhiteSpace(credentials.Ci))
         {
             Logger.LogWarning("Intento de autenticación con credenciales inválidas o faltantes.");
             return Result.Fail<LoginDTO>("Credenciales inválidas", ErrorTypeEnum.BadRequest);
@@ -105,12 +105,12 @@ public class AuthService(
 
         try
         {
-            var normalizetTaxId = UtilityService.NormalizeCiFormat(credentials.TaxId);
-            var user = await _authRepository.GetUserByTaxId(normalizetTaxId);
+            var normalizedCi = UtilityService.NormalizeCiFormat(credentials.Ci);
+            var user = await _authRepository.GetUserByCi(normalizedCi);
 
             if (user == null)
             {
-                Logger.LogWarning("Intento de autenticación con credenciales inválidas o faltantes para el usuario {TaxID}.", credentials.TaxId);
+                Logger.LogWarning("Intento de autenticación con credenciales inválidas o faltantes para el CI {Ci}.", credentials.Ci);
                 return Result.Fail<LoginDTO>("Credenciales inválidas", ErrorTypeEnum.Unauthorized);
             }
 
@@ -132,7 +132,7 @@ public class AuthService(
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error al autenticar usuario con correo electrónico {Email}.", credentials?.TaxId);
+            Logger.LogError(ex, "Error al autenticar usuario con CI {Ci}.", credentials?.Ci);
             return Result.Fail<LoginDTO>("Error al autenticar el usuario", ErrorTypeEnum.General);
         }
     }
@@ -260,7 +260,7 @@ public class AuthService(
         {
             Id = user.Id,
             Name = user.FirstName ?? "",
-            Ci = user.TaxId ?? "",
+            Ci = user.Ci ?? "",
             RolName = userRolName,
             RolId = userRolIdEnum
         };

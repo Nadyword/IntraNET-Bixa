@@ -1,10 +1,9 @@
-﻿using Bixa.Backend.Models;
+﻿using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authorization.Policy;
-using Microsoft.AspNetCore.Mvc;
-using System.Collections;
-using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Mvc;
+using Bixa.Backend.Models;
+using System.Text.Json;
 
 namespace Bixa.Backend.Controllers.Services
 {

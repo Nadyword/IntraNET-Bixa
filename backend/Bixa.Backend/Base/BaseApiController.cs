@@ -98,6 +98,8 @@ public abstract class BaseApiController(IMapper mapper, LoggerWrapper loggerWrap
                 return null;
         }
 
+        var nose = User.Claims;
+
         var rolesList = string.Join(", ", requiredRoles);
         _logger.LogWarning("Access denied: user lacks required roles {Roles}", rolesList);
         return HandleServiceResult(Result.Fail($"Acceso denegado: el usuario no posee ninguno de los roles requeridos: {rolesList}.", ErrorTypeEnum.Unauthorized));

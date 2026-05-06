@@ -1,7 +1,6 @@
 ﻿using Bixa.Backend.DataAccess.Interfaces.Repositories;
 using Bixa.Backend.Services.Services.JwtControllers;
 using Bixa.Backend.DataAccess.Wrappers;
-using Bixa.Backend.DataAccess.Context;
 using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.Controllers.Services;
 using System.IdentityModel.Tokens.Jwt;
@@ -78,7 +77,7 @@ public class AuthUser
     /// <returns>Authentication result</returns>
     public async Task<IActionResult> Authenticate([FromBody] UserCredentials? credentials)
     {
-        if (credentials == null || string.IsNullOrWhiteSpace(credentials.TaxId) || string.IsNullOrWhiteSpace(credentials.Password))
+        if (credentials == null || string.IsNullOrWhiteSpace(credentials.Ci) || string.IsNullOrWhiteSpace(credentials.Password))
             return _responseService.CreateResponse(ApiResponse<object>.BadRequest(null, "Invalid Credentials."));
 
         var result = await _authService.Authenticate(credentials);
@@ -96,7 +95,7 @@ public class AuthUser
     /// <returns>Authentication result</returns>
     public async Task<IActionResult> ChangePasswordReturnCredentials([FromBody] UserFirstLoginDTO? credentials)
     {
-        if (credentials == null || string.IsNullOrWhiteSpace(credentials.TaxId))
+        if (credentials == null || string.IsNullOrWhiteSpace(credentials.Ci))
             return _responseService.CreateResponse(ApiResponse<object>.BadRequest(null, "Invalid Credentials."));
 
         var result = await _authService.ChangePasswordReturnCredentials(credentials);
@@ -206,20 +205,20 @@ public class AuthUser
         if (string.IsNullOrWhiteSpace(ci))
             return new BadRequestObjectResult(new { Valid = false, Message = "La C.I es requerida." });
 
-        string normalizetTaxId = UtilityService.NormalizeCiFormat(ci);
-        var user = await _unitOfWork.Users.GetUserByTaxIdAsync(normalizetTaxId);
+        string normalizedCi = UtilityService.NormalizeCiFormat(ci);
+        var user = await _unitOfWork.Users.GetUserByCiAsync(normalizedCi);
 
         if (user == null)
             return new BadRequestObjectResult(new { Valid = false, Message = "No se encontró ningún usuario asociado a la C.I proporcionada." });
 
-        var email = await _readOnlyUnitOfWork.SnEmple.GetEmailByCiAsync(normalizetTaxId);
+        var email = await _readOnlyUnitOfWork.SnEmple.GetEmailByCiAsync(normalizedCi);
 
         if (string.IsNullOrWhiteSpace(email))
             return new BadRequestObjectResult(new { Valid = false, Message = "No se encontró ningún correo asociado a la C.I proporcionada." });
 
         string token = await RefreshToken(user);
 
-        _ = Task.Run(async () => _ = _sendMailServices.SendMailRetrievePassword(email, token, normalizetTaxId));
+        _ = Task.Run(async () => _ = _sendMailServices.SendMailRetrievePassword(email, token, normalizedCi));
 
         return new OkObjectResult(new { Valid = true, Message = "Se ha enviado un correo para recuperar la contraseña." });
     }

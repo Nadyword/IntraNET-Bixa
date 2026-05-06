@@ -13,7 +13,7 @@ export const FirstLoginPage: React.FC = () => {
   const { setProfile, setError: setProfileError } = useUserProfileStore();
 
   const token = searchParams.get('token') ?? '';
-  const taxId = searchParams.get('taxId') ?? '';
+  const ci = searchParams.get('ci') ?? '';
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -22,7 +22,7 @@ export const FirstLoginPage: React.FC = () => {
   const [error, setError] = useState('');
 
   // Si no llegan los parámetros necesarios, redirigir al login
-  if (!token || !taxId) {
+  if (!token || !ci) {
     navigate('/login');
     return null;
   }
@@ -42,7 +42,7 @@ export const FirstLoginPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const { data: response } = await authService.firstLogin(taxId, newPassword, token);
+      const { data: response } = await authService.firstLogin(ci, newPassword, token);
 
       if (!response.success) {
         setError(response.message || 'No se pudo establecer la contraseña');
@@ -51,7 +51,7 @@ export const FirstLoginPage: React.FC = () => {
 
       login(response.data.token, response.data.refreshToken);
 
-      userService.getProfile(taxId)
+      userService.getProfile(ci)
         .then(({ data: res }) => { if (res.success) setProfile(res.data); })
         .catch(() => setProfileError('No se pudo cargar el perfil del empleado'));
 

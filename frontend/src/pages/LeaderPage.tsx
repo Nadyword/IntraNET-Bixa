@@ -12,12 +12,11 @@ interface ApprovalRequest {
 }
 
 interface TeamMember {
-  id: number;
+  cod_emp: number;
   name: string;
   role: string;
   department: string;
   status: 'activo' | 'vacaciones' | 'permiso';
-  performanceScore: number;
 }
 
 export const LeaderPage: React.FC = () => {
@@ -53,36 +52,116 @@ export const LeaderPage: React.FC = () => {
 
   const teamMembers: TeamMember[] = [
     {
-      id: 1,
+      cod_emp: 1,
       name: 'Juan Rodríguez',
       role: 'Desarrollador Senior',
       department: 'Tecnología',
-      status: 'activo',
-      performanceScore: 92,
+      status: 'activo'
     },
     {
-      id: 2,
+      cod_emp: 2,
       name: 'María Gonzalez',
       role: 'Especialista en QA',
       department: 'Calidad',
-      status: 'vacaciones',
-      performanceScore: 88,
+      status: 'vacaciones'
     },
     {
-      id: 3,
+      cod_emp: 3,
       name: 'Carlos Mendez',
       role: 'Analista de Negocios',
       department: 'Operaciones',
-      status: 'activo',
-      performanceScore: 85,
+      status: 'activo'
     },
     {
-      id: 4,
+      cod_emp: 4,
       name: 'Laura Pérez',
       role: 'Diseñadora UX',
       department: 'Producto',
-      status: 'activo',
-      performanceScore: 90,
+      status: 'activo'
+    },
+    {
+      cod_emp: 5,
+      name: 'Juan Rodríguez',
+      role: 'Desarrollador Senior',
+      department: 'Tecnología',
+      status: 'activo'
+    },
+    {
+      cod_emp: 6,
+      name: 'María Gonzalez',
+      role: 'Especialista en QA',
+      department: 'Calidad',
+      status: 'vacaciones'
+    },
+    {
+      cod_emp: 7,
+      name: 'Carlos Mendez',
+      role: 'Analista de Negocios',
+      department: 'Operaciones',
+      status: 'activo'
+    },
+    {
+      cod_emp: 8,
+      name: 'Laura Pérez',
+      role: 'Diseñadora UX',
+      department: 'Producto',
+      status: 'activo'
+    },
+    {
+      cod_emp: 9,
+      name: 'Juan Rodríguez',
+      role: 'Desarrollador Senior',
+      department: 'Tecnología',
+      status: 'activo'
+    },
+    {
+      cod_emp: 10,
+      name: 'María Gonzalez',
+      role: 'Especialista en QA',
+      department: 'Calidad',
+      status: 'vacaciones'
+    },
+    {
+      cod_emp: 11,
+      name: 'Carlos Mendez',
+      role: 'Analista de Negocios',
+      department: 'Operaciones',
+      status: 'activo'
+    },
+    {
+      cod_emp: 12,
+      name: 'Laura Pérez',
+      role: 'Diseñadora UX',
+      department: 'Producto',
+      status: 'activo'
+    },
+    {
+      cod_emp: 13,
+      name: 'Juan Rodríguez',
+      role: 'Desarrollador Senior',
+      department: 'Tecnología',
+      status: 'activo'
+    },
+    {
+      cod_emp: 14,
+      name: 'María Gonzalez',
+      role: 'Especialista en QA',
+      department: 'Calidad',
+      status: 'vacaciones'
+    },
+    {
+      cod_emp: 15,
+      name: 'Carlos Mendez',
+      role: 'Analista de Negocios',
+      department: 'Operaciones',
+      status: 'activo'
+    },
+    {
+      cod_emp: 16,
+      name: 'Laura Pérez',
+      role: 'Diseñadora UX',
+      department: 'Producto',
+      status: 'activo'
     },
   ];
 
@@ -172,51 +251,54 @@ export const LeaderPage: React.FC = () => {
         )}
 
         {activeTab === 'equipo' && (
-          <div className="team-section">
-            <table className="team-table">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Rol</th>
-                  <th>Departamento</th>
-                  <th>Estado</th>
-                  <th>Desempeño</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {teamMembers.map((member) => (
-                  <tr key={member.id}>
-                    <td>
-                      <strong>{member.name}</strong>
-                    </td>
-                    <td>{member.role}</td>
-                    <td>{member.department}</td>
-                    <td>
-                      <span className={`status-badge ${member.status}`}>
-                        {member.status === 'activo' && '🟢 Activo'}
-                        {member.status === 'vacaciones' && '🏖️ Vacaciones'}
-                        {member.status === 'permiso' && '📝 Permiso'}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="performance-bar">
-                        <div
-                          className="performance-fill"
-                          style={{ width: `${member.performanceScore}%` }}
-                        ></div>
-                        <span className="performance-text">{member.performanceScore}%</span>
-                      </div>
-                    </td>
-                    <td>
-                      <a href="#" className="action-link">
-                        Ver perfil →
-                      </a>
-                    </td>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '15px' }}>
+              <button className="btn-primary" style={{ marginRight: '10px' }}>
+                Crear usuario
+              </button>
+              <button className="btn-primary" style={{ marginRight: '10px' }}>
+                Borrar usuario
+              </button>
+              <button className="btn-primary" style={{ marginRight: '10px' }}>
+                Restablecer clave
+              </button>
+            </div>
+            <div className="team-section">
+              <table className="team-table">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Rol</th>
+                    <th>Departamento</th>
+                    <th>Estado</th>
+                    <th>Acción</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {teamMembers.map((member) => (
+                    <tr key={member.cod_emp}>
+                      <td>
+                        <strong>{member.name}</strong>
+                      </td>
+                      <td>{member.role}</td>
+                      <td>{member.department}</td>
+                      <td>
+                        <span className={`status-badge ${member.status}`}>
+                          {member.status === 'activo' && '🟢 Activo'}
+                          {member.status === 'vacaciones' && '🏖️ Vacaciones'}
+                          {member.status === 'permiso' && '📝 Permiso'}
+                        </span>
+                      </td>
+                      <td>
+                        <a href="#" className="action-link">
+                          Ver perfil →
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

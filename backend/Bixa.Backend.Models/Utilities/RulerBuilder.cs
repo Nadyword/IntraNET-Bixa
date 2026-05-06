@@ -38,13 +38,6 @@ public static class ValidationRuleExtensions
             .Must(IsValidPhone).WithMessage(Invalid);
 
     /// <summary>
-    /// Validates that a string property adheres to the defined Tax ID (RUT/NIT) format using ValidationUtils.
-    /// </summary>
-    public static IRuleBuilderOptions<T, string> IsValidTaxIdFormat<T>(this IRuleBuilder<T, string> ruleBuilder) =>
-        ruleBuilder
-            .Must(IsValidTaxId).WithMessage(Invalid);
-
-    /// <summary>
     /// Validates that a DateTime value has its Kind property set to Utc.
     /// </summary>
     public static IRuleBuilderOptions<T, DateTime> IsUtc<T>(this IRuleBuilder<T, DateTime> ruleBuilder)

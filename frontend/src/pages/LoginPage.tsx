@@ -8,7 +8,7 @@ import './LoginPage.css';
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuthStore();
-  const [taxId, setTaxId] = useState('');
+  const [ci, setCi] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -21,7 +21,7 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const { data: response } = await authService.login(taxId, password);
+      const { data: response } = await authService.login(ci, password);
 
       if (!response.success) {
         setError(response.message || 'Credenciales inválidas');
@@ -32,7 +32,7 @@ export const LoginPage: React.FC = () => {
 
       // Primer login: el backend devuelve refreshToken = "FIRSTLOGIN"
       if (refreshToken === 'FIRSTLOGIN') {
-        navigate(`/first-login?token=${encodeURIComponent(token)}&taxId=${encodeURIComponent(taxId)}`);
+        navigate(`/first-login?token=${encodeURIComponent(token)}&ci=${encodeURIComponent(ci)}`);
         return;
       }
 
@@ -75,8 +75,8 @@ export const LoginPage: React.FC = () => {
               <input
                 type="text"
                 placeholder="Cedula"
-                value={taxId}
-                onChange={(e) => setTaxId(e.target.value)}
+                value={ci}
+                onChange={(e) => setCi(e.target.value)}
                 required
               />
             </div>

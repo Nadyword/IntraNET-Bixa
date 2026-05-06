@@ -12,34 +12,28 @@ namespace Bixa.Backend.DataAccess.Repository;
 /// This repository is now focused solely on retrieving and marking entities.
 /// Persistence (SaveChanges) is handled by the Unit of Work.
 /// </summary>
-public class AuthRepository : IAuthRepository
+/// <remarks>
+/// Initializes a new instance of the AuthRepository.
+/// </remarks>
+/// <param name="context">Database context.</param>
+/// <param name="loggerWrapper">Logger instance wrapper.</param>
+public class AuthRepository(AppDbContext context, LoggerWrapper loggerWrapper) : IAuthRepository
 {
-    private readonly AppDbContext _context;
-    private readonly ILogger<AuthRepository> _logger;
+    private readonly AppDbContext _context = context;
+    private readonly ILogger<AuthRepository> _logger = loggerWrapper.CreateLogger<AuthRepository>();
 
     /// <summary>
-    /// Initializes a new instance of the AuthRepository.
+    /// Retrieves a user by Ci.
     /// </summary>
-    /// <param name="context">Database context.</param>
-    /// <param name="loggerWrapper">Logger instance wrapper.</param>
-    public AuthRepository(AppDbContext context, LoggerWrapper loggerWrapper)
-    {
-        _context = context;
-        _logger = loggerWrapper.CreateLogger<AuthRepository>();
-    }
-
-    /// <summary>
-    /// Retrieves a user by TaxId.
-    /// </summary>
-    /// <param name="taxId">User taxId.</param>
+    /// <param name="ci">User Ci.</param>
     /// <returns>User entity or null if not found. Exceptions are logged and rethrown.</returns>
-    public async Task<Users?> GetUserByTaxId(string? taxId)
+    public async Task<Users?> GetUserByCi(string? ci)
     {
         try
         {
             var user = await _context.Users
                 .Include(x => x.UserRol)
-                .Where(u => u.TaxId == taxId)
+                .Where(u => u.Ci == ci)
                 .FirstOrDefaultAsync()
                 .ConfigureAwait(false);
 
@@ -47,7 +41,7 @@ public class AuthRepository : IAuthRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving user by taxId from repository.");
+            _logger.LogError(ex, "Error retrieving user by Ci from repository.");
             throw;
         }
     }

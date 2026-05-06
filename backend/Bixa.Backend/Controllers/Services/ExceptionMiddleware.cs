@@ -2,16 +2,10 @@
 
 namespace Bixa.Backend.Controllers.Services;
 
-public class ExceptionMiddleware
+public class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
 {
-    private readonly ILogger<ExceptionMiddleware> _logger;
-    private readonly RequestDelegate _next;
-
-    public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
-    {
-        _next = next;
-        _logger = logger;
-    }
+    private readonly ILogger<ExceptionMiddleware> _logger = logger;
+    private readonly RequestDelegate _next = next;
 
     public async Task InvokeAsync(HttpContext httpContext)
     {
@@ -21,6 +15,7 @@ public class ExceptionMiddleware
         }
         catch (Exception ex)
         {
+            ArgumentNullException.ThrowIfNull(ex);
             _logger.LogError($"Something went wrong: {ex}");
             await HandleExceptionAsync(httpContext, ex);
         }
@@ -28,6 +23,7 @@ public class ExceptionMiddleware
 
     private static Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
+        ArgumentNullException.ThrowIfNull(exception);
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
 

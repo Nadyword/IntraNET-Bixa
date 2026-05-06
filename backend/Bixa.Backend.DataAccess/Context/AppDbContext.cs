@@ -30,10 +30,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasKey(u => u.Id);
 
         modelBuilder.Entity<Users>()
-            .Property(u => u.Id)
-            .ValueGeneratedOnAdd();
-
-        modelBuilder.Entity<Users>()
             .Property(u => u.PasswordHash)
             .IsRequired()
             .HasMaxLength(100);
@@ -49,12 +45,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasMaxLength(ModelLengths.Name);
 
         modelBuilder.Entity<Users>()
-            .Property(u => u.TaxId)
+            .Property(u => u.Ci)
             .IsRequired()
-            .HasMaxLength(ModelLengths.TaxId);
+            .HasMaxLength(ModelLengths.Ci);
 
         modelBuilder.Entity<Users>()
-            .HasIndex(u => u.TaxId)
+            .HasIndex(u => u.Ci)
             .IsUnique();
 
         modelBuilder.Entity<Users>()
@@ -89,12 +85,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             new ()
             {
-                Id = 1,
+                Id = 74,
                 PasswordHash = Hasher.HashPassword("Sa753951."),
-                FirstName = "Samuel",
-                LastName = "Sanchez",
+                FirstName = "MAGLENY",
+                LastName = "MATHEUS",
                 IsActive = true,
-                TaxId = "26.624.498",
+                Ci = "10.486.165",
                 IdUserRol = (int)UserRolEnum.SuperIntendente,
                 CreatedAt = new DateTime(2025, 1, 1),
                 UpdatedAt = new DateTime(2025, 1, 1),

@@ -19,12 +19,11 @@ public static class ModelLengths
     public const int Phone = 20;
     public const int PositionName = 100;
     public const int ProviderName = 100;
-    public const int ProviderTaxID = 20;
     public const int PurchaseOrderNumber = 50;
     public const int Quality = 50;
     public const int QuotationNumber = 50;
     public const int Shift = 50;
     public const int State = 100;
-    public const int TaxId = 15;
+    public const int Ci = 15;
     public const int WorkSchedule = 255;
 }

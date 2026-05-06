@@ -8,51 +8,6 @@ namespace Bixa.Backend.Models.Utilities;
 public static class ValidationUtils
 {
     /// <summary>
-    /// Validates a Tax ID (RUT/NIT) based on Chilean RUT format and checksum algorithm.
-    /// </summary>
-    /// <param name="taxId">The Tax ID string to validate.</param>
-    /// <returns>True if the Tax ID is valid; otherwise, false.</returns>
-    public static bool IsValidTaxId(string? taxId)
-    {
-        if (string.IsNullOrWhiteSpace(taxId))
-            return false;
-
-        string rut = taxId.Trim().ToUpper();
-
-        if (!Regex.IsMatch(rut, @"^\d{1,2}(\.\d{3}){2}-[\dK]$"))
-            return false;
-
-        string rutLimpio = rut.Replace(".", "").Replace("-", "");
-        char dvIngresado = rutLimpio[^1];
-        string cuerpo = rutLimpio[..^1];
-
-        if (cuerpo.Length is not (7 or 8))
-            return false;
-
-        if (!long.TryParse(cuerpo, out _))
-            return false;
-
-        int suma = 0;
-        int multiplicador = 2;
-
-        for (int i = cuerpo.Length - 1; i >= 0; i--)
-        {
-            suma += int.Parse(cuerpo[i].ToString()) * multiplicador;
-            multiplicador = multiplicador == 7 ? 2 : multiplicador + 1;
-        }
-
-        int dvCalculado = 11 - (suma % 11);
-        char dvEsperado = dvCalculado switch
-        {
-            11 => '0',
-            10 => 'K',
-            _ => dvCalculado.ToString()[0]
-        };
-
-        return dvEsperado == dvIngresado;
-    }
-
-    /// <summary>
     /// Validates a phone number based on character set and maximum length.
     /// </summary>
     /// <param name="phoneNumber">The phone number string to validate.</param>

@@ -52,4 +52,12 @@ internal static class ProfitSqlTemplates
             correo_e AS 'CorreoE'
         FROM snemple WHERE ci = @ci
         """;
+
+    internal const string GetInfoBasicByCi = """
+        SELECT
+            nombres,
+            apellidos,
+            ci
+        FROM snemple WHERE ci = @ci
+    """;
 }

@@ -13,7 +13,7 @@ Cuando el usuario hace login, el sistema crea el JWT con estos claims
 (ver: backend/Bixa.Backend.Services/Services/JwtControllers/ManejoJwt.cs):
 
   Claim "Nombre"  → Nombre completo del usuario        (authToken.Name)
-  Claim "ci"      → Cédula de identidad / TaxId         (authToken.Ci)
+  Claim "ci"      → Cédula de identidad / Ci         (authToken.Ci)
   Claim "id"      → ID numérico del usuario en la BD    (authToken.Id)
   Claim "Rol"     → Nombre del rol (ej: "Empleado")     (authToken.RolName)
   Claim "RolId"   → ID del rol                          (authToken.RolId)

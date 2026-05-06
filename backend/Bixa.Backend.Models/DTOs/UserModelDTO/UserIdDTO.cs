@@ -12,6 +12,6 @@ public class UserIdDTO
     public int ModifiedById { get; set; }
     public string? Name { get; set; }
     public string? Phone { get; set; }
-    public string? TaxId { get; set; }
+    public string? Ci { get; set; }
     public virtual UserRolDTO.UserRolDTO? UserRol { get; set; }
 }

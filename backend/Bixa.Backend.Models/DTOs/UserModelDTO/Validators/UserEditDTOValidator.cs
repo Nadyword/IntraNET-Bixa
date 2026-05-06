@@ -33,13 +33,6 @@ public class UserEditDTOValidator : AbstractValidator<UserEditDTO>
                 .IsValidPhoneNumberFormat();
         });
 
-        When(user => !string.IsNullOrEmpty(user.TaxId), () =>
-        {
-            RuleFor(user => user.TaxId!)
-                .MaximumLength(ModelLengths.TaxId).WithMessage(MaxLength)
-                .IsValidTaxIdFormat();
-        });
-
         When(user => user.IdUserRol.HasValue, () =>
         {
             RuleFor(user => user.IdUserRol!.Value)

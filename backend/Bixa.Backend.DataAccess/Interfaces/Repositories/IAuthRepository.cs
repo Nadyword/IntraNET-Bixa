@@ -8,11 +8,11 @@ namespace Bixa.Backend.DataAccess.Interfaces.Repositories;
 public interface IAuthRepository
 {
     /// <summary>
-    /// Retrieves a user by TaxID
+    /// Retrieves a user by CI
     /// </summary>
-    /// <param name="email">User TaxID.</param>
+    /// <param name="ci">User CI.</param>
     /// <returns>The User entity if found, otherwise null.</returns>
-    Task<Users?> GetUserByTaxId(string? email);
+    Task<Users?> GetUserByCi(string? ci);
 
     /// <summary>
     /// Retrieves a user by refresh token and date.

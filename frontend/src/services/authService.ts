@@ -36,11 +36,11 @@ export interface ActivateAccountResponse {
 }
 
 export const authService = {
-  login: (taxId: string, password: string) =>
-    api.post<ApiResponse<LoginDTO>>('/login/AuthenticateLogin', { taxId, password }),
+  login: (ci: string, password: string) =>
+    api.post<ApiResponse<LoginDTO>>('/login/AuthenticateLogin', { ci, password }),
 
-  firstLogin: (taxId: string, newPassword: string, token: string) =>
-    api.post<ApiResponse<LoginDTO>>('/login/FirstLogin', { taxId, newPassword, token }),
+  firstLogin: (ci: string, newPassword: string, token: string) =>
+    api.post<ApiResponse<LoginDTO>>('/login/FirstLogin', { ci, newPassword, token }),
 
   validateToken: (token: string) =>
     api.post<ValidateTokenResponse>('/login/validateToken', { token }),

@@ -14,6 +14,6 @@ public class UserFilterDTO
     [FromQuery] public int? ModifiedById { get; set; }
     [FromQuery] public string? Name { get; set; }
     [FromQuery] public string? Phone { get; set; }
-    [FromQuery] public string? TaxId { get; set; }
+    [FromQuery] public string? Ci { get; set; }
     [FromQuery] public int? UserType { get; set; }
 }

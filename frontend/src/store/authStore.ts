@@ -4,7 +4,7 @@ import { useUserProfileStore } from './userProfileStore';
 
 export interface User {
   id: string;
-  taxId: string;
+  ci: string;
   role: string;
   rolId: string;
 }
@@ -35,7 +35,7 @@ function decodeUser(token: string): User | null {
     const decoded: any = jwtDecode(token);
     return {
       id: decoded.id || '',
-      taxId: decoded.ci || '',
+      ci: decoded.ci || '',
       role: decoded.Rol || '',
       rolId: decoded.RolId || '',
     };

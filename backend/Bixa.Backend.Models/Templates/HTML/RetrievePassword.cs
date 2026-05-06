@@ -1,6 +1,6 @@
 ﻿namespace Bixa.Backend.Models.Templates.HTML;
 
-public class RetrievePassword(string host, string tokken, string taxId)
+public class RetrievePassword(string host, string tokken, string ci)
 {
     private readonly string bodyMail = """
         <!DOCTYPE html>
@@ -75,7 +75,7 @@ public class RetrievePassword(string host, string tokken, string taxId)
         </html>
         """;
 
-    private readonly string path = $"{host}/reset-password?token={tokken}&taxId={taxId}";
+    private readonly string path = $"{host}/reset-password?token={tokken}&ci={ci}";
 
     public string GetBodyMail()
     {

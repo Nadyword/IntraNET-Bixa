@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Bixa.Backend.Models;
 using Bixa.Backend.Base;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Bixa.Backend.Controllers.UserApiControllers;
 
@@ -21,6 +22,7 @@ namespace Bixa.Backend.Controllers.UserApiControllers;
 /// <param name="mapper">AutoMapper instance for DTO conversions.</param>
 /// <param name="loggerWrapper">Logger wrapper for logging operations.</param>
 /// <param name="userService">The user service instance for business logic.</param>
+[Authorize]
 [ApiController]
 [Route("api/users")]
 public class UserApiController(
@@ -43,7 +45,6 @@ public class UserApiController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CreateUser([FromBody] UserInsertDTO user)
     {
-        // Solo los superintendentes pueden crear usuarios.
         var authResult = RequireUserRol(UserRolEnum.SuperIntendente);
         if (authResult != null) return authResult;
 

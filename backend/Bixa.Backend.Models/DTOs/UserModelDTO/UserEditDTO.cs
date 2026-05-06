@@ -8,5 +8,5 @@ public class UserEditDTO
     public int? IdUserRol { get; set; }
     public string? Name { get; set; }
     public string? Phone { get; set; }
-    public string? TaxId { get; set; }
+    public string? Ci { get; set; }
 }

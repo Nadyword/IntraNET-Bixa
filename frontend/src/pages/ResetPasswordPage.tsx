@@ -8,7 +8,7 @@ export const ResetPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token') ?? '';
-  const TaxId = searchParams.get('taxId') ?? '';
+  const ci = searchParams.get('ci') ?? '';
 
   const [validating, setValidating] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
@@ -59,7 +59,7 @@ export const ResetPasswordPage: React.FC = () => {
 
     setLoading(true);
     try {
-      await api.post('/Login/ChangePassword', { TaxId, NewPassword, token });
+      await api.post('/Login/ChangePassword', { ci, NewPassword, token });
       setSuccess(true);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string; errors?: string[] } } };
