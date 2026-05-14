@@ -12,7 +12,7 @@ public interface IReadOnlyRepository<TEntity, TKey> where TEntity : class
 {
     Task<IEnumerable<TEntity?>> GetByIdAsync(TKey id);
 
-    Task<PaginatedResult<TEntity>> GetAllAsync(object filters, Pagination? pagination);
+    Task<List<TEntity>> GetAllAsync(int pageNumber, int pageSize);
 
     Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate);
 }

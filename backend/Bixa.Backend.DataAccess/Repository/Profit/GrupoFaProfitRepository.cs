@@ -20,18 +20,14 @@ public class GrupoFaProfitRepository(ProfitDbContext context) : IGrupoFaProfitRe
     public async Task<bool> AnyAsync(Expression<Func<GrupoFa, bool>> predicate)
         => await _context.GrupoFa.AnyAsync(predicate);
 
-    public async Task<PaginatedResult<GrupoFa>> GetAllAsync(object filters, Pagination? pagination)
+    public async Task<List<GrupoFa>> GetAllAsync(int pageNumber, int pageSize)
     {
-        var page = pagination ?? new Pagination();
-
-        var items = await _context.GrupoFa
-            .FromSqlRaw(ProfitSqlTemplates.GetByCi!)
-            .Skip((page.PageNumber - 1) * page.PageSize)
-            .Take(page.PageSize)
-            .ToListAsync();
-
-        var totalCount = items.Count;
-        return new PaginatedResult<GrupoFa>(items, totalCount, page.PageNumber, page.PageSize);
+        int page = (pageNumber * pageSize) - pageSize;
+        return await _context.GrupoFa
+          .OrderBy(u => u.CodEmp)
+          .Skip(page)
+          .Take(pageSize)
+          .ToListAsync();
     }
 
     public async Task<IEnumerable<GrupoFa?>> GetByIdAsync(int id)

@@ -19,8 +19,8 @@ public static class AuthorizationUtils
         services.AddSingleton<IAuthorizationPolicyProvider, AdministratorPolicyProvider>();
 
         services.AddAuthorizationBuilder()
-            .AddPolicy(UserRolEnum.SuperIntendente.GetDescriptionPolicy(), policy =>
-                policy.RequireRole(nameof(UserRolEnum.SuperIntendente)))
+            .AddPolicy(UserRolEnum.Administrador.GetDescriptionPolicy(), policy =>
+                policy.RequireRole(nameof(UserRolEnum.Administrador)))
             .AddPolicy(UserRolEnum.Supervisor.GetDescriptionPolicy(), policy =>
                 policy.RequireRole(nameof(UserRolEnum.Supervisor)))
             .AddPolicy(UserRolEnum.Empleado.GetDescriptionPolicy(), policy =>

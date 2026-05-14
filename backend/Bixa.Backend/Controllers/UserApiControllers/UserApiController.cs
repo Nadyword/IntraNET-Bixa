@@ -1,14 +1,12 @@
 ﻿using Bixa.Backend.Models.DTOs.UserModelDTO;
 using Bixa.Backend.DataAccess.Wrappers;
+using Microsoft.AspNetCore.Authorization;
 using Bixa.Backend.Services.Interfaces;
-using Bixa.Backend.Models.Response;
 using Bixa.Backend.Models.Enums;
-using Bixa.Backend.Models.Query;
 using Microsoft.AspNetCore.Mvc;
 using Bixa.Backend.Models;
 using Bixa.Backend.Base;
 using AutoMapper;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Bixa.Backend.Controllers.UserApiControllers;
 
@@ -45,7 +43,7 @@ public class UserApiController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CreateUser([FromBody] UserInsertDTO user)
     {
-        var authResult = RequireUserRol(UserRolEnum.SuperIntendente);
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
         if (authResult != null) return authResult;
 
         var result = await _userService.AddAsync(user);
@@ -54,41 +52,41 @@ public class UserApiController(
 
     /// <summary>
     /// Deletes a user from the system.
-    /// DELETE /api/users/{id}
+    /// DELETE /api/users/{ci}
     /// </summary>
-    /// <param name="id">Id of the user to delete.</param>
+    /// <param name="ci">Cedula of the user to delete.</param>
     /// <returns>API response indicating the operation result.</returns>
-    [HttpDelete("{id:int}")]
+    [HttpDelete("{ci}")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> DeleteUser(int id)
+    public async Task<IActionResult> DeleteUser(string ci)
     {
-        var authResult = RequireUserRol(UserRolEnum.SuperIntendente);
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
         if (authResult != null) return authResult;
 
-        var result = await _userService.DeleteAsync(id);
+        var result = await _userService.DeleteAsync(ci);
         return HandleServiceResult(result, "Eliminación completada");
     }
 
     /// <summary>
-    /// Retrieves a single user by their ID.
-    /// GET /api/users/{id}
+    /// Retrieves a single user by their CI.
+    /// GET /api/users/{ci}
     /// </summary>
-    /// <param name="id">The ID of the user to retrieve.</param>
+    /// <param name="ci">The CI of the user to retrieve.</param>
     /// <returns>API response containing the UserDTO if found.</returns>
-    [HttpGet("{id:int}")]
+    [HttpGet("{ci}")]
     [ProducesResponseType(typeof(ApiResponse<UserDTO>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetUserById(int id)
+    public async Task<IActionResult> GetUserByCi(string ci)
     {
-        var authResult = RequireUserRol(UserRolEnum.SuperIntendente, UserRolEnum.Empleado);
+        var authResult = RequireUserRol(UserRolEnum.Administrador, UserRolEnum.Empleado);
         if (authResult != null) return authResult;
 
-        var result = await _userService.GetUserByIdAsync(id);
+        var result = await _userService.GetUserByCiAsync(ci);
         return HandleServiceResult(result);
     }
 
@@ -96,79 +94,89 @@ public class UserApiController(
     /// Retrieves a paginated list of users based on specified filters.
     /// GET /api/users?pageNumber=1&amp;pageSize=10&amp;filters.Name=John
     /// </summary>
-    /// <param name="filters">Filtering, sorting, and pagination parameters.</param>
+    ///<param name="pageNumber">The page number for pagination (default is 1).</param>
+    ///<param name="pageSize">The number of items per page for pagination (default is 10).</param>
     /// <returns>API response containing paginated UserDTO results.</returns>
-    [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<PaginatedResult<UserDTO>>), StatusCodes.Status200OK)]
+    [HttpGet("{pageNumber:int}/{pageSize:int}")]
+    [ProducesResponseType(typeof(ApiResponse<List<SnEmpleDTO>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetUsers([FromQuery] SearchQuery<UserFilterDTO> filters)
+    public async Task<IActionResult> GetUsers(int pageNumber = 1, int pageSize = 10)
     {
-        var authResult = RequireUserRol(UserRolEnum.SuperIntendente, UserRolEnum.Empleado);
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
         if (authResult != null) return authResult;
 
-        var result = await _userService.GetAllAsync(filters);
-        return HandleServiceResult(result);
+        var listUser = await _userService.GetAllAsync(pageNumber, pageSize);
+
+        return HandleServiceResult(await _userService.GetAllByCiAsync(listUser.Value));
     }
 
     /// <summary>
     /// Updates an existing user's information.
     /// PUT /api/users/{id}
     /// </summary>
-    /// <param name="id">The ID of the user to update. Must match userEdited.Id.</param>
     /// <param name="userEdited">User data transfer object with updated information.</param>
     /// <returns>API response indicating the operation result.</returns>
-    [HttpPut("{id:int}")]
+    [HttpPut]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> UpdateUser(int id, [FromBody] UserEditDTO userEdited)
+    public async Task<IActionResult> UpdateUser([FromBody] UserEditDTO userEdited)
     {
-        var authResult = RequireUserRol(UserRolEnum.SuperIntendente);
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
         if (authResult != null) return authResult;
 
-        var validationError = ValidateRequest(
-            id == userEdited.Id,
-            $"Route ID ({id}) does not match User ID in body ({userEdited.Id})",
-            ErrorTypeEnum.Validation);
+        userEdited.Password = null; // Ensure password is not updated in this endpoint
 
-        if (validationError != null)
-            return validationError;
+        var resultUser = await _userService.UpdateAsync(userEdited);
 
-        var result = await _userService.UpdateAsync(userEdited);
-        return HandleServiceResult(result, $"Usuario con Id {userEdited.Id} actualizado");
+        return HandleServiceResult(resultUser, $"Usuario con CI {userEdited.Ci} actualizado");
     }
 
     /// <summary>
-    /// Updates a user's password. This is a specific action, so we can use a dedicated endpoint.
-    /// PUT /api/users/{id}/password
+    /// Updates an existing user's information.
+    /// PUT /api/users/{id}
     /// </summary>
-    /// <param name="id">The ID of the user whose password is to be updated.</param>
-    /// <param name="passwordChange">Password change data transfer object.</param>
+    /// <param name="userEdited">User data transfer object with updated information.</param>
+    /// <param name="PassNew">The new password for the user.</param>
     /// <returns>API response indicating the operation result.</returns>
-    [HttpPut("{id:int}/password")]
+    [HttpPut("ChangePassword/{PassNew}")]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> UpdateUserPassword(int id, [FromBody] UserChangePasswordDTO passwordChange)
+    public async Task<IActionResult> UpdateUserPassword([FromBody] UserEditDTO userEdited, string PassNew)
     {
-        var authResult = RequireUserRol(UserRolEnum.SuperIntendente);
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
         if (authResult != null) return authResult;
 
-        var validationError = ValidateRequest(
-            id == passwordChange.Id,
-            $"Route ID ({id}) does not match User ID in body ({passwordChange.Id})",
-            ErrorTypeEnum.Validation);
+        var resultUser = await _userService.UpdateUserPassword(userEdited, PassNew);
 
-        if (validationError != null)
-            return validationError;
+        return HandleServiceResult(resultUser, $"Usuario con CI {userEdited.Ci} actualizado");
+    }
 
-        var result = await _userService.UpdateUserPassword(passwordChange);
-        return HandleServiceResult(result, "Tu contraseña ha sido cambiada exitosamente");
+    ///<summary>
+    /// POST reenvío de correo de bienvenida
+    ///</summary>
+    ///<param name="Ci">The CI of the user to resend the welcome email to.</param>
+    ///<returns>API response indicating the operation result.</returns>
+    [HttpPost("ResendWelcomeEmail/{Ci}")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ResendWelcomeEmail(string Ci)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
+        if (authResult != null) return authResult;
+
+        var resultUser = await _userService.ResendWelcomeEmail(Ci);
+
+        return HandleServiceResult(resultUser, $"Si existe un correo asociado, se ha reenviado el correo de bienvenida al usuario con CI {Ci}");
     }
 }

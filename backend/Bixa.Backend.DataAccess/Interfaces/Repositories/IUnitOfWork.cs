@@ -10,7 +10,6 @@ namespace Bixa.Backend.DataAccess.Interfaces.Repositories;
 public interface IUnitOfWork : IDisposable
 {
     INotificationRepository Notifications { get; }
-    IUserRolRepository UserRols { get; }
     IUserRepository Users { get; }
 
     /// <summary>
@@ -27,10 +26,10 @@ public interface IUnitOfWork : IDisposable
     BudgetaryItemEnum? GetBudgetaryItemEnumFromDescription(string? description);
 
     /// <summary>
-    /// Retrieves the ID of the current authenticated user from the HTTP context.
+    /// Retrieves the CI of the current authenticated user from the HTTP context.
     /// </summary>
-    /// <returns>The integer ID of the current user, or null if not authenticated or ID is not found/invalid.</returns>
-    int? GetCurrentUserId();
+    /// <returns>The CI of the current user, or null if not authenticated or CI is not found/invalid.</returns>
+    string? GetCurrentUserCi();
 
     UserRolEnum? GetCurrentUserRol();
 

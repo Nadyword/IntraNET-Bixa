@@ -1,6 +1,6 @@
-﻿using Bixa.Backend.Models.DTOs.KeyValuePairModelDTO;
-using Bixa.Backend.DataAccess.Interfaces.Repositories;
+﻿using Bixa.Backend.DataAccess.Interfaces.Repositories;
 using Bixa.Backend.Models.DTOs.UserModelDTO;
+using Bixa.Backend.DataAccess.Entities.DbProfit;
 using Bixa.Backend.DataAccess.Wrappers;
 using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.Services.Interfaces;
@@ -8,7 +8,6 @@ using Bixa.Backend.Models.Response;
 using Bixa.Backend.Models.Utilities;
 using Bixa.Backend.Models.Enums;
 using Microsoft.Extensions.Logging;
-using Bixa.Backend.Models.Query;
 using AutoMapper;
 
 namespace Bixa.Backend.Services.Services;
@@ -23,49 +22,54 @@ namespace Bixa.Backend.Services.Services;
 /// <param name="unitOfWork">The Unit of Work instance for managing database transactions.</param>
 /// <param name="mapper">The AutoMapper instance for object mapping.</param>
 /// <param name="userRepository">The user repository instance for data access.</param>
+/// <param name="sendMail" >The email service instance for sending notifications.</param>
 public class UserService(
     IUnitOfWork unitOfWork,
     IMapper mapper,
     IUserRepository userRepository,
     LoggerWrapper loggerWrapper,
-    IReadOnlyUnitOfWork readOnlyUnitOfWork) : IUserService
+    IReadOnlyUnitOfWork readOnlyUnitOfWork,
+    ISendMailServices sendMail) : IUserService
 {
     private readonly ILogger<UserService> _logger = loggerWrapper.CreateLogger<UserService>();
     private readonly IMapper _mapper = mapper;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IReadOnlyUnitOfWork _readOnlyUnitOfWork = readOnlyUnitOfWork;
+    private readonly ISendMailServices _sendMail = sendMail;
 
     /// <summary>
     /// Adds a new user to the system.
     /// </summary>
     /// <param name="userDto">The user data transfer object containing information for the new user.</param>
-    /// <returns>A <see cref="Result{T}"/> indicating success or failure, with the ID of the newly created user on success.</returns>
-    public async Task<Result<int>> AddAsync(UserInsertDTO userDto)
+    /// <returns>A <see cref="Result{T}"/> indicating success or failure, with the CI of the newly created user on success.</returns>
+    public async Task<Result<string>> AddAsync(UserInsertDTO userDto)
     {
         await _unitOfWork.BeginTransactionAsync();
         try
         {
             string ciNormalized = UtilityService.NormalizeCiFormat(userDto.Ci);
-            var validationResult = await ValidateUserExistenceAsync(ciNormalized, null);
+            var validationResult = await ValidateUserExistenceAsync(ciNormalized);
 
             if (!validationResult.IsSuccess)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<int>(validationResult.Error!, ErrorTypeEnum.Conflict);
+                return Result.Fail<string>(validationResult.Error!, ErrorTypeEnum.Conflict);
             }
 
             var snEmple = await _readOnlyUnitOfWork.SnEmple.GetFullInfoByCiAsync(userDto.Ci);
 
-            if (snEmple == null)
+            if (!snEmple.IsSuccess)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<int>("Empleado no encontrado en la BD secundaria.", ErrorTypeEnum.NotFound);
+                return Result.Fail<string>(snEmple.Error, snEmple.ErrorTypeEnum);
             }
 
-            Users userCreate = _mapper.Map<UserInsertDTO, Users>(userDto);
-            userCreate = _mapper.Map(snEmple, userCreate);
+            Users userCreate = _mapper.Map<SnEmple, Users>(snEmple.Value);
             userCreate.IsActive = true;
+            userCreate.IdUserRol = userDto.IdUserRol;
+            string clave = DateUtilities.GenerateSecureRandomPassword(10);
+            userCreate.PasswordHash = clave;
             userCreate.PasswordHash = CheckIfNewPassword(userCreate.PasswordHash!, string.Empty);
 
             await _userRepository.AddAsync(userCreate);
@@ -74,37 +78,41 @@ public class UserService(
             if (saveChangesSuccess)
             {
                 await _unitOfWork.CommitTransactionAsync();
-                return Result.Success(userCreate.Id);
+                if (string.IsNullOrEmpty(snEmple.Value.CorreoE))
+                    return Result.Success("Usuario creado exitosamente, pero no existe un correo empresarial asociado a este usuario. Es necesario registrar un correo realizar una recuperación de clave.");
+                _ = _sendMail.SendMailNewUser(snEmple.Value.CorreoE, clave);
+                return Result.Success("Usuario creado exitosamente.");
             }
             else
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<int>("Error al insertar usuario (no se guardaron cambios)", ErrorTypeEnum.General);
+                return Result.Fail<string>("Error al insertar usuario (no se guardaron cambios)", ErrorTypeEnum.General);
             }
         }
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
             _logger?.LogError(ex, "Error al agregar usuario. Ci:{Ci}", userDto?.Ci);
-            return Result.Fail<int>("Ocurrió un error al agregar el usuario.", ErrorTypeEnum.Database);
+            return Result.Fail<string>("Ocurrió un error al agregar el usuario.", ErrorTypeEnum.Database);
         }
     }
 
     /// <summary>
     /// Deletes a user by their unique identifier.
     /// </summary>
-    /// <param name="Id">The ID of the user to delete.</param>
+    /// <param name="ci">The cedula of the user to delete.</param>
     /// <returns>A <see cref="Result{T}"/> indicating success or failure. True if deletion was successful, false otherwise.</returns>
-    public async Task<Result<bool>> DeleteAsync(int Id)
+    public async Task<Result<bool>> DeleteAsync(string ci)
     {
         await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var userResult = await ValidateUserExistsAsync(Id);
+            ci = UtilityService.NormalizeCiFormat(ci);
+            var userResult = await ValidateUserExistsAsync(ci);
             if (!userResult.IsSuccess)
                 return userResult;
 
-            var userToDelete = (await _unitOfWork.Users.GetByIdAsync(Id)).FirstOrDefault();
+            var userToDelete = (await _unitOfWork.Users.GetByCiAsync(ci)).FirstOrDefault();
 
             if (userToDelete == null)
             {
@@ -112,7 +120,7 @@ public class UserService(
                 return Result.Fail<bool>("Usuario no encontrado.", ErrorTypeEnum.NotFound);
             }
 
-            if (userToDelete.IdUserRol == (int)UserRolEnum.SuperIntendente)
+            if (userToDelete.IdUserRol == (int)UserRolEnum.Administrador)
             {
                 var isLastAdmin = await CheckIfLastAdmin(userToDelete.IdUserRol);
 
@@ -125,8 +133,8 @@ public class UserService(
 
             //Si es Ejecutivo, eliminarlo de todos sus planes de gastos y solicitudes
 
-            await _userRepository.DeleteNotificationsFromUserAsync(Id);
-            var deletedSuccessfullyMarked = await _userRepository.DeleteAsync(Id);
+            await _userRepository.DeleteNotificationsFromUserAsync(ci);
+            var deletedSuccessfullyMarked = await _userRepository.DeleteAsync(ci);
             var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
 
             if (deletedSuccessfullyMarked && saveChangesSuccess)
@@ -143,7 +151,7 @@ public class UserService(
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
-            _logger?.LogError(ex, "Error al eliminar usuario con id {Id}", Id);
+            _logger?.LogError(ex, "Error al eliminar usuario con ci {Ci}", ci);
             return Result.Fail<bool>("Ocurrió un error al eliminar el usuario.", ErrorTypeEnum.Database);
         }
     }
@@ -151,20 +159,24 @@ public class UserService(
     /// <summary>
     /// Retrieves a paginated list of users based on specified filters.
     /// </summary>
-    /// <param name="filters">The search query containing filtering and pagination parameters.</param>
+    /// <param name="pageNumber">The page number for pagination (default is 1).</param>
+    /// <param name="pageSize">The number of items per page for pagination (default is 10).</param>
     /// <returns>A <see cref="Result{T}"/> indicating success or failure, with a paginated list of <see cref="UserDTO"/> on success.</returns>
-    public async Task<Result<PaginatedResult<UserDTO>>> GetAllAsync(SearchQuery<UserFilterDTO> filters)
+    public async Task<Result<List<UserDTO>>> GetAllAsync(int pageNumber = 1, int pageSize = 10)
     {
-        var users = await _userRepository.GetAllAsync(filters.Filters ?? new object(), filters.Pagination);
-        if (users.Data.Count == 0)
-            return Result.Fail<PaginatedResult<UserDTO>>("No se encontraron usuarios", ErrorTypeEnum.NotFound);
+        var users = await _userRepository.GetAllAsync(pageNumber, pageSize);
 
-        return Result.Success(_mapper.Map<PaginatedResult<Users>, PaginatedResult<UserDTO>>(users));
+        return Result.Success(_mapper.Map<List<UserDTO>>(users));
     }
 
-    public async Task<Result<UserDTO>> GetByIdAsync(int id)
+    /// <summary>
+    /// Obtains a user by their CI.
+    /// </summary>
+    /// <param name="ci">The CI of the user to retrieve.</param>
+    /// <returns>A <see cref="Result{T}"/> indicating success or failure, with the <see cref="UserDTO"/> on success.</returns>
+    public async Task<Result<UserDTO>> GetByCiAsync(string ci)
     {
-        var userEntity = (await _userRepository.GetByIdAsync(id)).FirstOrDefault();
+        var userEntity = (await _userRepository.GetByCiAsync(ci)).FirstOrDefault();
         if (userEntity == null)
             return Result.Fail<UserDTO>("Usuario no encontrado", ErrorTypeEnum.NotFound);
 
@@ -172,28 +184,14 @@ public class UserService(
         return Result.Success(userDto);
     }
 
-    public async Task<Result<IEnumerable<KeyValuePairDTO<object, object>>>> GetKeyValuePairsAsync(UserFilterDTO filters, KeyFieldConfigurationDTO config)
-    {
-        try
-        {
-            var result = await _unitOfWork.Users.GetKeyValuePairsAsync(filters, config);
-            return Result.Success(result);
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Error al recuperar pares clave-valor");
-            return Result.Fail<IEnumerable<KeyValuePairDTO<object, object>>>("Ocurrió un error al recuperar los datos.", ErrorTypeEnum.Database);
-        }
-    }
-
     /// <summary>
     /// Retrieves a single user by their unique identifier.
     /// </summary>
-    /// <param name="id">The ID of the user to retrieve.</param>
+    /// <param name="ci">The CI of the user to retrieve.</param>
     /// <returns>A <see cref="Result{T}"/> indicating success or failure, with the <see cref="UserDTO"/> on success.</returns>
-    public async Task<Result<UserIdDTO>> GetUserByIdAsync(int id)
+    public async Task<Result<UserIdDTO>> GetUserByCiAsync(string ci)
     {
-        var userEntity = (await _userRepository.GetByIdAsync(id)).FirstOrDefault();
+        var userEntity = (await _userRepository.GetByCiAsync(ci)).FirstOrDefault();
         if (userEntity == null)
             return Result.Fail<UserIdDTO>("Usuario no encontrado", ErrorTypeEnum.NotFound);
 
@@ -211,17 +209,13 @@ public class UserService(
         await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var userResult = await ValidateUserExistsAsync(dto.Id);
+            var userResult = await ValidateUserExistsAsync(dto.Ci);
             if (!userResult.IsSuccess)
                 return userResult;
 
-            var validationResult = await ValidateUserUpdateAsync(dto);
-            if (!validationResult.IsSuccess)
-                return validationResult;
-
             SetEnabledIfNotProvided(dto);
 
-            var entity = (await _userRepository.GetByIdAsync(dto.Id)).FirstOrDefault();
+            var entity = (await _userRepository.GetByCiAsync(dto.Ci)).FirstOrDefault();
             if (entity == null)
             {
                 await _unitOfWork.RollbackTransactionAsync();
@@ -234,7 +228,7 @@ public class UserService(
                 if (isLastAdmin)
                 {
                     await _unitOfWork.RollbackTransactionAsync();
-                    return Result.Fail<bool>("No se puede cambiar el rol: Debe haber al menos un administrador activo en el sistema.", ErrorTypeEnum.Validation);
+                    return Result.Fail<bool>("No se puede cambiar el rol: Debe haber al menos un Administrador activo en el sistema.", ErrorTypeEnum.Validation);
                 }
             }
 
@@ -259,7 +253,7 @@ public class UserService(
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
-            _logger?.LogError(ex, "Error al actualizar usuario id {UserId}", dto?.Id);
+            _logger?.LogError(ex, "Error al actualizar usuario ci {UserCi}", dto?.Ci);
             return Result.Fail<bool>("Ocurrió un error al actualizar el usuario.", ErrorTypeEnum.Database);
         }
     }
@@ -268,12 +262,13 @@ public class UserService(
     /// Updates a user's password.
     /// </summary>
     /// <param name="userEdited">The DTO containing the user's ID and new password.</param>
+    /// <param name="newPassword">The new password string.</param>
     /// <returns>A <see cref="Result{T}"/> indicating success or failure. True if password update was successful, false otherwise.</returns>
-    public async Task<Result<bool>> UpdateUserPassword(UserChangePasswordDTO userEdited)
+    public async Task<Result<bool>> UpdateUserPassword(UserEditDTO userEdited, string newPassword)
     {
         try
         {
-            var user = (await _userRepository.GetByIdAsync(userEdited.Id)).FirstOrDefault();
+            var user = (await _userRepository.GetByCiAsync(userEdited.Ci)).FirstOrDefault();
 
             if (user == null)
             {
@@ -281,7 +276,7 @@ public class UserService(
             }
 
             // Validación de la nueva contraseña (usa IsValidPassword)
-            var validationErrors = ValidationUtils.IsValidPassword(userEdited.Password);
+            var validationErrors = ValidationUtils.IsValidPassword(newPassword);
             if (validationErrors.Count != 0)
             {
                 // Concatenar todos los mensajes en uno solo para devolver en Message
@@ -289,8 +284,10 @@ public class UserService(
                 return Result.Fail<bool>(combinedMessage, ErrorTypeEnum.Validation);
             }
 
+            if (!Hasher.VerifyPassword(userEdited.Password!, user.PasswordHash!)) return Result.Fail<bool>("Contraseña actual incorrecta", ErrorTypeEnum.Validation);
+
             // Si pasa validación, hasheamos y asignamos la nueva contraseña
-            user.PasswordHash = CheckIfNewPassword(userEdited.Password ?? string.Empty, user.PasswordHash!);
+            user.PasswordHash = CheckIfNewPassword(newPassword, user.PasswordHash!);
 
             var successfullyMarked = await _userRepository.UpdateUserPasswordAsync(user);
 
@@ -306,9 +303,54 @@ public class UserService(
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Error al cambiar contraseña para el usuario id {UserId}", userEdited?.Id);
+            _logger?.LogError(ex, "Error al cambiar contraseña para el usuario ci {UserCi}", userEdited?.Ci);
             return Result.Fail<bool>("Ocurrió un error al cambiar la contraseña.", ErrorTypeEnum.Database);
         }
+    }
+
+    public async Task<Result<bool>> ResendWelcomeEmail(string ci)
+    {
+        ci = UtilityService.NormalizeCiFormat(ci);
+        var user = (await _userRepository.GetByCiAsync(ci)).FirstOrDefault();
+        if (user == null)
+            return Result.Fail<bool>("Usuario no encontrado", ErrorTypeEnum.NotFound);
+
+        var snEmple = _readOnlyUnitOfWork.SnEmple.GetFullInfoByCiAsync(ci).Result;
+
+        string clave = DateUtilities.GenerateSecureRandomPassword(10);
+        user.PasswordHash = Hasher.HashPassword(clave);
+        await _userRepository.UpdateUserPasswordAsync(user);
+        var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
+
+        try
+        {
+            _ = _sendMail.SendMailNewUser(snEmple.Value.CorreoE!, clave);
+        }
+        catch
+        {
+            return Result.Fail<bool>("Usuario actualizado pero no se pudo enviar el correo de bienvenida. Verifique que el correo electrónico esté registrado correctamente.", ErrorTypeEnum.General);
+        }
+
+        if (saveChangesSuccess)
+            return Result.Success(true);
+        else
+            return Result.Fail<bool>("Error al intentar cambiar la contraseña (no se guardaron cambios)", ErrorTypeEnum.General);
+    }
+
+    public async Task<List<SnEmple>> GetAllSnEmpleAsync(int pageNumber = 1, int pageSize = 10)
+    {
+        return await _readOnlyUnitOfWork.SnEmple.GetAllAsync(pageNumber, pageSize);
+    }
+
+    /// <summary>
+    /// Obtiene de forma asíncrona una lista de empleados asociados a los usuarios especificados por grupo de CI.
+    /// </summary>
+    /// <param name="users">La lista de usuarios para los que se recuperarán los empleados asociados. No puede ser nula.</param>
+    /// <returns>Un resultado que contiene una lista de objetos SnEmple asociados a los usuarios proporcionados. Si no se
+    /// encuentran empleados, la lista estará vacía.</returns>
+    public async Task<Result<List<SnEmple>>> GetAllByCiAsync(List<UserDTO> users)
+    {
+        return await _readOnlyUnitOfWork.SnEmple.GetAllByCiAsync(users);
     }
 
     /// <summary>
@@ -324,7 +366,7 @@ public class UserService(
 
     private async Task<bool> CheckIfLastAdmin(int currentRoleId)
     {
-        const int AdminRoleId = (int)UserRolEnum.SuperIntendente;
+        const int AdminRoleId = (int)UserRolEnum.Administrador;
 
         if (currentRoleId == AdminRoleId)
             return await _unitOfWork.Users.CountAdminUsersAsync(AdminRoleId) <= 1;
@@ -336,7 +378,7 @@ public class UserService(
     {
         if (!dto.Enabled.HasValue)
         {
-            var entity = _userRepository.GetByIdAsync(dto.Id).Result.FirstOrDefault();
+            var entity = _userRepository.GetByCiAsync(dto.Ci).Result.FirstOrDefault();
             dto.Enabled = entity?.IsActive;
         }
     }
@@ -346,36 +388,27 @@ public class UserService(
     /// excluding a specific user ID for update scenarios.
     /// </summary>
     /// <param name="ci">The CI to check for existence.</param>
-    /// <param name="currentUserId">The ID of the user being updated. If provided, this user will be excluded from the existence check.</param>
     /// <returns>A <see cref="Result"/> indicating success if validation passes, or failure with an appropriate error.</returns>
-    private async Task<Result> ValidateUserExistenceAsync(string? ci, int? currentUserId)
+    private async Task<Result> ValidateUserExistenceAsync(string ci)
     {
         if (!string.IsNullOrEmpty(ci))
         {
             var existingUserByCi = await _userRepository.GetUserByCiAsync(ci);
-            if (existingUserByCi != null && existingUserByCi.Id != currentUserId)
-                return Result.Fail($"Ya existe un usuario con el RUT {ci}", ErrorTypeEnum.Conflict);
+            if (existingUserByCi != null && existingUserByCi.Ci == ci)
+                return Result.Fail($"Ya existe un usuario con la cedula {ci}", ErrorTypeEnum.Conflict);
         }
 
         return Result.Success();
     }
 
-    private async Task<Result<bool>> ValidateUserExistsAsync(int id)
+    private async Task<Result<bool>> ValidateUserExistsAsync(string ci)
     {
-        var existingUser = (await _userRepository.GetByIdAsync(id)).FirstOrDefault();
+        var existingUser = (await _userRepository.GetByCiAsync(ci)).FirstOrDefault();
         if (existingUser == null)
         {
             await _unitOfWork.RollbackTransactionAsync();
             return Result.Fail<bool>("Usuario no encontrado", ErrorTypeEnum.NotFound);
         }
-        return Result.Success(true);
-    }
-
-    private async Task<Result<bool>> ValidateUserUpdateAsync(UserEditDTO dto)
-    {
-        var validationResult = await ValidateUserExistenceAsync(dto.Ci, dto.Id);
-        if (!validationResult.IsSuccess)
-            return Result.Fail<bool>(validationResult.Error!);
         return Result.Success(true);
     }
 }

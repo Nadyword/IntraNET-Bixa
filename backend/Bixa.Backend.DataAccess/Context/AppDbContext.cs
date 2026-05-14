@@ -27,7 +27,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         #region User Entity Configuration
 
         modelBuilder.Entity<Users>()
+            .Property(u => u.Id)
+            .ValueGeneratedOnAdd();
+
+        modelBuilder.Entity<Users>()
             .HasKey(u => u.Id);
+
+        modelBuilder.Entity<Users>()
+            .Property(u => u.Ci)
+            .IsUnicode();
 
         modelBuilder.Entity<Users>()
             .Property(u => u.PasswordHash)
@@ -76,7 +84,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Users>()
             .HasMany(u => u.Notification)
             .WithOne(n => n.User)
-            .HasForeignKey(n => n.UserId)
+            .HasForeignKey(n => n.UserCi)
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
@@ -91,10 +99,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 LastName = "MATHEUS",
                 IsActive = true,
                 Ci = "10.486.165",
-                IdUserRol = (int)UserRolEnum.SuperIntendente,
+                IdUserRol = (int)UserRolEnum.Administrador,
                 CreatedAt = new DateTime(2025, 1, 1),
                 UpdatedAt = new DateTime(2025, 1, 1),
-                ModifiedById = null,
+                ModifiedByCi = null,
                 RefreshToken = null,
                 RefreshTokenDate = null
             }
@@ -137,7 +145,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasKey(n => n.Id);
             entity.Property(n => n.Id).ValueGeneratedOnAdd();
 
-            entity.Property(n => n.UserId)
+            entity.Property(n => n.UserCi)
                 .IsRequired();
 
             entity.Property(n => n.NotificationType)
@@ -168,7 +176,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             modelBuilder.Entity<Notifications>()
                 .HasOne(n => n.User)
                 .WithMany(u => u.Notification)
-                .HasForeignKey(n => n.UserId)
+                .HasForeignKey(n => n.UserCi)
+                .HasPrincipalKey(u => u.Ci)
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);
         });

@@ -86,7 +86,7 @@ public class JwtAuthService(
             var supervisorClaim = principalLocal?.FindFirstValue("SupervisorId");
             _ = int.TryParse(supervisorClaim, out int parsedSupervisorId);
 
-            var isAdminUser = principalLocal?.IsInRole(nameof(UserRolEnum.SuperIntendente)) == true ||
+            var isAdminUser = principalLocal?.IsInRole(nameof(UserRolEnum.Administrador)) == true ||
                             principalLocal?.IsInRole(nameof(UserRolEnum.Supervisor)) == true;
 
             return (parsedSupervisorId, !isAdminUser);
@@ -112,8 +112,8 @@ public class JwtAuthService(
             throw new InvalidOperationException("No user principal available in HTTP context.");
         }
 
-        if (user.IsInRole(nameof(UserRolEnum.SuperIntendente)))
-            return (UserRolEnum.SuperIntendente, GetUserIdFromClaims(user));
+        if (user.IsInRole(nameof(UserRolEnum.Administrador)))
+            return (UserRolEnum.Administrador, GetUserIdFromClaims(user));
 
         if (user.IsInRole(nameof(UserRolEnum.Supervisor)))
             return (UserRolEnum.Supervisor, GetUserIdFromClaims(user));

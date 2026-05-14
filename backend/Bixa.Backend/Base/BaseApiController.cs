@@ -98,29 +98,8 @@ public abstract class BaseApiController(IMapper mapper, LoggerWrapper loggerWrap
                 return null;
         }
 
-        var nose = User.Claims;
-
         var rolesList = string.Join(", ", requiredRoles);
         _logger.LogWarning("Access denied: user lacks required roles {Roles}", rolesList);
         return HandleServiceResult(Result.Fail($"Acceso denegado: el usuario no posee ninguno de los roles requeridos: {rolesList}.", ErrorTypeEnum.Unauthorized));
-    }
-
-    /// <summary>
-    /// Performs a validation check and returns a BadRequest response if the condition is false.
-    /// This method is designed to be called at the beginning of an action method
-    /// to handle common validation scenarios like ID mismatches.
-    /// </summary>
-    /// <param name="condition">The boolean condition to check. If false, validation fails.</param>
-    /// <param name="errorMessage">The error message to include in the response if validation fails.</param>
-    /// <param name="errorType">The type of error (defaults to ErrorTypeEnum.Validation).</param>
-    /// <returns>An <see cref="IActionResult"/> representing a BadRequest if validation fails, otherwise <c>null</c>.</returns>
-    protected IActionResult? ValidateRequest(bool condition, string errorMessage, ErrorTypeEnum errorType = ErrorTypeEnum.Validation)
-    {
-        if (!condition)
-        {
-            _logger.LogWarning("Validation failed: {ErrorMessage}", errorMessage);
-            return HandleServiceResult(Result.Fail(errorMessage, errorType));
-        }
-        return null;
     }
 }

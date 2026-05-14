@@ -1,37 +1,30 @@
-using Microsoft.Extensions.Logging;
-using AutoMapper;
-using Bixa.Backend.Services.Interfaces;
-using Bixa.Backend.Models.Response;
-using Bixa.Backend.Models.Query;
+using Bixa.Backend.DataAccess.Interfaces.Repositories;
 using Bixa.Backend.Models.DTOs.NotificationModelDTO;
 using Bixa.Backend.Models.DTOs.RequestModelDTO;
-using Bixa.Backend.Models.Enums;
-using Bixa.Backend.DataAccess.Entities;
-using Bixa.Backend.DataAccess.Interfaces.Repositories;
 using Bixa.Backend.DataAccess.Wrappers;
+using Bixa.Backend.DataAccess.Entities;
+using Bixa.Backend.Services.Interfaces;
+using Bixa.Backend.Models.Response;
+using Bixa.Backend.Models.Enums;
+using Microsoft.Extensions.Logging;
+using Bixa.Backend.Models.Query;
+using AutoMapper;
 
 namespace Bixa.Backend.Services.Services;
 
 /// <summary>
 /// Service for managing user notification business logic and operations.
 /// </summary>
-public class NotificationService : INotificationService
+public class NotificationService(IUnitOfWork unitOfWork, IMapper mapper, LoggerWrapper loggerWrapper) : INotificationService
 {
-    private readonly ILogger<NotificationService> _logger;
-    private readonly IMapper _mapper;
-    private readonly IUnitOfWork _unitOfWork;
-
-    public NotificationService(IUnitOfWork unitOfWork, IMapper mapper, LoggerWrapper loggerWrapper)
-    {
-        _unitOfWork = unitOfWork;
-        _mapper = mapper;
-        _logger = loggerWrapper.CreateLogger<NotificationService>();
-    }
+    private readonly ILogger<NotificationService> _logger = loggerWrapper.CreateLogger<NotificationService>();
+    private readonly IMapper _mapper = mapper;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     /// <summary>
     /// Adds a new user notification to the system.
     /// </summary>
-    public async Task<Result<int>> AddAsync(NotificationInsertDTO dto)
+    public async Task<Result<string>> AddAsync(NotificationInsertDTO dto)
     {
         try
         {
@@ -41,14 +34,14 @@ public class NotificationService : INotificationService
             var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
 
             if (saveChangesSuccess)
-                return Result.Success(notificationEntity.Id);
+                return Result.Success(notificationEntity.UserCi);
             else
-                return Result.Fail<int>("No se pudo insertar la notificación de usuario. No se guardaron cambios.", ErrorTypeEnum.General);
+                return Result.Fail<string>("No se pudo insertar la notificación de usuario. No se guardaron cambios.", ErrorTypeEnum.General);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while adding user notification: {Message}", ex.Message);
-            return Result.Fail<int>("Ocurrió un error inesperado al procesar la notificación.", ErrorTypeEnum.Database);
+            return Result.Fail<string>("Ocurrió un error inesperado al procesar la notificación.", ErrorTypeEnum.Database);
         }
     }
 
@@ -60,8 +53,8 @@ public class NotificationService : INotificationService
         try
         {
             var notificationEntities = notifications
-                .Select(dto => _mapper.Map<NotificationInsertDTO, Notifications>(dto))
-                .ToList();
+                .ConvertAll(dto => _mapper.Map<NotificationInsertDTO, Notifications>(dto))
+;
 
             await _unitOfWork.Notifications.AddRangeAsync(notificationEntities);
             var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
@@ -86,14 +79,14 @@ public class NotificationService : INotificationService
         try
         {
             await _unitOfWork.BeginTransactionAsync();
-            var userId = _unitOfWork.GetCurrentUserId();
+            var userId = _unitOfWork.GetCurrentUserCi();
             if (userId == null)
             {
                 await _unitOfWork.RollbackTransactionAsync();
                 return Result.Fail<bool>("Usuario no identificado.", ErrorTypeEnum.Validation);
             }
 
-            var success = await _unitOfWork.Notifications.DeleteAllAsync(userId.Value);
+            var success = await _unitOfWork.Notifications.DeleteAllAsync(userId);
             if (!success)
             {
                 await _unitOfWork.RollbackTransactionAsync();
@@ -128,14 +121,14 @@ public class NotificationService : INotificationService
         try
         {
             await _unitOfWork.BeginTransactionAsync();
-            var existingNotification = (await _unitOfWork.Notifications.GetByIdAsync(_unitOfWork.GetCurrentUserId()!.Value)).FirstOrDefault();
+            var existingNotification = (await _unitOfWork.Notifications.GetByCiAsync(_unitOfWork.GetCurrentUserCi()!)).FirstOrDefault();
             if (existingNotification == null)
             {
                 await _unitOfWork.RollbackTransactionAsync();
                 return Result.Fail<bool>("Notificación de usuario no encontrada.", ErrorTypeEnum.NotFound);
             }
 
-            var deletedSuccessfullyMarked = await _unitOfWork.Notifications.DeleteAsync(_unitOfWork.GetCurrentUserId()!.Value);
+            var deletedSuccessfullyMarked = await _unitOfWork.Notifications.DeleteAsync(_unitOfWork.GetCurrentUserCi()!);
 
             var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
 
@@ -153,12 +146,12 @@ public class NotificationService : INotificationService
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
-            _logger.LogError(ex, "Error occurred while deleting user notification with ID {Id}: {Message}", _unitOfWork.GetCurrentUserId()!.Value, ex.Message);
+            _logger.LogError(ex, "Error occurred while deleting user notification with CI {Ci}: {Message}", _unitOfWork.GetCurrentUserCi(), ex.Message);
             return Result.Fail<bool>("Ocurrió un error inesperado al intentar eliminar la notificación.", ErrorTypeEnum.Database);
         }
     }
 
-    public Task<Result<bool>> DeleteAsync(int id)
+    public Task<Result<bool>> DeleteAsync(string ci)
     {
         throw new NotImplementedException();
     }
@@ -166,31 +159,29 @@ public class NotificationService : INotificationService
     /// <summary>
     /// Retrieves a paginated list of user notifications based on specified filters.
     /// </summary>
-    public async Task<Result<PaginatedResult<NotificationDTO>>> GetAllAsync(SearchQuery<NotificationFilterDTO> filters)
+    public async Task<Result<List<NotificationDTO>>> GetAllAsync(int pageNumber, int pageSize)
     {
         try
         {
-            var notifications = await _unitOfWork.Notifications.GetAllAsync(filters.Filters ?? new NotificationFilterDTO(), filters.Pagination);
-            if (!notifications.Data.Any())
-                return Result.Fail<PaginatedResult<NotificationDTO>>("No se encontraron notificaciones.", ErrorTypeEnum.NotFound);
+            var notifications = await _unitOfWork.Notifications.GetAllAsync(pageNumber, pageSize);
 
-            return Result.Success(_mapper.Map<PaginatedResult<Notifications>, PaginatedResult<NotificationDTO>>(notifications));
+            return Result.Success(_mapper.Map<List<NotificationDTO>>(notifications));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while retrieving notifications: {Message}", ex.Message);
-            return Result.Fail<PaginatedResult<NotificationDTO>>("Ocurrió un error inesperado al obtener las notificaciones.");
+            return Result.Fail<List<NotificationDTO>>("Ocurrió un error inesperado al obtener las notificaciones.");
         }
     }
 
     /// <summary>
     /// Retrieves a single user notification by its unique identifier.
     /// </summary>
-    public async Task<Result<NotificationDTO>> GetByIdAsync(int id)
+    public async Task<Result<NotificationDTO>> GetByCiAsync(string ci)
     {
         try
         {
-            var notificationEntity = (await _unitOfWork.Notifications.GetByIdAsync(id)).FirstOrDefault();
+            var notificationEntity = (await _unitOfWork.Notifications.GetByCiAsync(ci)).FirstOrDefault();
             if (notificationEntity == null)
                 return Result.Fail<NotificationDTO>("Notificación no encontrada.", ErrorTypeEnum.NotFound);
 
@@ -199,7 +190,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred while retrieving notification ID {Id}: {Message}", id, ex.Message);
+            _logger.LogError(ex, "Error occurred while retrieving notification CI {ci}: {Message}", ci, ex.Message);
             return Result.Fail<NotificationDTO>("Ocurrió un error inesperado al recuperar la notificación.");
         }
     }
@@ -207,12 +198,9 @@ public class NotificationService : INotificationService
     /// <summary>
     /// Retrieves a paginated list of notifications for a specific user.
     /// </summary>
-    public async Task<Result<PaginatedResult<NotificationDTO>>> GetNotificationsByUserIdAsync(int userId, SearchQuery<NotificationFilterDTO> filters)
+    public async Task<Result<List<NotificationDTO>>> GetNotificationsByUserIdAsync(int pageNumber, int pageSize)
     {
-        filters.Filters ??= new NotificationFilterDTO();
-        filters.Filters.UserId = userId;
-
-        return await GetAllAsync(filters);
+        return await GetAllAsync(pageNumber, pageSize);
     }
 
     /// <summary>
@@ -223,14 +211,14 @@ public class NotificationService : INotificationService
         await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var userId = _unitOfWork.GetCurrentUserId();
-            if (userId == null)
+            var userCi = _unitOfWork.GetCurrentUserCi();
+            if (userCi == null)
             {
                 await _unitOfWork.RollbackTransactionAsync();
                 return Result.Fail<bool>("Usuario no identificado.", ErrorTypeEnum.Validation);
             }
 
-            var success = await _unitOfWork.Notifications.MarkAllAsReadAsync(userId.Value);
+            var success = await _unitOfWork.Notifications.MarkAllAsReadAsync(userCi);
             if (!success)
             {
                 await _unitOfWork.RollbackTransactionAsync();
@@ -260,7 +248,7 @@ public class NotificationService : INotificationService
     /// <summary>
     /// Marks a specific user notification as read.
     /// </summary>
-    public async Task<Result<bool>> MarkAsReadAsync(int notificationId)
+    public async Task<Result<bool>> MarkAsReadAsync(string notificationId)
     {
         await _unitOfWork.BeginTransactionAsync();
         try
@@ -297,7 +285,7 @@ public class NotificationService : INotificationService
             RequestDTO requestDto,
             Func<RequestDTO, string> notificationDescriptionBuilder)
     {
-        if (!userIds.Any())
+        if (userIds.Count == 0)
         {
             return false;
         }
@@ -336,7 +324,7 @@ public class NotificationService : INotificationService
     {
         try
         {
-            var entity = (await _unitOfWork.Notifications.GetByIdAsync(dto.Id)).FirstOrDefault();
+            var entity = (await _unitOfWork.Notifications.GetByCiAsync(dto.UserCi)).FirstOrDefault();
 
             if (entity == null)
                 return Result.Fail<bool>("Notificación no encontrada.", ErrorTypeEnum.NotFound);
@@ -357,10 +345,5 @@ public class NotificationService : INotificationService
             _logger.LogError(ex, "Error updating notification ID {Id}: {Message}", dto.Id, ex.Message);
             return Result.Fail<bool>("Ocurrió un error inesperado al actualizar la notificación.", ErrorTypeEnum.Database);
         }
-    }
-
-    private int _GetResponsibleUserId()
-    {
-        return _unitOfWork.GetCurrentUserId() ?? 0;
     }
 }

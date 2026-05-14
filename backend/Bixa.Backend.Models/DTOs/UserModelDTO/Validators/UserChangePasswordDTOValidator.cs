@@ -8,8 +8,7 @@ public class UserChangePasswordDTOValidator : AbstractValidator<UserChangePasswo
 {
     public UserChangePasswordDTOValidator()
     {
-        RuleFor(x => x.Id)
-            .NotEmpty().WithMessage(Required)
-            .GreaterThan(0).WithMessage(GreaterThan);
+        RuleFor(x => x.Ci)
+            .NotEmpty().WithMessage(Required);
     }
 }

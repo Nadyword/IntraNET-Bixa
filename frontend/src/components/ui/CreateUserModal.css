@@ -1,0 +1,27 @@
+.modal-field select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid var(--gray-100);
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 14px;
+  background: var(--gray-50);
+  color: var(--black);
+  outline: none;
+  transition: all var(--transition);
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.modal-field select:focus {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(217, 26, 26, 0.12);
+  background: var(--white);
+}
+
+.create-user-id {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-top: -12px;
+  margin-bottom: 20px;
+}

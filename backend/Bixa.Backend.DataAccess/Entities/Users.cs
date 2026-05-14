@@ -1,11 +1,13 @@
 ﻿using Bixa.Backend.DataAccess.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Bixa.Backend.DataAccess.Entities;
 
+[PrimaryKey(nameof(Ci))]
 public class Users : BaseEntities
 {
     public required string? PasswordHash { get; set; }
-    public required string? Ci { get; set; }
+    public required string Ci { get; set; }
     public required string? FirstName { get; set; }
     public required string? LastName { get; set; }
     public DateTime? LastLogin { get; set; }

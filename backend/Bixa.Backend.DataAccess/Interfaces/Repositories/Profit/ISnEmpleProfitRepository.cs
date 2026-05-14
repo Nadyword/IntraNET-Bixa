@@ -1,3 +1,4 @@
+using Bixa.Backend.Models.DTOs.UserModelDTO;
 using Bixa.Backend.DataAccess.Entities.DbProfit;
 using Bixa.Backend.Models.Response;
 
@@ -19,4 +20,12 @@ public interface ISnEmpleProfitRepository : IReadOnlyRepository<SnEmple, int>
     /// <param name="ci">La C.I del empleado.</param>
     /// <returns>El objeto SnEmple si se encuentra, de lo contrario null.</returns>
     Task<Result<SnEmple>> GetFullInfoByCiAsync(string ci);
+
+    /// <summary>
+    ///   Obtiene de forma asíncrona una lista de empleados asociados a los usuarios especificados por grupo de CI.
+    /// </summary>
+    /// <param name="users">La lista de usuarios para los que se recuperarán los empleados asociados. No puede ser nula.</param>
+    /// <returns>Un resultado que contiene una lista de objetos SnEmple asociados a los usuarios proporcionados. Si no se
+    /// encuentran empleados, la lista estará vacía.</returns>
+    Task<Result<List<SnEmple>>> GetAllByCiAsync(List<UserDTO> users);
 }

@@ -9,7 +9,7 @@ public class UserIdDTO
     public int IdUserRol { get; set; }
     public DateTime? LastLogin { get; set; }
     public DateTime Modified { get; set; }
-    public int ModifiedById { get; set; }
+    public int ModifiedByCi { get; set; }
     public string? Name { get; set; }
     public string? Phone { get; set; }
     public string? Ci { get; set; }

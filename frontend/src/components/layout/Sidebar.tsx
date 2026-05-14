@@ -1,5 +1,6 @@
 import React from 'react';
 import { useUIStore } from '../../store/uiStore';
+import { useAuthStore } from '../../store/authStore';
 import './Sidebar.css';
 
 interface NavItem {
@@ -7,6 +8,7 @@ interface NavItem {
   icon: string;
   id: string;
   badge?: number;
+  adminOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -15,16 +17,19 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Consultas', icon: 'ℹ️', id: 'consultas' },
   { label: 'Solicitudes', icon: '📋', id: 'solicitudes'},
   { label: 'Mis Trámites', icon: '📊', id: 'tramites' },
-  { label: '🔒 Portal del Líder', icon: '⭐', id: 'leader'},
+  { label: '🔒 Portal del Líder', icon: '⭐', id: 'leader', adminOnly: true },
   { label: 'Soporte', icon: '💬', id: 'soporte' }
 ];
 
 export const Sidebar: React.FC = () => {
   const { sidebarOpen, activeSection, setActiveSection } = useUIStore();
+  const rolId = useAuthStore((state) => state.user?.rolId);
+  const isAdmin = rolId === '1';
+  const visibleItems = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
 
   return (
     <nav className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-      {NAV_ITEMS.map((item) => (
+      {visibleItems.map((item) => (
         <div
           key={item.id}
           className={`nav-item ${activeSection === item.id ? 'active' : ''}`}

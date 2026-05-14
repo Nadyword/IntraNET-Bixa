@@ -1,5 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../lib/api';
+import type { ApiResponse } from '../services/authService';
+import type { UserProfile } from '../store/userProfileStore';
+import { CreateUserModal } from '../components/ui/CreateUserModal';
+import { DeleteUserModal } from '../components/ui/DeleteUserModal';
+import { EditUserModal } from '../components/ui/EditUserModal';
+import { ResendWelcomeEmailModal } from '../components/ui/ResendWelcomeEmailModal';
+import { EmployeeProfileModal } from '../components/ui/EmployeeProfileModal';
 import './LeaderPage.css';
+
+const PAGE_SIZE = 50;
 
 interface ApprovalRequest {
   id: number;
@@ -11,17 +21,55 @@ interface ApprovalRequest {
   submittedDate: string;
 }
 
-interface TeamMember {
-  cod_emp: number;
-  name: string;
-  role: string;
-  department: string;
-  status: 'activo' | 'vacaciones' | 'permiso';
-}
-
 export const LeaderPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('aprobaciones');
   const [actionedRequests, setActionedRequests] = useState<number[]>([]);
+
+  // Modales de gestión
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [showResendWelcomeEmailModal, setShowResendWelcomeEmailModal] = useState(false);
+
+  // Estado del equipo
+  const [teamUsers, setTeamUsers] = useState<UserProfile[]>([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [teamError, setTeamError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [selectedCi, setSelectedCi] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (activeTab !== 'equipo') return;
+    let cancelled = false;
+    const load = async () => {
+      setTeamLoading(true);
+      setTeamError('');
+      try {
+        const res = await api.get<ApiResponse<UserProfile[]>>(`/users/${currentPage}/${PAGE_SIZE}`);
+        if (!cancelled) {
+          const data = res.data.data ?? [];
+          setTeamUsers(data);
+          setHasNextPage(data.length === PAGE_SIZE);
+        }
+      } catch (err: unknown) {
+        if (!cancelled) {
+          const axiosError = err as { response?: { data?: { message?: string } } };
+          setTeamError(axiosError?.response?.data?.message ?? 'Error al cargar los usuarios.');
+        }
+      } finally {
+        if (!cancelled) setTeamLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [activeTab, currentPage]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (tab === 'equipo') setCurrentPage(1);
+  };
 
   const approvalRequests: ApprovalRequest[] = [
     {
@@ -50,132 +98,20 @@ export const LeaderPage: React.FC = () => {
     },
   ];
 
-  const teamMembers: TeamMember[] = [
-    {
-      cod_emp: 1,
-      name: 'Juan Rodríguez',
-      role: 'Desarrollador Senior',
-      department: 'Tecnología',
-      status: 'activo'
-    },
-    {
-      cod_emp: 2,
-      name: 'María Gonzalez',
-      role: 'Especialista en QA',
-      department: 'Calidad',
-      status: 'vacaciones'
-    },
-    {
-      cod_emp: 3,
-      name: 'Carlos Mendez',
-      role: 'Analista de Negocios',
-      department: 'Operaciones',
-      status: 'activo'
-    },
-    {
-      cod_emp: 4,
-      name: 'Laura Pérez',
-      role: 'Diseñadora UX',
-      department: 'Producto',
-      status: 'activo'
-    },
-    {
-      cod_emp: 5,
-      name: 'Juan Rodríguez',
-      role: 'Desarrollador Senior',
-      department: 'Tecnología',
-      status: 'activo'
-    },
-    {
-      cod_emp: 6,
-      name: 'María Gonzalez',
-      role: 'Especialista en QA',
-      department: 'Calidad',
-      status: 'vacaciones'
-    },
-    {
-      cod_emp: 7,
-      name: 'Carlos Mendez',
-      role: 'Analista de Negocios',
-      department: 'Operaciones',
-      status: 'activo'
-    },
-    {
-      cod_emp: 8,
-      name: 'Laura Pérez',
-      role: 'Diseñadora UX',
-      department: 'Producto',
-      status: 'activo'
-    },
-    {
-      cod_emp: 9,
-      name: 'Juan Rodríguez',
-      role: 'Desarrollador Senior',
-      department: 'Tecnología',
-      status: 'activo'
-    },
-    {
-      cod_emp: 10,
-      name: 'María Gonzalez',
-      role: 'Especialista en QA',
-      department: 'Calidad',
-      status: 'vacaciones'
-    },
-    {
-      cod_emp: 11,
-      name: 'Carlos Mendez',
-      role: 'Analista de Negocios',
-      department: 'Operaciones',
-      status: 'activo'
-    },
-    {
-      cod_emp: 12,
-      name: 'Laura Pérez',
-      role: 'Diseñadora UX',
-      department: 'Producto',
-      status: 'activo'
-    },
-    {
-      cod_emp: 13,
-      name: 'Juan Rodríguez',
-      role: 'Desarrollador Senior',
-      department: 'Tecnología',
-      status: 'activo'
-    },
-    {
-      cod_emp: 14,
-      name: 'María Gonzalez',
-      role: 'Especialista en QA',
-      department: 'Calidad',
-      status: 'vacaciones'
-    },
-    {
-      cod_emp: 15,
-      name: 'Carlos Mendez',
-      role: 'Analista de Negocios',
-      department: 'Operaciones',
-      status: 'activo'
-    },
-    {
-      cod_emp: 16,
-      name: 'Laura Pérez',
-      role: 'Diseñadora UX',
-      department: 'Producto',
-      status: 'activo'
-    },
-  ];
-
-  const handleApprove = (id: number) => {
-    setActionedRequests([...actionedRequests, id]);
-  };
-
-  const handleReject = (id: number) => {
-    setActionedRequests([...actionedRequests, id]);
-  };
-
+  const handleApprove = (id: number) => setActionedRequests([...actionedRequests, id]);
+  const handleReject  = (id: number) => setActionedRequests([...actionedRequests, id]);
   const pendingRequests = approvalRequests.filter((r) => !actionedRequests.includes(r.id));
 
+  const filteredUsers = teamUsers.filter((u) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    const fullName = `${u.nombres ?? ''} ${u.apellidos ?? ''}`.toLowerCase();
+    const ci = (u.ci ?? '').toLowerCase();
+    return fullName.includes(q) || ci.includes(q);
+  });
+
   return (
+    <>
     <div className="leader-page">
       {/* Header */}
       <div className="leader-header">
@@ -189,19 +125,19 @@ export const LeaderPage: React.FC = () => {
       <div className="leader-tabs">
         <button
           className={`tab-btn ${activeTab === 'aprobaciones' ? 'active' : ''}`}
-          onClick={() => setActiveTab('aprobaciones')}
+          onClick={() => handleTabChange('aprobaciones')}
         >
           Aprobaciones Pendientes
         </button>
         <button
           className={`tab-btn ${activeTab === 'equipo' ? 'active' : ''}`}
-          onClick={() => setActiveTab('equipo')}
+          onClick={() => handleTabChange('equipo')}
         >
           Mi Equipo
         </button>
         <button
           className={`tab-btn ${activeTab === 'alertas' ? 'active' : ''}`}
-          onClick={() => setActiveTab('alertas')}
+          onClick={() => handleTabChange('alertas')}
         >
           Alertas
         </button>
@@ -226,16 +162,10 @@ export const LeaderPage: React.FC = () => {
                       <div className="submitted-date">Solicitado: {req.submittedDate}</div>
                     </div>
                     <div className="approval-actions">
-                      <button
-                        className="btn-approve"
-                        onClick={() => handleApprove(req.id)}
-                      >
+                      <button className="btn-approve" onClick={() => handleApprove(req.id)}>
                         ✓ Aprobar
                       </button>
-                      <button
-                        className="btn-reject"
-                        onClick={() => handleReject(req.id)}
-                      >
+                      <button className="btn-reject" onClick={() => handleReject(req.id)}>
                         ✕ Rechazar
                       </button>
                     </div>
@@ -252,52 +182,98 @@ export const LeaderPage: React.FC = () => {
 
         {activeTab === 'equipo' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'center', margin: '15px' }}>
-              <button className="btn-primary" style={{ marginRight: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '15px', flexWrap: 'wrap', gap: '8px' }}>
+              <button className="btn-primary" onClick={() => setShowCreateUserModal(true)}>
                 Crear usuario
               </button>
-              <button className="btn-primary" style={{ marginRight: '10px' }}>
+              <button className="btn-primary" onClick={() => setShowDeleteUserModal(true)}>
                 Borrar usuario
               </button>
-              <button className="btn-primary" style={{ marginRight: '10px' }}>
-                Restablecer clave
+              <button className="btn-primary" onClick={() => setShowEditUserModal(true)}>
+                Editar usuario
+              </button>
+              <button className="btn-primary" onClick={() => setShowResendWelcomeEmailModal(true)}>
+                Reenviar correo de bienvenida
               </button>
             </div>
+
+            <div className="team-search-bar">
+              <input
+                type="text"
+                className="team-search-input"
+                placeholder="Buscar por nombre o cédula..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
             <div className="team-section">
               <table className="team-table">
                 <thead>
                   <tr>
-                    <th>Nombre</th>
-                    <th>Rol</th>
+                    <th>Nombre y Apellido</th>
+                    <th>CI</th>
                     <th>Departamento</th>
-                    <th>Estado</th>
+                    <th>Cargo</th>
                     <th>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {teamMembers.map((member) => (
-                    <tr key={member.cod_emp}>
-                      <td>
-                        <strong>{member.name}</strong>
+                  {teamLoading && (
+                    <tr>
+                      <td colSpan={5} className="team-empty">Cargando usuarios...</td>
+                    </tr>
+                  )}
+                  {!teamLoading && teamError && (
+                    <tr>
+                      <td colSpan={5} className="team-error">{teamError}</td>
+                    </tr>
+                  )}
+                  {!teamLoading && !teamError && filteredUsers.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="team-empty">
+                        {searchQuery.trim() ? 'No hay resultados para la búsqueda.' : 'No se encontraron usuarios.'}
                       </td>
-                      <td>{member.role}</td>
-                      <td>{member.department}</td>
+                    </tr>
+                  )}
+                  {!teamLoading && !teamError && filteredUsers.map((user, i) => (
+                    <tr key={user.ci ?? i}>
                       <td>
-                        <span className={`status-badge ${member.status}`}>
-                          {member.status === 'activo' && '🟢 Activo'}
-                          {member.status === 'vacaciones' && '🏖️ Vacaciones'}
-                          {member.status === 'permiso' && '📝 Permiso'}
-                        </span>
+                        <strong>
+                          {[user.nombres, user.apellidos].filter(Boolean).join(' ') || '—'}
+                        </strong>
                       </td>
+                      <td>{user.ci ?? '—'}</td>
+                      <td>{user.desDepart ?? '—'}</td>
+                      <td>{user.desCargo ?? '—'}</td>
                       <td>
-                        <a href="#" className="action-link">
+                        <button
+                          className="action-link-btn"
+                          onClick={() => setSelectedCi(user.ci!)}
+                        >
                           Ver perfil →
-                        </a>
+                        </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+
+              <div className="team-pagination">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => p - 1)}
+                >
+                  ← Anterior
+                </button>
+                <span>Página {currentPage}</span>
+                <button
+                  disabled={!hasNextPage}
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                >
+                  Siguiente →
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -332,5 +308,22 @@ export const LeaderPage: React.FC = () => {
         )}
       </div>
     </div>
+
+      {showCreateUserModal && (
+        <CreateUserModal onClose={() => setShowCreateUserModal(false)} />
+      )}
+      {showDeleteUserModal && (
+        <DeleteUserModal onClose={() => setShowDeleteUserModal(false)} />
+      )}
+      {showEditUserModal && (
+        <EditUserModal onClose={() => setShowEditUserModal(false)} />
+      )}
+      {showResendWelcomeEmailModal && (
+        <ResendWelcomeEmailModal onClose={() => setShowResendWelcomeEmailModal(false)} />
+      )}
+      {selectedCi && (
+        <EmployeeProfileModal ci={selectedCi} onClose={() => setSelectedCi(null)} />
+      )}
+    </>
   );
 };

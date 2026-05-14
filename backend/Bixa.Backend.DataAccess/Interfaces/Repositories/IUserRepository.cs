@@ -6,11 +6,11 @@ namespace Bixa.Backend.DataAccess.Interfaces.Repositories;
 /// <summary>
 /// Defines the contract for data access operations for User entities.
 /// </summary>
-public interface IUserRepository : IRepository<Users, int>
+public interface IUserRepository : IRepository<Users, string>
 {
     Task<int> CountAdminUsersAsync(int adminRoleId);
 
-    Task DeleteNotificationsFromUserAsync(int id);
+    Task DeleteNotificationsFromUserAsync(string ci);
 
     /// <summary>
     /// Retrieves a filtered list of entities projected as configurable Key-Value pairs.

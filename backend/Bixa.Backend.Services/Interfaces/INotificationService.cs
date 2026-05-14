@@ -1,11 +1,10 @@
-using Bixa.Backend.Models.Response;
-using Bixa.Backend.Models.Query;
 using Bixa.Backend.Models.DTOs.NotificationModelDTO;
 using Bixa.Backend.Models.DTOs.RequestModelDTO;
+using Bixa.Backend.Models.Response;
 
 namespace Bixa.Backend.Services.Interfaces;
 
-public interface INotificationService : IService<NotificationDTO, NotificationInsertDTO, NotificationEditDTO, NotificationFilterDTO, int>
+public interface INotificationService : IService<NotificationDTO, NotificationInsertDTO, NotificationEditDTO, string>
 {
     Task<Result<int>> AddManyAsync(List<NotificationInsertDTO> notifications);
 
@@ -17,13 +16,6 @@ public interface INotificationService : IService<NotificationDTO, NotificationIn
     Task<Result<bool>> DeleteAllNotificationsAsync();
 
     /// <summary>
-    /// Retrieves a paginated list of notifications for a specific user.
-    /// </summary>
-    Task<Result<PaginatedResult<NotificationDTO>>> GetNotificationsByUserIdAsync(int userId, SearchQuery<NotificationFilterDTO> filters);
-
-    //Task<List<int>> GetUsersToNotifyRequestAsync(Request request, StateEnum newState);
-
-    /// <summary>
     /// Marks all notifications for a specific user as read.
     /// </summary>
     Task<Result<bool>> MarkAllAsReadAsync();
@@ -31,7 +23,7 @@ public interface INotificationService : IService<NotificationDTO, NotificationIn
     /// <summary>
     /// Marks a specific user notification as read.
     /// </summary>
-    Task<Result<bool>> MarkAsReadAsync(int notificationId);
+    Task<Result<bool>> MarkAsReadAsync(string notificationId);
 
     Task<bool> SendNotificationsToMultipleUsersAsync(
     List<int> userIds,

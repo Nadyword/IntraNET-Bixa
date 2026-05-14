@@ -39,4 +39,29 @@ public class SendMailServices(IConfiguration configuration) : ISendMailServices
             return false;
         }
     }
+
+    public async Task<bool> SendMailNewUser(string destinatario, string tempPassword)
+    {
+        const string asunto = "¡Hola! Te damos la bienvenida al equipo de Bixa";
+        var cuerpo = new WelcomeBixa(host, tempPassword).GetBodyMail();
+        try
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress("Remitente", remitente));
+            message.To.Add(new MailboxAddress("", destinatario));
+            message.Subject = asunto;
+            message.Body = new TextPart("html") { Text = cuerpo };
+
+            using var client = new SmtpClient();
+            await client.ConnectAsync(smtpHost, smtpPort, enableSsl);
+            await client.AuthenticateAsync(remitente, password);
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

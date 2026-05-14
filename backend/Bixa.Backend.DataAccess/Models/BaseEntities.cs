@@ -3,12 +3,12 @@ using Bixa.Backend.DataAccess.Entities;
 namespace Bixa.Backend.DataAccess.Models;
 
 /// <summary>
-/// Base class for database entities, providing common audit fields like Id, Created, Modified, and ModifiedById.
+/// Base class for database entities, providing common audit fields like Id, Created, Modified, and ModifiedByCi.
 /// </summary>
 public abstract class BaseEntities
 {
     /// <summary>
-    /// Unique identifier for the entity (Primary Key).
+    /// Unique identifier for the entity
     /// </summary>
     public int Id { get; set; }
 
@@ -23,9 +23,9 @@ public abstract class BaseEntities
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow; // Default to UTC now
 
     /// <summary>
-    /// The ID of the user who last modified this entity (Foreign Key to User.Id).
+    /// The CI of the user who last modified this entity (Foreign Key to User.CI).
     /// </summary>
-    public int? ModifiedById { get; set; }
+    public string? ModifiedByCi { get; set; }
 
     /// <summary>
     /// Navigation property to the Users entity representing the user who last modified this entity.

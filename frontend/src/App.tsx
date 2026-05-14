@@ -17,8 +17,9 @@ import { ChatPage } from './pages/ChatPage';
 import './styles/globals.css';
 
 export default function App() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const { activeSection } = useUIStore();
+  const isAdmin = user?.rolId === '1';
 
   return (
     <Router>
@@ -42,7 +43,7 @@ export default function App() {
                   {activeSection === 'consultas' && <ConsultasPage />}
                   {activeSection === 'solicitudes' && <SolicitudesPage />}
                   {activeSection === 'tramites' && <TramitesPage />}
-                  {activeSection === 'leader' && <LeaderPage />}
+                  {activeSection === 'leader' && (isAdmin ? <LeaderPage /> : <Navigate to="/" replace />)}
                   {activeSection === 'chatbot' && <ChatPage />}
                 </AppLayout>
               }

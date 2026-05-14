@@ -2,10 +2,8 @@
 using Bixa.Backend.DataAccess.Interfaces.Repositories;
 using Bixa.Backend.DataAccess.Context;
 using Bixa.Backend.DataAccess.Entities;
-using Bixa.Backend.Models.Response;
 using Microsoft.EntityFrameworkCore;
 using Bixa.Backend.Models.Utilities;
-using Bixa.Backend.Models.Query;
 using System.Linq.Expressions;
 
 namespace Bixa.Backend.DataAccess.Repository;
@@ -27,10 +25,10 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
     /// </summary>
     /// <param name="entity">The user entity to add.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async Task<(int, bool)> AddAsync(Users entity)
+    public async Task<(string, bool)> AddAsync(Users entity)
     {
         await _context.Users.AddAsync(entity);
-        return (entity.Id, true);
+        return (entity.Ci, true);
     }
 
     /// <summary>
@@ -56,11 +54,11 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
     /// <summary>
     /// Deletes a user from the database by their ID. Marks the user for deletion.
     /// </summary>
-    /// <param name="id">The ID of the user to delete.</param>
+    /// <param name="ci">The CI of the user to delete.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains true if the user was found and marked for deletion, false otherwise.</returns>
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(string ci)
     {
-        var user = await _context.Users.Where(userAux => userAux.Id.Equals(id)).FirstOrDefaultAsync();
+        var user = await _context.Users.Where(userAux => userAux.Ci == ci).FirstOrDefaultAsync();
 
         if (user == null)
             return false;
@@ -69,18 +67,18 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
         return true;
     }
 
-    public async Task DeleteNotificationsFromUserAsync(int id)
+    public async Task DeleteNotificationsFromUserAsync(string ci)
     {
-        var notifications = await _context.Notifications.Where(x => x.UserId == id).ToListAsync();
+        var notifications = await _context.Notifications.Where(x => x.User!.Ci == ci).ToListAsync();
         _context.Notifications.RemoveRange(notifications);
 
         var modifiedNotifications = await _context.Notifications
-        .Where(n => n.ModifiedById == id)
+        .Where(n => n.ModifiedByCi == ci)
         .ToListAsync();
 
         foreach (var notification in modifiedNotifications)
         {
-            notification.ModifiedById = null;
+            notification.ModifiedByCi = null;
         }
         _context.Notifications.UpdateRange(modifiedNotifications);
     }
@@ -88,39 +86,28 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
     /// <summary>
     /// Retrieves all users from the database with optional filtering and pagination.
     /// </summary>
-    /// <param name="filters">An object containing filter criteria for the users.</param>
-    /// <param name="pagination">Pagination parameters (page number, page size). If null, a default pagination is used.</param>
+    /// <param name="pageNumber">The page number to retrieve. Default is 1.</param>
+    /// <param name="pageSize">The number of users to return per page. Default is 10.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains a paginated list of users.</returns>
-    public async Task<PaginatedResult<Users>> GetAllAsync(object filters, Pagination? pagination)
+    public async Task<List<Users>> GetAllAsync(int pageNumber = 1, int pageSize = 10)
     {
-        pagination ??= new Pagination();
-
-        var query = _context.Users
-        .Include(x => x.UserRol)
-        .AsQueryable();
-
-        query = query.ApplyFilters(filters);
-
-        var totalCount = await query.CountAsync();
-
-        var pagedData = await query
-            .OrderByDescending(u => u.CreatedAt)
-            .Skip((pagination.PageNumber - 1) * pagination.PageSize)
-            .Take(pagination.PageSize)
-            .ToListAsync();
-
-        return new PaginatedResult<Users>(pagedData, totalCount, pagination.PageNumber, pagination.PageSize);
+        int page = (pageNumber * pageSize) - pageSize;
+        return await _context.Users
+          .OrderBy(u => u.Id)
+          .Skip(page)
+          .Take(pageSize)
+          .ToListAsync();
     }
 
     /// <summary>
     /// Retrieves a list of users by their ID.
     /// </summary>
-    /// <param name="id">The ID of the user(s) to retrieve.</param>
+    /// <param name="ci">The cedula of the user(s) to retrieve.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains an enumerable collection of users.</returns>
-    public async Task<IEnumerable<Users?>> GetByIdAsync(int id) =>
+    public async Task<IEnumerable<Users?>> GetByCiAsync(string ci) =>
         await _context.Users
         .Include(x => x.UserRol)
-        .Where(userAux => userAux.Id.Equals(id)).ToListAsync();
+        .Where(userAux => userAux.Ci == ci).ToListAsync();
 
     public async Task<IEnumerable<KeyValuePairDTO<object, object>>> GetKeyValuePairsAsync(object filters, KeyFieldConfigurationDTO config)
     {

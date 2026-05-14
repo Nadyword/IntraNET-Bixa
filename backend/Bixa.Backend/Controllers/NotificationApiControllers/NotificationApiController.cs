@@ -38,7 +38,7 @@ public class NotificationApiController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Delete(int notificationId)
+    public async Task<IActionResult> Delete(string notificationId)
     {
         var result = await _notificationService.DeleteAsync(notificationId);
         return HandleServiceResult(result);
@@ -56,25 +56,6 @@ public class NotificationApiController(
     public async Task<IActionResult> DeleteAllNotifications()
     {
         var result = await _notificationService.DeleteAllNotificationsAsync();
-        return HandleServiceResult(result);
-    }
-
-    /// <summary>
-    /// Retrieves a paginated list of notifications for the currently authenticated user.
-    /// By default, returns unread notifications.
-    /// </summary>
-    /// <param name="filters">The search query containing filtering (e.g., IsRead) and pagination parameters.</param>
-    /// <returns>An <see cref="IActionResult"/> containing a paginated list of <see cref="NotificationDTO"/> on success.</returns>
-    [HttpGet]
-    [Authorize]
-    [ProducesResponseType(typeof(ApiResponse<PaginatedResult<NotificationDTO>>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetAll([FromQuery] SearchQuery<NotificationFilterDTO> filters)
-    {
-        var result = await _notificationService.GetAllAsync(filters);
         return HandleServiceResult(result);
     }
 
@@ -106,7 +87,7 @@ public class NotificationApiController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> MarkAsRead(int notificationId)
+    public async Task<IActionResult> MarkAsRead(string notificationId)
     {
         var result = await _notificationService.MarkAsReadAsync(notificationId);
         return HandleServiceResult(result, "Notificación marcada como leída exitosamente.");

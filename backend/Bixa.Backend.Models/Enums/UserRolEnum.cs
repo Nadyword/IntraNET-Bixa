@@ -4,8 +4,8 @@ namespace Bixa.Backend.Models.Enums;
 
 public enum UserRolEnum
 {
-    [Description("SuperIntendente")]
-    SuperIntendente = 1,
+    [Description("Administrador")]
+    Administrador = 1,
 
     [Description("Supervisor")]
     Supervisor = 2,

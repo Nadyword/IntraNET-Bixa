@@ -42,12 +42,12 @@ public class UnitOfWork : IUnitOfWork, IDisposable
         Notifications = new NotificationRepository(_context);
     }
 
-    public INotificationRepository Notifications { get; set; }
+    public INotificationRepository Notifications { get; }
 
-    public IUserRolRepository UserRols { get; private set; }
+    public IUserRolRepository UserRols { get; }
 
     // Repository properties
-    public IUserRepository Users { get; private set; }
+    public IUserRepository Users { get; }
 
     /// <summary>
     /// Begins a new database transaction. If one is already active, it returns the existing one.
@@ -93,35 +93,32 @@ public class UnitOfWork : IUnitOfWork, IDisposable
         if (string.IsNullOrWhiteSpace(description))
             return null;
 
-        string Normalize(string s) =>
-            new string(s
-                .Where(c => !char.IsWhiteSpace(c))
-                .ToArray())
+        static string Normalize(string s) =>
+            new string([.. s.Where(c => !char.IsWhiteSpace(c))])
                 .ToUpperInvariant();
 
         var normalizedInput = Normalize(description);
 
         foreach (var field in typeof(BudgetaryItemEnum).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
         {
-            var attr = Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute)) as DescriptionAttribute;
-            if (attr != null && Normalize(attr.Description) == normalizedInput)
+            if (Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute)) is DescriptionAttribute attr && Normalize(attr.Description) == normalizedInput)
                 return (BudgetaryItemEnum)field.GetValue(null)!;
         }
         return null;
     }
 
     /// <summary>
-    /// Retrieves the ID of the current authenticated user from the HTTP context.
+    /// Retrieves the CI of the current authenticated user from the HTTP context.
     /// </summary>
-    /// <returns>The integer ID of the current user, or null if not authenticated or ID is not found/invalid.</returns>
-    public int? GetCurrentUserId()
+    /// <returns>The CI of the current user, or null if not authenticated or CI is not found/invalid.</returns>
+    public string? GetCurrentUserCi()
     {
-        var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("Id");
-        if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+        var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst("ci");
+        if (userIdClaim != null)
         {
-            return userId;
+            return userIdClaim.Value;
         }
-        _logger.LogWarning("Current user ID could not be retrieved from token claims. HttpContext.User.Identity.IsAuthenticated: {IsAuthenticated}",
+        _logger.LogWarning("Current user CI could not be retrieved from token claims. HttpContext.User.Identity.IsAuthenticated: {IsAuthenticated}",
             _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated);
         return null;
     }
@@ -220,13 +217,13 @@ public class UnitOfWork : IUnitOfWork, IDisposable
     }
 
     /// <summary>
-    /// Automatically populates audit fields (Created, Modified, ModifiedById)
+    /// Automatically populates audit fields (Created, Modified, ModifiedByCi)
     /// for entities inheriting from BaseEntities before saving changes.
-    /// This method extracts the current user's ID from the HTTP context.
+    /// This method extracts the current user's CI from the HTTP context.
     /// </summary>
     private void BeforeSaveChanges()
     {
-        int? currentUserId = GetCurrentUserId();
+        string? currentUserId = GetCurrentUserCi();
         foreach (var entry in _context.ChangeTracker.Entries())
         {
             if (entry.Entity is BaseEntities baseEntity)
@@ -236,12 +233,12 @@ public class UnitOfWork : IUnitOfWork, IDisposable
                     case EntityState.Added:
                         baseEntity.CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
                         baseEntity.UpdatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
-                        baseEntity.ModifiedById = currentUserId;
+                        baseEntity.ModifiedByCi = currentUserId;
                         break;
 
                     case EntityState.Modified:
                         baseEntity.UpdatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
-                        baseEntity.ModifiedById = currentUserId;
+                        baseEntity.ModifiedByCi = currentUserId;
                         entry.Property("CreatedAt").IsModified = false;
                         break;
                 }

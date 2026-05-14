@@ -2,11 +2,11 @@ using Bixa.Backend.DataAccess.Entities;
 
 namespace Bixa.Backend.DataAccess.Interfaces.Repositories;
 
-public interface INotificationRepository : IRepository<Notifications, int>
+public interface INotificationRepository : IRepository<Notifications, string>
 {
-    Task<bool> DeleteAllAsync(int userId);
+    Task<bool> DeleteAllAsync(string userId);
 
-    Task<IEnumerable<Notifications>> GetUnreadNotificationsForUserAsync(int userId);
+    Task<IEnumerable<Notifications>> GetUnreadNotificationsForUserAsync(string userCi);
 
-    Task<bool> MarkAllAsReadAsync(int userId);
+    Task<bool> MarkAllAsReadAsync(string userCi);
 }

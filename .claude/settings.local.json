@@ -4,7 +4,13 @@
       "Bash(npx tsc *)",
       "Bash(dotnet build *)",
       "Bash(xargs grep *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\samue\\\\Documents\\\\Proyectos\\\\IntraNET Bixa\\\\frontend\\\\src\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)",
+      "Bash(xargs ls -lh)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx|js\\)$\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\samue\\\\Documents\\\\Proyectos\\\\IntraNET Bixa\\\\frontend\\\\src\\\\components\\\\ui\" -Name)",
+      "Bash(Select-Object -First 20)"
     ]
   }
 }

@@ -9,8 +9,8 @@ internal static class ProfitSqlTemplates
             e.apellidos,
             e.ci,
             e.rif,
-            e.correo_e_2 AS 'CorreoP',
-            e.correo_e AS 'CorreoE',
+            e.correo_e AS 'CorreoP',
+            e.correo_e_2 AS 'CorreoE',
             e.fecha_nac AS 'FechaNac',
             e.direccion,
             DATEDIFF(YEAR, e.fecha_nac, GETDATE()) - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, e.fecha_nac, GETDATE()), e.fecha_nac) > GETDATE() THEN 1 ELSE 0 END AS edad,
@@ -31,11 +31,12 @@ internal static class ProfitSqlTemplates
         INNER JOIN dbo.sndepart AS D ON c.co_depart = d.co_depart
         INNER JOIN dbo.sncont AS S ON e.co_cont = s.co_cont
         INNER JOIN dbo.snubicacion AS U ON e.co_ubicacion = u.co_ubicacion
-        WHERE e.ci = @ci
+        WHERE e.ci IN (@ci)
         """;
 
     internal const string GetGrupoFamByCi = """
         SELECT
+            gf.cod_emp AS codEmp,
             nombre,
             CASE WHEN gf.nac = 1 THEN 'Venezolano(a)' ELSE 'Extranjero(a)' END AS Nacionalidad,
             DATEDIFF(YEAR, gf.fecha_nac, GETDATE()) - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, gf.fecha_nac, GETDATE()), gf.fecha_nac) > GETDATE() THEN 1 ELSE 0 END AS edad,
@@ -49,7 +50,7 @@ internal static class ProfitSqlTemplates
 
     internal const string GetEmailByCi = """
         SELECT
-            correo_e AS 'CorreoE'
+            correo_e_2 AS 'CorreoE'
         FROM snemple WHERE ci = @ci
         """;
 

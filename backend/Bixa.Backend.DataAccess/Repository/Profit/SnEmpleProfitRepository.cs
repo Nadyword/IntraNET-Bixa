@@ -5,9 +5,9 @@ using Bixa.Backend.DataAccess.Context;
 using Bixa.Backend.Models.Response;
 using Microsoft.EntityFrameworkCore;
 using Bixa.Backend.Models.Enums;
-using Bixa.Backend.Models.Query;
 using System.Linq.Expressions;
 using Microsoft.Data.SqlClient;
+using Bixa.Backend.Models.DTOs.UserModelDTO;
 
 namespace Bixa.Backend.DataAccess.Repository.Profit;
 
@@ -20,18 +20,19 @@ public class SnEmpleProfitRepository(ProfitDbContext context) : ISnEmpleProfitRe
     public async Task<bool> AnyAsync(Expression<Func<SnEmple, bool>> predicate)
         => await _context.SnEmple.AnyAsync(predicate);
 
-    public async Task<PaginatedResult<SnEmple>> GetAllAsync(object filters, Pagination? pagination)
+    public async Task<List<SnEmple>> GetAllAsync(int pageNumber, int pageSize)
     {
-        var page = pagination ?? new Pagination();
+        int page = (pageNumber * pageSize) - pageSize;
+        var result = _context.SnEmple
+          .OrderBy(u => u.CodEmp)
+          .Skip(page)
+          .Take(pageSize);
 
-        var items = await _context.SnEmple
-            .FromSqlRaw(ProfitSqlTemplates.GetByCi!)
-            .Skip((page.PageNumber - 1) * page.PageSize)
-            .Take(page.PageSize)
+        return await result
+            .OrderByDescending(u => u.CodEmp)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
-
-        var totalCount = items.Count;
-        return new PaginatedResult<SnEmple>(items, totalCount, page.PageNumber, page.PageSize);
     }
 
     public async Task<IEnumerable<SnEmple?>> GetByIdAsync(int id)
@@ -54,6 +55,17 @@ public class SnEmpleProfitRepository(ProfitDbContext context) : ISnEmpleProfitRe
         if (emple == null)
             return Result.Fail<SnEmple>("Usuario no encontrado", ErrorTypeEnum.NotFound);
 
+        return Result.Success(emple);
+    }
+
+    public async Task<Result<List<SnEmple>>> GetAllByCiAsync(List<UserDTO> users)
+    {
+        var ciList = string.Join(",", users.Select(u => $"'{u.Ci}'"));
+        var emple = await _context.SnEmple
+            .FromSqlRaw(ProfitSqlTemplates.GetByCi!.Replace("@ci", ciList))
+            .ToListAsync();
+        if (emple == null || emple.Count == 0)
+            return Result.Fail<List<SnEmple>>("Usuario no encontrado", ErrorTypeEnum.NotFound);
         return Result.Success(emple);
     }
 }

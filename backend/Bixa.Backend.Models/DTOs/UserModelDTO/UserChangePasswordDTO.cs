@@ -5,7 +5,7 @@ public class UserChangePasswordDTO
     /// <summary>
     /// Unique identifier for the user.
     /// </summary>
-    public int Id { get; set; }
+    public required string Ci { get; set; }
 
     /// <summary>
     /// User's password.

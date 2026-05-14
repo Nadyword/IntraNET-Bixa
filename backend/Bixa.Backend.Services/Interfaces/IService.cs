@@ -1,5 +1,5 @@
-using Bixa.Backend.Models.Query;
 using Bixa.Backend.Models.Response;
+using Bixa.Backend.Models.Query;
 
 namespace Bixa.Backend.Services.Interfaces;
 
@@ -9,24 +9,22 @@ namespace Bixa.Backend.Services.Interfaces;
 /// <typeparam name="TEntityDto">The DTO type representing the entity for display/response.</typeparam>
 /// <typeparam name="TInsertDto">The DTO type used for creating new entities.</typeparam>
 /// <typeparam name="TUpdateDto">The DTO type used for updating existing entities.</typeparam>
-/// <typeparam name="TFilterDto">The DTO type used for filtering entities in queries.</typeparam>
 /// <typeparam name="TKey">The type of the entity's primary key (e.g., int, Guid).</typeparam>
-public interface IService<TEntityDto, TInsertDto, TUpdateDto, TFilterDto, TKey>
+public interface IService<TEntityDto, TInsertDto, TUpdateDto, TKey>
     where TEntityDto : class
     where TInsertDto : class
     where TUpdateDto : class
-    where TFilterDto : class, new()
 {
     // POST operation
     Task<Result<TKey>> AddAsync(TInsertDto dto);
 
     // DELETE operation
-    Task<Result<bool>> DeleteAsync(TKey id);
+    Task<Result<bool>> DeleteAsync(TKey ci);
 
     // GET operations
-    Task<Result<PaginatedResult<TEntityDto>>> GetAllAsync(SearchQuery<TFilterDto> filters);
+    Task<Result<List<TEntityDto>>> GetAllAsync(int pageNumber, int pageSize);
 
-    Task<Result<TEntityDto>> GetByIdAsync(TKey id);
+    Task<Result<TEntityDto>> GetByCiAsync(TKey ci);
 
     // PUT operation
     Task<Result<bool>> UpdateAsync(TUpdateDto dto);

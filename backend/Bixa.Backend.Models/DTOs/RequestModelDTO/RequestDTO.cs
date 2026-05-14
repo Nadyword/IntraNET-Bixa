@@ -27,7 +27,7 @@ public class RequestDTO
     public int Id { get; set; }
     public bool IsSeenByExecutive { get; set; }
     public DateTime Modified { get; set; }
-    public int ModifiedById { get; set; }
+    public int ModifiedByCi { get; set; }
     public string? Observations { get; set; }
     public DateTime? RealizationDate { get; set; }
     public virtual UserDTO? RequesterUser { get; set; }

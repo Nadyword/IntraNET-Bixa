@@ -257,20 +257,23 @@ export const MyDataPage: React.FC = () => {
           onRequestCorrection={() => setModalOpen(true)}
         />
 
-        <Section title="Datos Personales">
+        <Section title="Datos personales">
           <Field label="Nombres" value={profile.nombres} />
           <Field label="Apellidos" value={profile.apellidos} />
           <Field label="Cédula de Identidad" value={profile.ci} />
           <Field label="Dirección" value={profile.direccion} />
           <Field label="Teléfono" value={profile.telefono} />
           <Field label="Correo personal" value={profile.correoP} />
-          <Field label="Correo corporativo" value={profile.correoE} />
+          <Field label="Fecha de nacimiento" value={formatDate(profile.fechaNac)} />
+        </Section>
+
+        <Section title="Datos laborales">
           <Field label="Cargo" value={profile.desCargo} />
           <Field label="Fecha de ingreso" value={formatDate(profile.fechaIng)} />
           <Field label="Departamento" value={profile.desDepart} />
-          <Field label="Fecha de nacimiento" value={formatDate(profile.fechaNac)} />
           <Field label="RIF" value={profile.rif} />
           <Field label="Cuenta Provincial" value={profile.cuentaBanc1} />
+          <Field label="Correo corporativo" value={profile.correoE} />
         </Section>
 
         <div style={{

@@ -2,6 +2,7 @@
 
 public class GrupoFa
 {
+    public string? CodEmp { get; set; }
     public string? Nombre { get; set; }
     public string? Nacionalidad { get; set; }
     public int? Edad { get; set; }

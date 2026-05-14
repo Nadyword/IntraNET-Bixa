@@ -3,7 +3,7 @@
 public class NotificationEditDTO
 {
     public int Id { get; set; }
-    public int UserId { get; set; }
+    public required string UserCi { get; set; }
     public required string NotificationType { get; set; }
     public required string Priority { get; set; }
     public required string Title { get; set; }
