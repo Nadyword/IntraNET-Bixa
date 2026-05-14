@@ -65,4 +65,37 @@ public class UserApiProfitController(
         var result = await _readOnlyUnitOfWork.SnEmple.GetFullInfoByCiAsync(normalizedCi);
         return HandleServiceResult(result);
     }
+
+    /// <summary>
+    /// Historial de vacaciones por CodEmp
+    /// </summary>
+    /// <param name="CodEmp">Lista de CodEmp para obtener el historial de vacaciones.</param>
+    /// <returns>API response containing la lista de vacaciones por CodEmp.</returns>
+    [HttpGet("{CodEmp}/Vacaciones")]
+    [ProducesResponseType(typeof(ApiResponse<Vacaciones[]>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetVacacionesByCodEmp(string CodEmp)
+    {
+        var result = await _readOnlyUnitOfWork.Vacaciones.GetHistorialVacaByCodEmpAsync(CodEmp);
+        return HandleServiceResult(result);
+    }
+
+    /// <summary>
+    /// Obtiene los días especiales por CodEmp
+    /// </summary>
+    /// <param name="CodEmp">El código del empleado para el que se recuperan los días especiales. No puede ser nulo.</param>
+    /// <returns>Un resultado que contiene una lista de objetos de días especiales asociados al empleado. Si no se encuentra el
+    /// empleado, el resultado indica un error de tipo NotFound.</returns>
+    [HttpGet("{CodEmp}/DiasEspeciales")]
+    [ProducesResponseType(typeof(ApiResponse<Vacaciones[]>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetDiasEspecialesByCodEmp(string CodEmp)
+    {
+        var result = await _readOnlyUnitOfWork.DiaEspeciales.GetDiaEspecialesByCodEmpAsync(CodEmp);
+        return HandleServiceResult(result);
+    }
 }

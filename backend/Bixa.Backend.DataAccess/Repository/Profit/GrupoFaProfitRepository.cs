@@ -5,9 +5,8 @@ using Bixa.Backend.DataAccess.Context;
 using Bixa.Backend.Models.Response;
 using Microsoft.EntityFrameworkCore;
 using Bixa.Backend.Models.Enums;
-using Bixa.Backend.Models.Query;
-using Microsoft.Data.SqlClient;
 using System.Linq.Expressions;
+using Microsoft.Data.SqlClient;
 
 namespace Bixa.Backend.DataAccess.Repository.Profit;
 

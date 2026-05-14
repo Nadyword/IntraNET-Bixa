@@ -11,4 +11,8 @@ public interface IReadOnlyUnitOfWork : IDisposable
     ISnEmpleProfitRepository SnEmple { get; }
 
     IGrupoFaProfitRepository GrupoFa { get; }
+
+    IVacacionesProfitRepository Vacaciones { get; }
+
+    IDiaEspecialesProfitRepository DiaEspeciales { get; }
 }

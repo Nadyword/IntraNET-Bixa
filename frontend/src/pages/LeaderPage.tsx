@@ -135,12 +135,6 @@ export const LeaderPage: React.FC = () => {
         >
           Mi Equipo
         </button>
-        <button
-          className={`tab-btn ${activeTab === 'alertas' ? 'active' : ''}`}
-          onClick={() => handleTabChange('alertas')}
-        >
-          Alertas
-        </button>
       </div>
 
       {/* Tab Content */}
@@ -273,35 +267,6 @@ export const LeaderPage: React.FC = () => {
                 >
                   Siguiente →
                 </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'alertas' && (
-          <div className="alerts-section">
-            <div className="alert-item alert-warning">
-              <div className="alert-icon">⚠️</div>
-              <div className="alert-content">
-                <h4>Ausencia No Comunicada</h4>
-                <p>Carlos Mendez no registró entrada hoy. Verifica su estado.</p>
-                <span className="alert-time">Hace 2 horas</span>
-              </div>
-            </div>
-            <div className="alert-item alert-info">
-              <div className="alert-icon">ℹ️</div>
-              <div className="alert-content">
-                <h4>Aniversario</h4>
-                <p>Juan Rodríguez cumple 5 años en la empresa el 25 de marzo.</p>
-                <span className="alert-time">Hace 1 día</span>
-              </div>
-            </div>
-            <div className="alert-item alert-success">
-              <div className="alert-icon">✓</div>
-              <div className="alert-content">
-                <h4>Evaluación Completada</h4>
-                <p>La evaluación de desempeño de María Gonzalez fue completada.</p>
-                <span className="alert-time">Hace 3 días</span>
               </div>
             </div>
           </div>

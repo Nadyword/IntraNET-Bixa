@@ -19,10 +19,14 @@ public class ReadOnlyUnitOfWork : IReadOnlyUnitOfWork
         _context = context ?? throw new ArgumentNullException(nameof(context));
         SnEmple = new SnEmpleProfitRepository(_context);
         GrupoFa = new GrupoFaProfitRepository(_context);
+        Vacaciones = new VacacionesProfitRepository(_context);
+        DiaEspeciales = new DiaEspecialesProfitRepository(_context);
     }
 
     public ISnEmpleProfitRepository SnEmple { get; }
     public IGrupoFaProfitRepository GrupoFa { get; }
+    public IVacacionesProfitRepository Vacaciones { get; }
+    public IDiaEspecialesProfitRepository DiaEspeciales { get; }
 
     public void Dispose()
     {

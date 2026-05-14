@@ -61,4 +61,53 @@ internal static class ProfitSqlTemplates
             ci
         FROM snemple WHERE ci = @ci
     """;
+
+    internal const string GetVacacionesByCodEmp = """
+        DECLARE @sCod_Emp_d char(17) = @codEmp;
+
+        DECLARE @TablaRecibo table (cod_emp char(17), Nombre varchar(122), desde datetime, hasta datetime, dias int);
+        DECLARE @cnt INT = 0;
+        DECLARE @dia INT = 15;
+        DECLARE @fec datetime = (SELECT fecha_ing FROM snemple WHERE cod_emp = @sCod_Emp_d);
+        DECLARE @tope INT = YEAR(GETDATE()) - YEAR(@fec);
+
+        WHILE @cnt < @tope
+        BEGIN
+            INSERT INTO @TablaRecibo (cod_emp, Nombre, desde, hasta, dias)
+            SELECT
+                e.cod_emp,
+                e.nombre_completo,
+                DATEADD(yy, @cnt, @fec),
+                DATEADD(yy, @cnt + 1, @fec),
+                CASE WHEN @dia + @cnt > 30 THEN 30 ELSE @dia + @cnt END
+            FROM snemple e
+            WHERE e.cod_emp = @sCod_Emp_d;
+
+            SET @cnt = @cnt + 1;
+        END;
+
+        INSERT INTO @TablaRecibo (cod_emp, Nombre, desde, hasta, dias)
+        SELECT e.cod_emp, e.nombre_completo, v.desde, v.hasta, -1 * v.dias FROM dbo.snemple AS e
+        INNER JOIN snvacaci AS v ON (e.cod_emp = v.cod_emp OR convert(nvarchar(max), v.trabajadores) LIKE '%<Trabajador>' + e.cod_emp + '%</Trabajador>%')
+        WHERE e.cod_emp = @sCod_Emp_d
+        GROUP BY e.cod_emp, e.nombre_completo,v.desde,v.hasta,v.dias;
+
+        SELECT cod_emp codEmp, Nombre, desde, hasta, dias, SUM(dias) OVER (PARTITION BY cod_emp ORDER BY desde, dias DESC) AS disponibleAcumulado FROM    @TablaRecibo ORDER BY desde;
+    """;
+
+    internal const string GetDiasEspeciales = """
+      SELECT
+	    des_novedad_dia desNovedadDia ,
+	    fecha_registro fechaRegistro,
+	    e.nombre_completo AutorisadoPor,
+	    a.desde,
+	    a.hasta,
+	    a.dias
+    FROM snnovedad_dia a
+    INNER JOIN snemple e ON e.cod_emp = a.cod_emp
+    WHERE a.cod_emp = @codEmp AND a.co_tipoaus = '999' AND
+    a.desde >= (SELECT val_f FROM snconst WHERE co_const = 'A003') AND
+    a.hasta <= (SELECT val_f FROM snconst WHERE co_const = 'A004')
+
+""";
 }
