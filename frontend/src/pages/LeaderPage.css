@@ -542,3 +542,26 @@
     flex-direction: column;
   }
 }
+
+/* Chats de soporte */
+.chats-section {
+  margin-top: 8px;
+}
+
+.chat-status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.badge-pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.badge-answered {
+  background-color: #d1e7dd;
+  color: #0a3622;
+}

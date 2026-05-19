@@ -21,6 +21,13 @@ export interface SoporteChatRDTO {
   respondidoPorCi?: string;
 }
 
+export interface SolicitudChatDTO {
+  userCi: string;
+  firstName: string;
+  lastName: string;
+  respondido: number;
+}
+
 export const soporteService = {
   getHistoriChat: (ci: string) =>
     api.get<ApiResponse<SoporteChatMessageDTO[]>>(`/soporte/HistoriChat/${ci}`),
@@ -30,4 +37,7 @@ export const soporteService = {
 
   sendAnswer: (payload: SoporteChatRDTO) =>
     api.post<ApiResponse<null>>('/soporte/NewAnswer', payload),
+
+  getChatAbiertos: () =>
+    api.get<ApiResponse<SolicitudChatDTO[]>>('/soporte/ChatAbiertos'),
 };

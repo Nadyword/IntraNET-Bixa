@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../lib/api';
 import type { ApiResponse } from '../services/authService';
 import type { UserProfile } from '../store/userProfileStore';
+import { soporteService, type SolicitudChatDTO } from '../services/soporteService';
 import { CreateUserModal } from '../components/ui/CreateUserModal';
 import { DeleteUserModal } from '../components/ui/DeleteUserModal';
 import { EditUserModal } from '../components/ui/EditUserModal';
@@ -35,6 +36,11 @@ export const LeaderPage: React.FC = () => {
   const [teamUsers, setTeamUsers] = useState<UserProfile[]>([]);
   const [teamLoading, setTeamLoading] = useState(false);
   const [teamError, setTeamError] = useState('');
+
+  // Estado de chats de soporte
+  const [chats, setChats] = useState<SolicitudChatDTO[]>([]);
+  const [chatsLoading, setChatsLoading] = useState(false);
+  const [chatsError, setChatsError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [selectedCi, setSelectedCi] = useState<string | null>(null);
@@ -65,6 +71,29 @@ export const LeaderPage: React.FC = () => {
     load();
     return () => { cancelled = true; };
   }, [activeTab, currentPage]);
+
+  useEffect(() => {
+    if (activeTab !== 'chats') return;
+    let cancelled = false;
+    const load = async () => {
+      setChatsLoading(true);
+      setChatsError('');
+      try {
+        const res = await soporteService.getChatAbiertos();
+        if (!cancelled) {
+          const data = res.data.data ?? [];
+          const sorted = [...data].sort((a, b) => a.respondido - b.respondido);
+          setChats(sorted);
+        }
+      } catch {
+        if (!cancelled) setChatsError('Error al cargar los chats de soporte.');
+      } finally {
+        if (!cancelled) setChatsLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [activeTab]);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -134,6 +163,12 @@ export const LeaderPage: React.FC = () => {
           onClick={() => handleTabChange('equipo')}
         >
           Mi Equipo
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'chats' ? 'active' : ''}`}
+          onClick={() => handleTabChange('chats')}
+        >
+          Chats de soporte
         </button>
       </div>
 
@@ -269,6 +304,39 @@ export const LeaderPage: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+        {activeTab === 'chats' && (
+          <div className="chats-section">
+            {chatsLoading && <p className="team-empty">Cargando chats...</p>}
+            {!chatsLoading && chatsError && <p className="team-error">{chatsError}</p>}
+            {!chatsLoading && !chatsError && chats.length === 0 && (
+              <div className="empty-state"><p>No hay chats de soporte activos.</p></div>
+            )}
+            {!chatsLoading && !chatsError && chats.length > 0 && (
+              <table className="team-table">
+                <thead>
+                  <tr>
+                    <th>Nombre y Apellido</th>
+                    <th>CI</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chats.map((chat) => (
+                    <tr key={chat.userCi}>
+                      <td><strong>{[chat.firstName, chat.lastName].filter(Boolean).join(' ') || '—'}</strong></td>
+                      <td>{chat.userCi}</td>
+                      <td>
+                        <span className={`chat-status-badge ${chat.respondido === 0 ? 'badge-pending' : 'badge-answered'}`}>
+                          {chat.respondido === 0 ? 'Sin responder' : 'Respondido'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
       </div>
