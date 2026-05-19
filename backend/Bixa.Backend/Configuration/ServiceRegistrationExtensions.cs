@@ -1,12 +1,12 @@
-using Bixa.Backend.DataAccess.Interfaces.Repositories;
 using Bixa.Backend.DataAccess.Interfaces.Repositories.Profit;
-using Bixa.Backend.DataAccess.Repository;
+using Bixa.Backend.DataAccess.Interfaces.Repositories;
 using Bixa.Backend.DataAccess.Repository.Profit;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Bixa.Backend.DataAccess.UnitOfWork;
+using Bixa.Backend.DataAccess.Repository;
 using Bixa.Backend.DataAccess.Wrappers;
 using Bixa.Backend.Services.Interfaces;
 using Bixa.Backend.Services.Services;
-using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Options;
 
 namespace Bixa.Backend.Configuration;
@@ -52,6 +52,7 @@ public static class ServiceRegistrationExtensions
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserRolRepository, UserRolRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<ISoporteChatRepository, SoporteChatRepository>();
     }
 
     /// <summary>
@@ -65,6 +66,7 @@ public static class ServiceRegistrationExtensions
         services.AddScoped<IUserRolService, RolService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<ISendMailServices, SendMailServices>();
+        services.AddScoped<ISoporteChatService, SoporteChatService>();
     }
 
     /// <summary>

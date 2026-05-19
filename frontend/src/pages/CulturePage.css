@@ -223,42 +223,85 @@
   margin-bottom: 28px;
 }
 
-.benefits-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
-}
-
-.benefit-card {
+.benefits-table-wrapper {
   background: white;
-  padding: 28px;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition);
-}
-
-.benefit-card:hover {
   box-shadow: var(--shadow-md);
-  transform: translateY(-4px);
+  overflow: hidden;
 }
 
-.benefit-icon {
-  font-size: 44px;
-  margin-bottom: 16px;
-  display: block;
+.benefits-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
 }
 
-.benefit-card h4 {
+.benefits-table thead tr {
+  background: var(--red);
+  color: white;
+}
+
+.benefits-table th {
+  padding: 14px 18px;
+  text-align: left;
   font-family: var(--font-display);
-  font-size: 22px;
-  color: var(--red);
-  margin-bottom: 8px;
+  font-size: 16px;
+  letter-spacing: 0.4px;
+  font-weight: 400;
 }
 
-.benefit-card p {
-  color: var(--gray-500);
+.benefits-table th.col-num,
+.benefits-table td.col-num {
+  width: 52px;
+  text-align: center;
+}
+
+.benefits-table th.col-benefit,
+.benefits-table td.col-benefit {
+  width: 260px;
+  font-weight: 600;
+}
+
+.benefits-table tbody tr {
+  border-bottom: 1px solid var(--gray-100);
+  transition: background var(--transition);
+}
+
+.benefits-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.benefits-table tbody tr:hover {
+  background: #fff5f5;
+}
+
+.benefits-table tbody tr:nth-child(even) {
+  background: var(--gray-50);
+}
+
+.benefits-table tbody tr:nth-child(even):hover {
+  background: #fff5f5;
+}
+
+.benefits-table td {
+  padding: 14px 18px;
+  color: var(--black);
+  vertical-align: top;
+  line-height: 1.55;
+}
+
+.benefits-table td.col-num {
+  color: var(--red);
+  font-weight: 700;
   font-size: 15px;
-  line-height: 1.6;
+}
+
+.benefits-table td.col-benefit {
+  color: var(--black);
+}
+
+.benefits-table td.col-detail {
+  color: var(--gray-500);
 }
 
 /* Leadership Section */
@@ -357,8 +400,18 @@
   }
 
   .values-grid,
-  .benefits-grid,
   .org-chart {
     grid-template-columns: 1fr;
+  }
+
+  .benefits-table th.col-benefit,
+  .benefits-table td.col-benefit {
+    width: auto;
+  }
+
+  .benefits-table th,
+  .benefits-table td {
+    padding: 12px 12px;
+    font-size: 13px;
   }
 }

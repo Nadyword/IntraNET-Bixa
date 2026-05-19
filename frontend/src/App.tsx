@@ -44,7 +44,7 @@ export default function App() {
                   {activeSection === 'solicitudes' && <SolicitudesPage />}
                   {activeSection === 'tramites' && <TramitesPage />}
                   {activeSection === 'leader' && (isAdmin ? <LeaderPage /> : <Navigate to="/" replace />)}
-                  {activeSection === 'chatbot' && <ChatPage />}
+                  {activeSection === 'soporte' && !isAdmin && <ChatPage />}
                 </AppLayout>
               }
             />

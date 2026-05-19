@@ -29,7 +29,7 @@ public class GrupoFaProfitRepository(ProfitDbContext context) : IGrupoFaProfitRe
           .ToListAsync();
     }
 
-    public async Task<IEnumerable<GrupoFa?>> GetByIdAsync(int id)
+    public async Task<IEnumerable<GrupoFa?>> GetByCiAsync(int id)
         => await _context.GrupoFa
             .FromSqlRaw(ProfitSqlTemplates.GetByCi!, id)
             .ToListAsync();

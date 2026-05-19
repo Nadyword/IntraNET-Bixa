@@ -41,7 +41,7 @@ public class UserApiProfitController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetGrupoFaById(string ci)
+    public async Task<IActionResult> GetGrupoFaByCi(string ci)
     {
         var normalizedCi = UtilityService.NormalizeCiFormat(ci);
         var result = await _readOnlyUnitOfWork.GrupoFa.GetFullInfoByCiAsync(normalizedCi);
@@ -59,7 +59,7 @@ public class UserApiProfitController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetUserById(string ci)
+    public async Task<IActionResult> GetUserByCi(string ci)
     {
         var normalizedCi = UtilityService.NormalizeCiFormat(ci);
         var result = await _readOnlyUnitOfWork.SnEmple.GetFullInfoByCiAsync(normalizedCi);

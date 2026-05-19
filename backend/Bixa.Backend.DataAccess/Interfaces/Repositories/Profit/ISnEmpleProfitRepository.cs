@@ -6,7 +6,7 @@ namespace Bixa.Backend.DataAccess.Interfaces.Repositories.Profit;
 
 // Interfaz de ejemplo. Reemplazar con el repositorio real de la entidad de la BD secundaria.
 // Puede extender IReadOnlyRepository<T, TKey> o definir métodos específicos según la consulta.
-public interface ISnEmpleProfitRepository : IReadOnlyRepository<SnEmple, int>
+public interface ISnEmpleProfitRepository : IReadOnlyRepository<SnEmple, string>
 {
     /// <summary>
     /// Busca en la BD secundaria si existe un empleado con la CI dada y devuelve su correo electrónico.

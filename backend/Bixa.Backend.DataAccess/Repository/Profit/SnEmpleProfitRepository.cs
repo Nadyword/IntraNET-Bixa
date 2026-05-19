@@ -35,9 +35,9 @@ public class SnEmpleProfitRepository(ProfitDbContext context) : ISnEmpleProfitRe
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<SnEmple?>> GetByIdAsync(int id)
+    public async Task<IEnumerable<SnEmple?>> GetByCiAsync(string ci)
         => await _context.SnEmple
-            .FromSqlRaw(ProfitSqlTemplates.GetByCi!, id)
+            .FromSqlRaw(ProfitSqlTemplates.GetByCi!, new SqlParameter("@ci", ci))
             .ToListAsync();
 
     public async Task<string?> GetEmailByCiAsync(string ci)

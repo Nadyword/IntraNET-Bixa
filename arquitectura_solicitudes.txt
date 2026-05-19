@@ -1,0 +1,360 @@
+================================================================================
+  ARQUITECTURA: MÓDULO DE SOLICITUDES Y SEGUIMIENTO
+  IntraNET Bixa — Diseño v1.0
+  Fecha: 2026-05-14
+================================================================================
+
+--------------------------------------------------------------------------------
+1. VISIÓN GENERAL
+--------------------------------------------------------------------------------
+
+El módulo de Solicitudes permite a los empleados crear peticiones formales
+(permisos, trámites, etc.) que fluyen por un pipeline de aprobación configurable.
+Aunque cada tipo de solicitud tiene su propio formulario y cantidad de aprobadores,
+el pipeline de pasos es idéntico para todos.
+
+PIPELINE UNIVERSAL (5 PASOS):
+
+  [1] CREACIÓN        → El empleado completa el formulario
+  [2] APROBACIÓN      → Pasa por N aprobadores en orden secuencial
+  [3] APROBADO        → Todos los aprobadores han dado el visto bueno
+  [4] ARCHIVANDO      → La administradora genera y archiva el reporte
+  [5] FINALIZADO      → Proceso completo
+
+  - Si cualquier aprobador RECHAZA en el paso 2 → la solicitud vuelve a CREACIÓN
+    con comentario de rechazo (o va a un estado RECHAZADO definitivo, según la regla
+    de negocio que se decida).
+  - El paso 2 contiene todas las sub-aprobaciones; solo se avanza al paso 3 cuando
+    la ÚLTIMA aprobación requerida es completada.
+
+
+--------------------------------------------------------------------------------
+2. BASE DE DATOS — TABLAS
+--------------------------------------------------------------------------------
+
+Nota: Todas las tablas siguen la convención ya existente en el proyecto.
+Los campos de auditoría (CreadoPor, FechaCreacion, ModificadoPor, etc.)
+se omiten aquí por brevedad pero deben incluirse.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2.1 TipoSolicitud
+    — Catálogo de tipos de solicitud. Cada tipo define qué formulario se usa
+      y qué reporte se genera.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  TipoSolicitudId   INT           PK, IDENTITY
+  Nombre            NVARCHAR(100) NOT NULL        -- "Permiso Especial", "Vacaciones", etc.
+  Descripcion       NVARCHAR(500) NULL
+  ReportePlantilla  NVARCHAR(200) NULL            -- Nombre/clave de la plantilla de reporte
+  EsActivo          BIT           NOT NULL DEFAULT 1
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2.2 TipoSolicitudAprobador
+    — Define quién aprueba cada tipo de solicitud y en qué orden.
+      Permite configurar el flujo de aprobación por tipo sin tocar código.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  TipoSolicitudAprobadorId  INT  PK, IDENTITY
+  TipoSolicitudId           INT  FK → TipoSolicitud
+  Orden                     INT  NOT NULL        -- 1 = primer aprobador, 2 = segundo, etc.
+  RolAprobador              NVARCHAR(100) NULL   -- Aprobar por rol (ej. "GerenteArea")
+  UsuarioAprobadorId        INT  NULL FK → Users -- Aprobar por usuario específico
+  EtiquetaAprobacion        NVARCHAR(100) NULL   -- "Supervisor", "RRHH", "Gerencia General"
+
+  Regla: RolAprobador O UsuarioAprobadorId debe estar definido (no ambos nulos).
+  Index: (TipoSolicitudId, Orden) UNIQUE
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2.3 Solicitud
+    — Tabla principal. Una fila por solicitud creada.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  SolicitudId         INT           PK, IDENTITY
+  TipoSolicitudId     INT           FK → TipoSolicitud
+  SolicitanteId       INT           FK → Users          -- Empleado que crea la solicitud
+  PasoActual          TINYINT       NOT NULL DEFAULT 1  -- 1 a 5
+  Estado              NVARCHAR(20)  NOT NULL             -- Ver enum de estados abajo
+  DatosFormularioJson NVARCHAR(MAX) NULL                 -- JSON con los campos del formulario
+  ComentarioRechazo   NVARCHAR(500) NULL
+  FechaCreacion       DATETIME2     NOT NULL DEFAULT GETUTCDATE()
+  FechaUltimaActualizacion DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+
+  Estados posibles:
+    "EnProceso"   → está avanzando normalmente por el pipeline
+    "Rechazada"   → fue rechazada por un aprobador (volver a paso 1 o cerrar)
+    "Finalizada"  → completó el paso 5
+
+  Índices sugeridos:
+    (SolicitanteId)
+    (TipoSolicitudId, Estado)
+    (PasoActual, Estado)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2.4 SolicitudSeguimiento
+    — Registro histórico de cada paso que atraviesa una solicitud.
+      Una fila por paso por solicitud. Aquí está el "tracking".
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  SeguimientoId   INT           PK, IDENTITY
+  SolicitudId     INT           FK → Solicitud
+  Paso            TINYINT       NOT NULL        -- 1 a 5
+  Estado          NVARCHAR(20)  NOT NULL        -- "Pendiente" | "EnProceso" | "Completado" | "Rechazado"
+  FechaInicio     DATETIME2     NOT NULL
+  FechaFin        DATETIME2     NULL            -- NULL mientras el paso sigue activo
+  UsuarioAccionId INT           NULL FK → Users -- Usuario que completó/rechazó este paso
+  Observaciones   NVARCHAR(500) NULL
+
+  Índice: (SolicitudId, Paso)
+
+  Uso: Al crear una solicitud se inserta la fila del paso 1 con Estado = "EnProceso".
+       Cuando el paso termina se actualiza FechaFin y Estado, y se inserta la fila del
+       siguiente paso.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2.5 SolicitudAprobacion
+    — Detalle de cada sub-aprobación dentro del paso 2.
+      Una fila por aprobador requerido por solicitud.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  AprobacionId              INT           PK, IDENTITY
+  SolicitudId               INT           FK → Solicitud
+  TipoSolicitudAprobadorId  INT           FK → TipoSolicitudAprobador  -- Config de quién aprueba
+  Orden                     INT           NOT NULL     -- Copiado de la config para facilitar queries
+  AprobadorAsignadoId       INT           NULL FK → Users  -- Usuario concreto asignado (si es por rol, se resuelve al crear)
+  Estado                    NVARCHAR(20)  NOT NULL DEFAULT 'Pendiente'  -- "Pendiente" | "Aprobado" | "Rechazado"
+  FechaRespuesta            DATETIME2     NULL
+  Comentario                NVARCHAR(500) NULL
+
+  Índice: (SolicitudId, Orden) UNIQUE
+          (AprobadorAsignadoId, Estado)   -- Para "mis aprobaciones pendientes"
+
+  Nota: Cuando el Orden N es Aprobado, el sistema activa el Orden N+1.
+        Si todos están Aprobados → la solicitud avanza al paso 3.
+        Si cualquiera es Rechazado → la solicitud retrocede (según regla de negocio).
+
+
+--------------------------------------------------------------------------------
+3. DIAGRAMA DE FLUJO DEL PIPELINE
+--------------------------------------------------------------------------------
+
+  EMPLEADO                      APROBADORES                    ADMINISTRADORA
+  ─────────                     ───────────                    ──────────────
+  Crea solicitud
+  (rellena formulario)
+        │
+        ▼
+  [PASO 1: CREACIÓN]
+  Estado: EnProceso
+        │
+        ▼ automático al guardar
+  [PASO 2: APROBACIÓN]──────► Aprobador 1 revisa
+                                    │
+                              Aprueba │ Rechaza
+                                    │      │
+                                    │      └──► Vuelve a PASO 1
+                                    ▼           con comentario
+                              Aprobador 2 revisa
+                                    │
+                              Aprueba │ Rechaza
+                                    │      │
+                                   ...    └──► Vuelve a PASO 1
+                                    │
+                              Último aprobador
+                                    │
+                                    ▼
+  [PASO 3: APROBADO]
+  (automático cuando todos aprueban)
+        │
+        ▼ notificación a administradora
+  [PASO 4: ARCHIVANDO]──────────────────────────► Genera reporte
+                                                   Archiva documento
+                                                        │
+                                                        ▼
+  [PASO 5: FINALIZADO] ◄──────────────────────────────────
+  (notificación al solicitante)
+
+
+--------------------------------------------------------------------------------
+4. CAPA DE SERVICIOS — BACKEND
+--------------------------------------------------------------------------------
+
+SolicitudService (ISolicitudService):
+  ├── CrearSolicitud(TipoSolicitudId, SolicitanteId, DatosFormulario)
+  │     → Crea Solicitud (paso 1, EnProceso)
+  │     → Crea SolicitudSeguimiento (paso 1, EnProceso)
+  │     → Genera las filas de SolicitudAprobacion copiando la config de TipoSolicitudAprobador
+  │     → Avanza automáticamente al paso 2 (misma transacción)
+  │
+  ├── AprobarSolicitud(SolicitudId, AprobadorId, Comentario?)
+  │     → Marca la aprobación del aprobador actual como "Aprobado"
+  │     → Si hay siguiente aprobador → notifica al siguiente
+  │     → Si era el último → avanza a paso 3, luego notifica a administradora
+  │
+  ├── RechazarSolicitud(SolicitudId, AprobadorId, Comentario)
+  │     → Marca la aprobación como "Rechazada"
+  │     → Regresa la solicitud al paso 1 (nuevo SolicitudSeguimiento con paso 1)
+  │     → Notifica al solicitante con el comentario
+  │
+  ├── ArchivarSolicitud(SolicitudId, AdminId)
+  │     → Genera el reporte PDF usando la plantilla del TipoSolicitud
+  │     → Guarda referencia del archivo generado
+  │     → Avanza al paso 5 (Finalizado)
+  │     → Notifica al solicitante
+  │
+  ├── ObtenerMisSolicitudes(SolicitanteId)
+  ├── ObtenerAprobacionesPendientes(AprobadorId)
+  └── ObtenerSeguimiento(SolicitudId)       → devuelve los 5 pasos con su estado
+
+ReporteService (IReporteService):
+  └── GenerarReporte(SolicitudId)
+        → Lee TipoSolicitud.ReportePlantilla
+        → Carga DatosFormularioJson
+        → Renderiza la plantilla (PDF/Word según lo que se decida)
+        → Retorna el archivo binario
+
+
+--------------------------------------------------------------------------------
+5. ENDPOINTS API
+--------------------------------------------------------------------------------
+
+  Solicitudes:
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │ POST   /api/solicitudes                    Crear nueva solicitud            │
+  │ GET    /api/solicitudes/mias               Mis solicitudes (solicitante)    │
+  │ GET    /api/solicitudes/pendientes         Pendientes de aprobar (aprobador)│
+  │ GET    /api/solicitudes/administracion     En paso 3/4 (administradora)     │
+  │ GET    /api/solicitudes/{id}               Detalle completo + seguimiento   │
+  │ GET    /api/solicitudes/{id}/seguimiento   Solo el tracking de pasos        │
+  │ POST   /api/solicitudes/{id}/aprobar       Aprobar (aprobador)              │
+  │ POST   /api/solicitudes/{id}/rechazar      Rechazar (aprobador)             │
+  │ POST   /api/solicitudes/{id}/archivar      Generar reporte y finalizar      │
+  │ GET    /api/solicitudes/{id}/reporte       Descargar reporte generado       │
+  └─────────────────────────────────────────────────────────────────────────────┘
+
+  Tipos de Solicitud (Admin):
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │ GET    /api/tipo-solicitud                 Lista todos los tipos activos    │
+  │ GET    /api/tipo-solicitud/{id}            Detalle + config de aprobadores  │
+  └─────────────────────────────────────────────────────────────────────────────┘
+
+
+--------------------------------------------------------------------------------
+6. PRIMER TIPO: PERMISO ESPECIAL
+--------------------------------------------------------------------------------
+
+Configuración en TipoSolicitud:
+  Nombre:            "Permiso Especial"
+  ReportePlantilla:  "permiso-especial"
+
+Formulario (DatosFormularioJson):
+  {
+    "fechaPermiso":    "2026-06-01",          -- fecha solicitada
+    "motivoPermiso":   "Cita médica",
+    "cantidadHoras":   4,                     -- horas o día completo
+    "tipoPermiso":     "HorasLibres",         -- "HorasLibres" | "DiaCompleto"
+    "observaciones":   "..."
+  }
+
+Aprobadores (TipoSolicitudAprobador):
+  Orden 1 → RolAprobador: "SupervisorDirecto"     Etiqueta: "Supervisor"
+  Orden 2 → RolAprobador: "GerenteArea"           Etiqueta: "Gerente de Área"
+  (ajustar según flujo real de la empresa)
+
+Reporte en paso 4:
+  - PDF con los datos del permiso, nombre del empleado, fechas y firmas de aprobación
+  - Plantilla: /templates/permiso-especial.html (o .docx según librería elegida)
+
+Lo que cambia si se agrega un nuevo tipo:
+  - Una fila nueva en TipoSolicitud
+  - Filas nuevas en TipoSolicitudAprobador (configurar quién aprueba y en qué orden)
+  - Una plantilla de reporte nueva
+  - Un componente React de formulario nuevo para ese tipo
+  - TODO EL PIPELINE (tablas, servicio, endpoints) se reutiliza sin cambios
+
+
+--------------------------------------------------------------------------------
+7. COMPONENTES FRONTEND
+--------------------------------------------------------------------------------
+
+Pantalla "Mis Solicitudes":
+  └── Lista de solicitudes del empleado con estado visual de los 5 pasos
+
+Pantalla "Nueva Solicitud":
+  ├── Selector de tipo de solicitud
+  └── FormularioSolicitud (renderiza el formulario del tipo seleccionado)
+       Tipos de formulario:
+       ├── FormPermisoEspecial.tsx
+       ├── FormVacaciones.tsx       (futuro)
+       └── ... (un componente por tipo)
+
+Componente "SolicitudTracker":
+  └── Barra de progreso con los 5 pasos, mostrando:
+        - Paso completado (fecha en que se completó)
+        - Paso activo (animado)
+        - Pasos pendientes (gris)
+        - Si hay rechazo: el paso 2 se muestra en rojo
+
+Pantalla "Aprobaciones Pendientes" (para aprobadores):
+  └── Lista de solicitudes que esperan la aprobación del usuario actual
+       ├── Botón Aprobar (con campo de comentario opcional)
+       └── Botón Rechazar (campo de comentario obligatorio)
+
+Pantalla "Administración de Solicitudes":
+  └── Solicitudes en paso 3 esperando ser archivadas
+       ├── Preview del reporte generado
+       └── Botón "Generar y Archivar"
+
+
+--------------------------------------------------------------------------------
+8. ORDEN DE IMPLEMENTACIÓN SUGERIDO
+--------------------------------------------------------------------------------
+
+Sprint 1 — Base de datos y backend base:
+  [x] Crear tablas (TipoSolicitud, TipoSolicitudAprobador, Solicitud,
+      SolicitudSeguimiento, SolicitudAprobacion)
+  [x] Migrations con EF Core
+  [x] Seed: tipo "Permiso Especial" con sus aprobadores
+
+Sprint 2 — Servicio y endpoints:
+  [x] SolicitudService (CrearSolicitud, AprobarSolicitud, RechazarSolicitud, ArchivarSolicitud)
+  [x] SolicitudController (todos los endpoints listados en sección 5)
+  [x] DTOs + FluentValidation validators
+
+Sprint 3 — Frontend base:
+  [x] Pantalla "Mis Solicitudes" + SolicitudTracker
+  [x] Pantalla "Nueva Solicitud" + FormPermisoEspecial
+  [x] Pantalla "Aprobaciones Pendientes"
+
+Sprint 4 — Reportes y cierre:
+  [x] ReporteService + plantilla permiso-especial
+  [x] Pantalla "Administración de Solicitudes"
+  [x] Notificaciones (email/interna) en cada transición de paso
+
+Sprint 5 — Nuevos tipos de solicitud:
+  [x] Repetir solo el formulario + la plantilla de reporte por cada nuevo tipo
+
+
+--------------------------------------------------------------------------------
+9. CONSIDERACIONES Y DECISIONES PENDIENTES
+--------------------------------------------------------------------------------
+
+[ ] ¿Qué pasa si un aprobador rechaza — la solicitud puede volverse a enviar
+    o queda cerrada definitivamente? (Definir con el negocio)
+
+[ ] ¿El "supervisor directo" se obtiene de un campo en el perfil del empleado
+    o se configura en TipoSolicitudAprobador por nombre de usuario?
+
+[ ] Formato del reporte: ¿PDF generado server-side (ej. QuestPDF, Puppeteer)
+    o Word (.docx) para que la admin pueda editar antes de archivar?
+
+[ ] ¿Dónde se almacenan los reportes generados: sistema de archivos del servidor,
+    Azure Blob Storage, o base de datos (VARBINARY)?
+
+[ ] ¿Se requiere firma digital o solo firma escaneada en el reporte?
+
+[ ] Notificaciones: ¿email (ya existe el servicio de correo) o solo notificaciones
+    internas en la intranet?
+
+================================================================================
+  FIN DEL DOCUMENTO
+================================================================================

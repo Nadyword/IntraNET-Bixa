@@ -1,10 +1,11 @@
-﻿using AutoMapper;
-using Bixa.Backend.DataAccess.Entities;
+﻿using Bixa.Backend.Models.DTOs.UserModelDTO;
 using Bixa.Backend.DataAccess.Entities.DbProfit;
-using Bixa.Backend.Models.DTOs.UserModelDTO;
 using Bixa.Backend.Models.DTOs.UserRolDTO;
+using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.Models.Response;
 using System.Reflection;
+using AutoMapper;
+using Bixa.Backend.Models.DTOs.SoporteChatModelDTO;
 
 namespace Bixa.Backend.Services.Mapper;
 
@@ -44,7 +45,8 @@ public class BllMappingProfile : Profile
         CreateMap<Users, UserEditDTO>()
             .ForMember(dest => dest.Enabled, opt => opt.MapFrom(src => src.IsActive))
             .ForMember(dest => dest.IdUserRol, opt => opt.MapFrom(src => src.IdUserRol))
-            .ForMember(dest => dest.Password, opt => opt.Ignore()).ReverseMap();
+            .ForMember(dest => dest.Password, opt => opt.Ignore())
+            .ForMember(dest => dest.Ci, opt => opt.Ignore()).ReverseMap();
 
         CreateMap<SnEmple, Users>()
             .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.Nombres))
@@ -71,6 +73,21 @@ public class BllMappingProfile : Profile
         CreateMap<UserRol, UserRolDTO>().ReverseMap();
 
         #endregion UserRol Mappings
+
+        #region SoporteChat Mappings
+
+        CreateMap<SoporteChat, SoporteChatMDTO>()
+            .ForMember(dest => dest.UserCi, opt => opt.MapFrom(src => src.UserCi))
+            .ForMember(dest => dest.Message, opt => opt.MapFrom(src => src.Message))
+            .ReverseMap();
+
+        CreateMap<SoporteChat, SoporteChatRDTO>()
+            .ForMember(dest => dest.UserCi, opt => opt.MapFrom(src => src.UserCi))
+            .ForMember(dest => dest.Message, opt => opt.MapFrom(src => src.Message))
+            .ForMember(dest => dest.RespondidoPorCi, opt => opt.MapFrom(src => src.RespondidoPorCi))
+            .ReverseMap();
+
+        #endregion SoporteChat Mappings
 
         #region ResultPaginated
 

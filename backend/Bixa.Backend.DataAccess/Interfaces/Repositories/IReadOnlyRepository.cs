@@ -10,7 +10,7 @@ namespace Bixa.Backend.DataAccess.Interfaces.Repositories;
 /// </summary>
 public interface IReadOnlyRepository<TEntity, TKey> where TEntity : class
 {
-    Task<IEnumerable<TEntity?>> GetByIdAsync(TKey id);
+    Task<IEnumerable<TEntity?>> GetByCiAsync(TKey ci);
 
     Task<List<TEntity>> GetAllAsync(int pageNumber, int pageSize);
 

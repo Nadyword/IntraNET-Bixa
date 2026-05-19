@@ -10,7 +10,9 @@
       "Bash(xargs ls -lh)",
       "Bash(grep -E \"\\\\.\\(ts|tsx|js\\)$\")",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\samue\\\\Documents\\\\Proyectos\\\\IntraNET Bixa\\\\frontend\\\\src\\\\components\\\\ui\" -Name)",
-      "Bash(Select-Object -First 20)"
+      "Bash(Select-Object -First 20)",
+      "Bash(dir /s /b \"C:\\\\Users\\\\samue\\\\Documents\\\\Proyectos\\\\IntraNET Bixa\\\\backend\")",
+      "Bash(findstr /i \"chat\\\\|soporte\")"
     ]
   }
 }

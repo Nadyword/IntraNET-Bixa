@@ -11,6 +11,7 @@ public interface IUnitOfWork : IDisposable
 {
     INotificationRepository Notifications { get; }
     IUserRepository Users { get; }
+    ISoporteChatRepository SoporteChats { get; }
 
     /// <summary>
     /// Begins a new database transaction.

@@ -40,11 +40,14 @@ public class UnitOfWork : IUnitOfWork, IDisposable
         Users = new UserRepository(_context);
         UserRols = new UserRolRepository(_context);
         Notifications = new NotificationRepository(_context);
+        SoporteChats = new SoporteChatRepository(_context);
     }
 
     public INotificationRepository Notifications { get; }
 
     public IUserRolRepository UserRols { get; }
+
+    public ISoporteChatRepository SoporteChats { get; }
 
     // Repository properties
     public IUserRepository Users { get; }

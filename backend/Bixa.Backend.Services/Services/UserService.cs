@@ -232,10 +232,8 @@ public class UserService(
                 }
             }
 
-            var effectiveRole = dto.IdUserRol ?? entity.IdUserRol;
-
-            var updatedEntity = _mapper.Map(dto, entity);
-            await _userRepository.UpdateAsync(updatedEntity);
+            entity.IdUserRol = dto.IdUserRol ?? entity.IdUserRol;
+            entity.IsActive = dto.Enabled ?? entity.IsActive;
 
             var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
 

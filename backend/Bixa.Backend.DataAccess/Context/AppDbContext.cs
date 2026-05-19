@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public virtual DbSet<Notifications> Notifications { get; set; }
     public virtual DbSet<UserRol> UserRols { get; set; }
     public virtual DbSet<Users> Users { get; set; }
+    public virtual DbSet<SoporteChat> SoporteChats { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -142,17 +143,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         modelBuilder.Entity<Notifications>(entity =>
         {
-            entity.HasKey(n => n.Id);
-            entity.Property(n => n.Id).ValueGeneratedOnAdd();
+            entity.Property(n => n.Id)
+                .ValueGeneratedOnAdd();
 
             entity.Property(n => n.UserCi)
                 .IsRequired();
 
             entity.Property(n => n.NotificationType)
-                .IsRequired()
-                .HasMaxLength(ModelLengths.Description);
-
-            entity.Property(n => n.Priority)
                 .IsRequired()
                 .HasMaxLength(ModelLengths.Description);
 
@@ -163,12 +160,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(n => n.Message)
                 .IsRequired()
                 .HasMaxLength(ModelLengths.Description);
-
-            entity.Property(n => n.ReferenceType)
-                .HasMaxLength(ModelLengths.Description);
-
-            entity.Property(n => n.ReferenceId)
-                .IsRequired(false);
 
             entity.Property(n => n.ReadAt)
                 .IsRequired(false);
@@ -183,6 +174,39 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         });
 
         #endregion Notification Entity Configuration
+
+        #region SoporteChat Entity Configuration
+
+        modelBuilder.Entity<SoporteChat>()
+            .HasKey(sc => sc.Id);
+
+        modelBuilder.Entity<SoporteChat>()
+            .Property(sc => sc.Id)
+            .ValueGeneratedOnAdd();
+
+        modelBuilder.Entity<SoporteChat>()
+            .Property(sc => sc.UserCi)
+            .IsRequired();
+
+        modelBuilder.Entity<SoporteChat>()
+            .Property(sc => sc.Message)
+            .IsRequired(false)
+            .HasMaxLength(ModelLengths.Observation);
+
+        modelBuilder.Entity<SoporteChat>()
+            .Property(sc => sc.IsRead)
+            .IsRequired();
+
+        modelBuilder.Entity<SoporteChat>()
+            .HasOne(sc => sc.RespondidoPor)
+            .WithMany()
+            .HasForeignKey(sc => sc.RespondidoPorCi)
+            .HasPrincipalKey(u => u.Ci)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("FK_SoporteChat_RespondidoPor");
+
+        #endregion SoporteChat Entity Configuration
 
         #region BaseEntities Relationships Configuration (Auditoría)
 
@@ -202,7 +226,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 modelBuilder.Entity(entityType.ClrType)
                     .HasOne(typeof(Users), "ModifiedUser")
                     .WithMany()
-                    .HasForeignKey("ModifiedById")
+                    .HasForeignKey("ModifiedByCi")
+                    .HasPrincipalKey("Ci")
                     .IsRequired(false)
                     .OnDelete(DeleteBehavior.Restrict)
                     .HasConstraintName($"FK_{entityType.ClrType.Name}_ModifiedUser");

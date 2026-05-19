@@ -9,6 +9,7 @@ interface NavItem {
   id: string;
   badge?: number;
   adminOnly?: boolean;
+  nonAdminOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -18,14 +19,16 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Solicitudes', icon: '📋', id: 'solicitudes'},
   { label: 'Mis Trámites', icon: '📊', id: 'tramites' },
   { label: '🔒 Portal del Líder', icon: '⭐', id: 'leader', adminOnly: true },
-  { label: 'Soporte', icon: '💬', id: 'soporte' }
+  { label: 'Soporte', icon: '💬', id: 'soporte', nonAdminOnly: true }
 ];
 
 export const Sidebar: React.FC = () => {
   const { sidebarOpen, activeSection, setActiveSection } = useUIStore();
   const rolId = useAuthStore((state) => state.user?.rolId);
   const isAdmin = rolId === '1';
-  const visibleItems = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
+  const visibleItems = NAV_ITEMS.filter((item) =>
+    (!item.adminOnly || isAdmin) && (!item.nonAdminOnly || !isAdmin)
+  );
 
   return (
     <nav className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
