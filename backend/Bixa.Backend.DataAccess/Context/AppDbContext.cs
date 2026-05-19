@@ -214,6 +214,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("FK_SoporteChat_RespondidoPor");
 
+        modelBuilder.Entity<SoporteChat>()
+            .HasIndex(sc => sc.UserCi)
+            .HasDatabaseName("IX_SoporteChat_UserCi");
+
+        modelBuilder.Entity<SoporteChat>()
+            .HasIndex(sc => sc.RespondidoPorCi)
+            .HasDatabaseName("IX_SoporteChat_RespondidoPorCi");
+
         #endregion SoporteChat Entity Configuration
 
         #region BaseEntities Relationships Configuration (Auditoría)

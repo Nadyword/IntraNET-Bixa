@@ -2,6 +2,7 @@
 using Bixa.Backend.DataAccess.Context;
 using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.DataAccess.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Bixa.Backend.DataAccess.Repository;
 
@@ -66,42 +67,29 @@ public class SoporteChatRepository(AppDbContext dbContext) : ISoporteChatReposit
 
     public async Task<List<SolicitudesChats>> GetChatRequests()
     {
-        var result = (from sc in _context.SoporteChats
-                      join u in _context.Users on sc.UserCi equals u.Ci
-                      where !_context.Users
-                          .Where(user => user.IdUserRol == 1)
-                          .Select(user => user.Ci)
-                          .Contains(sc.UserCi)
-                      group sc by new { sc.UserCi, u.FirstName, u.LastName, sc.RespondidoPorCi } into grouped
-                      select new
-                      {
-                          grouped.Key.UserCi,
-                          grouped.Key.FirstName,
-                          grouped.Key.LastName,
-                          Respondido = grouped.Key.RespondidoPorCi == null ? 0 : 1
-                      })
-              .OrderBy(x => x.Respondido)
-              .Distinct()
-              .ToList();
+        var adminCis = await _context.Users
+            .Where(u => u.IdUserRol == 1)
+            .Select(u => u.Ci)
+            .ToHashSetAsync();
 
-        List<SolicitudesChats> chats = [];
-        foreach (var item in result)
-        {
-            List<SolicitudesChats> chat =
-             [
-                 new SolicitudesChats
-                {
-                    UserCi = item.UserCi,
-                    FirstName = item.FirstName,
-                    LastName = item.LastName,
-                    Respondido = item.Respondido
-                }
-             ];
-            chats.AddRange(chat);
-        }
-        return chats;
+        return await (from sc in _context.SoporteChats
+                      join u in _context.Users on sc.UserCi equals u.Ci
+                      where !adminCis.Contains(sc.UserCi)
+                      group sc by new { sc.UserCi, u.FirstName, u.LastName } into grouped
+                      select new SolicitudesChats
+                      {
+                          UserCi = grouped.Key.UserCi,
+                          FirstName = grouped.Key.FirstName,
+                          LastName = grouped.Key.LastName,
+                          Respondido = grouped.Any(m => m.RespondidoPorCi == null) ? 0 : 1
+                      })
+                     .OrderBy(x => x.Respondido)
+                     .ToListAsync();
     }
 
     public Task<SoporteChat[]> GetHistoriChat(string Ci) =>
-        Task.FromResult(_context.SoporteChats.Where(sc => sc.UserCi == Ci || sc.RespondidoPorCi == Ci).OrderBy(sc => sc.CreatedAt).ToArray());
+        _context.SoporteChats
+            .Where(sc => sc.UserCi == Ci || sc.RespondidoPorCi == Ci)
+            .OrderBy(sc => sc.CreatedAt)
+            .ToArrayAsync();
 }
