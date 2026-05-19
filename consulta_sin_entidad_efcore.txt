@@ -1,0 +1,102 @@
+CONSULTAS EN EF CORE QUE NO RETORNAN UNA ENTIDAD DE TABLA
+==========================================================
+
+Respuesta corta: NO siempre necesitas una entidad mapeada a una tabla.
+Depende del enfoque que uses. Tienes tres opciones principales:
+
+──────────────────────────────────────────────────────────────────────
+OPCIÓN 1 — Keyless Entity Type (Entidad sin clave)
+──────────────────────────────────────────────────────────────────────
+Sirve para: vistas de base de datos, resultados de stored procedures,
+o consultas SQL que devuelven columnas que no corresponden a una tabla.
+
+Pasos:
+1. Creas una clase C# normal con las propiedades que devuelve tu consulta.
+2. La decorás con [Keyless] o la configurás en el DbContext.
+3. EF Core la trata como "solo lectura", sin rastrear cambios ni
+   requerir PK.
+
+Ejemplo:
+
+   // La clase (en Models o DTOs)
+   [Keyless]
+   public class SoporteChatResumenDTO
+   {
+       public string UserCi { get; set; }
+       public int TotalMensajes { get; set; }
+       public DateTime UltimoMensaje { get; set; }
+   }
+
+   // En AppDbContext
+   public DbSet<SoporteChatResumenDTO> SoporteChatResumen { get; set; }
+
+   // Configuración en OnModelCreating (si no usás el atributo)
+   modelBuilder.Entity<SoporteChatResumenDTO>().HasNoKey().ToView(null);
+
+   // Uso en el repositorio
+   var resultado = await _context.SoporteChatResumen
+       .FromSqlRaw("SELECT UserCi, COUNT(*) AS TotalMensajes, MAX(CreatedAt) AS UltimoMensaje FROM SoporteChat GROUP BY UserCi")
+       .ToListAsync();
+
+VENTAJA: integrado con LINQ, tipado fuerte.
+DESVENTAJA: igual necesitás registrar la clase en el DbContext.
+
+──────────────────────────────────────────────────────────────────────
+OPCIÓN 2 — SqlQuery<T> (EF Core 7+) ← LA MÁS LIMPIA PARA TU CASO
+──────────────────────────────────────────────────────────────────────
+Sirve para: cuando querés mapear el resultado de un SQL a cualquier
+clase/DTO SIN registrarla en el DbContext.
+
+Pasos:
+1. Creas una clase C# con las propiedades que devuelve tu consulta.
+   Puede vivir en la carpeta de DTOs, no necesita [Keyless] ni DbSet.
+2. Usás Database.SqlQuery<T>() directamente.
+
+Ejemplo:
+
+   // Solo una clase simple, sin atributos ni DbSet
+   public class SoporteChatResumenDTO
+   {
+       public string UserCi { get; set; }
+       public int TotalMensajes { get; set; }
+       public DateTime UltimoMensaje { get; set; }
+   }
+
+   // En el repositorio
+   var resultado = await _context.Database
+       .SqlQuery<SoporteChatResumenDTO>(
+           $"SELECT UserCi, COUNT(*) AS TotalMensajes, MAX(CreatedAt) AS UltimoMensaje FROM SoporteChat GROUP BY UserCi")
+       .ToListAsync();
+
+VENTAJA: no ensucías el DbContext con clases que no son tablas reales.
+DESVENTAJA: requiere EF Core 7 o superior (este proyecto usa .NET 9, aplica).
+
+──────────────────────────────────────────────────────────────────────
+OPCIÓN 3 — Dapper (fuera de EF Core)
+──────────────────────────────────────────────────────────────────────
+Sirve para: consultas muy complejas donde EF Core estorba.
+Mapea el resultado directamente a cualquier clase sin configuración.
+
+Ejemplo:
+
+   using var connection = new SqlConnection(_connectionString);
+   var resultado = await connection.QueryAsync<SoporteChatResumenDTO>(
+       "SELECT UserCi, COUNT(*) AS TotalMensajes FROM SoporteChat GROUP BY UserCi");
+
+VENTAJA: extremadamente flexible, sin restricciones de EF Core.
+DESVENTAJA: sale del patrón Repository/UnitOfWork que ya tenés armado.
+
+──────────────────────────────────────────────────────────────────────
+RECOMENDACIÓN PARA TU PROYECTO
+──────────────────────────────────────────────────────────────────────
+Dado que usás .NET 9 con EF Core y ya tenés el patrón de repositorios:
+
+  → Usá la OPCIÓN 2 (Database.SqlQuery<T>)
+
+Creás el DTO en Bixa.Backend.Models/DTOs/ (que ya es donde van los DTOs),
+lo usás en el repositorio con SqlQuery<T>, y no necesitás tocar el
+DbContext ni agregar un DbSet que no representa una tabla real.
+
+La clase DTO que creás NO es una entidad de tabla, es solo el molde
+para recibir los datos que devuelve tu consulta. Eso es totalmente
+válido y es la forma correcta de hacerlo.

@@ -1,4 +1,5 @@
 using Bixa.Backend.DataAccess.Entities;
+using Bixa.Backend.DataAccess.Models;
 
 namespace Bixa.Backend.DataAccess.Interfaces.Repositories;
 
@@ -12,4 +13,10 @@ public interface ISoporteChatRepository
     Task<string> AddNewAnswerAsync(SoporteChat soporte);
 
     Task<SoporteChat[]> GetHistoriChat(string Ci);
+
+    /// <summary>
+    /// Obtener las solicitudes de chat que no han sido respondidas y las respondidas.
+    /// </summary>
+    /// <returns>Devuelve un array de objetos SolicitudesChats que representan las solicitudes de chat.</returns>
+    Task<List<SolicitudesChats>> GetChatRequests();
 }

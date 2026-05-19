@@ -15,6 +15,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public virtual DbSet<Users> Users { get; set; }
     public virtual DbSet<SoporteChat> SoporteChats { get; set; }
 
+    public virtual DbSet<SolicitudesChats> SolicitudesChats { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
@@ -24,6 +26,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        #region Views Configuration
+
+        modelBuilder.Entity<SolicitudesChats>().HasNoKey().ToView(null);
+
+        #endregion Views Configuration
 
         #region User Entity Configuration
 

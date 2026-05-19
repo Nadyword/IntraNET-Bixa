@@ -4,6 +4,7 @@ using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.Services.Interfaces;
 using Bixa.Backend.Models.Response;
 using AutoMapper;
+using Bixa.Backend.DataAccess.Models;
 
 namespace Bixa.Backend.Services.Services;
 
@@ -46,6 +47,16 @@ public class SoporteChatService(
         SoporteChat newMensajeUser = _mapper.Map<SoporteChat>(soporte);
         string resul = await _soporteChatRepository.AddNewMessageAsync(newMensajeUser);
         return Result<string>.Success(resul);
+    }
+
+    public async Task<Result<List<SolicitudesChats>>> GetChatRequests()
+    {
+        var result = await _soporteChatRepository.GetChatRequests();
+        if (result == null || result.Count == 0)
+        {
+            return Result.Fail<List<SolicitudesChats>>("No chat requests found.");
+        }
+        return Result.Success(result);
     }
 
     public async Task<Result<SoporteChat[]>> GetHistoriChat(string Ci)

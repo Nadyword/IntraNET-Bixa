@@ -1,6 +1,7 @@
 ﻿using Bixa.Backend.DataAccess.Interfaces.Repositories;
 using Bixa.Backend.DataAccess.Context;
 using Bixa.Backend.DataAccess.Entities;
+using Bixa.Backend.DataAccess.Models;
 
 namespace Bixa.Backend.DataAccess.Repository;
 
@@ -23,7 +24,7 @@ public class SoporteChatRepository(AppDbContext dbContext) : ISoporteChatReposit
             // soporte.UserCi     = CI del empleado (hilo al que se responde)
             // soporte.RespondidoPorCi = CI del agente (quien responde)
             var employeeCi = soporte.UserCi;
-            var agentCi    = soporte.RespondidoPorCi!;
+            var agentCi = soporte.RespondidoPorCi!;
 
             // Marcar mensajes anteriores del empleado como respondidos
             var existingSoporte = _context.SoporteChats
@@ -35,7 +36,7 @@ public class SoporteChatRepository(AppDbContext dbContext) : ISoporteChatReposit
 
             // La respuesta se guarda con UserCi = agente y RespondidoPorCi = empleado,
             // para que el frontend pueda diferenciarlos por UserCi.
-            soporte.UserCi          = agentCi;
+            soporte.UserCi = agentCi;
             soporte.RespondidoPorCi = employeeCi;
 
             await _context.SoporteChats.AddAsync(soporte);
@@ -61,6 +62,44 @@ public class SoporteChatRepository(AppDbContext dbContext) : ISoporteChatReposit
         {
             throw new NotImplementedException(ex.Message);
         }
+    }
+
+    public async Task<List<SolicitudesChats>> GetChatRequests()
+    {
+        var result = (from sc in _context.SoporteChats
+                      join u in _context.Users on sc.UserCi equals u.Ci
+                      where !_context.Users
+                          .Where(user => user.IdUserRol == 1)
+                          .Select(user => user.Ci)
+                          .Contains(sc.UserCi)
+                      group sc by new { sc.UserCi, u.FirstName, u.LastName, sc.RespondidoPorCi } into grouped
+                      select new
+                      {
+                          grouped.Key.UserCi,
+                          grouped.Key.FirstName,
+                          grouped.Key.LastName,
+                          Respondido = grouped.Key.RespondidoPorCi == null ? 0 : 1
+                      })
+              .OrderBy(x => x.Respondido)
+              .Distinct()
+              .ToList();
+
+        List<SolicitudesChats> chats = [];
+        foreach (var item in result)
+        {
+            List<SolicitudesChats> chat =
+             [
+                 new SolicitudesChats
+                {
+                    UserCi = item.UserCi,
+                    FirstName = item.FirstName,
+                    LastName = item.LastName,
+                    Respondido = item.Respondido
+                }
+             ];
+            chats.AddRange(chat);
+        }
+        return chats;
     }
 
     public Task<SoporteChat[]> GetHistoriChat(string Ci) =>
