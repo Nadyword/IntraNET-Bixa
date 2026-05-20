@@ -69,4 +69,10 @@ public class SoporteChatService(
 
         return Result.Success(result);
     }
+
+    public Task<Result<bool>> SetMessageStatus(string Ci)
+    {
+        var result = _soporteChatRepository.SetMessageStatus(UtilityService.NormalizeCiFormat(Ci));
+        return Task.FromResult(Result.Success(result.Result));
+    }
 }

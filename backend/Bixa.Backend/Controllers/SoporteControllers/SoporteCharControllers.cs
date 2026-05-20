@@ -99,4 +99,22 @@ public class SoporteCharControllers(ISoporteChatService soporteChatService,
         var result = await _soporteChatService.GetChatRequests();
         return HandleServiceResult(result);
     }
+
+    /// <summary>
+    /// Ver el historial de mensajes de soporte abiertos en el sistema y cerrados.
+    /// </summary>
+    /// <returns>Devuelve el historial de mensajes de soporte abiertos y cerrados en el sistema.</returns>
+    [HttpPut("SetMessageStatus/{Ci}")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SetMessageStatus([FromRoute] string Ci)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
+        if (authResult != null) return authResult;
+
+        var result = await _soporteChatService.SetMessageStatus(Ci);
+        return HandleServiceResult(result);
+    }
 }

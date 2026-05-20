@@ -1,0 +1,100 @@
+.scam-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.52);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.scam-container {
+  width: 100%;
+  max-width: 620px;
+  height: 78vh;
+  max-height: 700px;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.2s ease-out;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.scam-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, var(--red), #e04545);
+  color: white;
+  border-bottom: 2px solid var(--red-dark);
+  flex-shrink: 0;
+}
+
+.scam-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.scam-employee-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scam-employee-ci {
+  font-size: 12px;
+  opacity: 0.88;
+}
+
+.scam-close-btn {
+  background: rgba(255, 255, 255, 0.18);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--transition);
+}
+
+.scam-close-btn:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+/* ── Área de mensajes ───────────────────────────────────── */
+.scam-messages-area {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ── Animaciones ────────────────────────────────────────── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .scam-container {
+    height: 92vh;
+    max-height: none;
+    border-radius: var(--radius);
+  }
+}

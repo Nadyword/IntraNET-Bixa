@@ -87,9 +87,17 @@ public class SoporteChatRepository(AppDbContext dbContext) : ISoporteChatReposit
                      .ToListAsync();
     }
 
-    public Task<SoporteChat[]> GetHistoriChat(string Ci) =>
-        _context.SoporteChats
+    public async Task<SoporteChat[]> GetHistoriChat(string Ci) =>
+        await _context.SoporteChats
             .Where(sc => sc.UserCi == Ci || sc.RespondidoPorCi == Ci)
             .OrderBy(sc => sc.CreatedAt)
             .ToArrayAsync();
+
+    public async Task<bool> SetMessageStatus(string Ci)
+    {
+        await _context.SoporteChats
+            .Where(sc => sc.UserCi == Ci || sc.RespondidoPorCi == Ci)
+            .ExecuteUpdateAsync(s => s.SetProperty(sc => sc.IsRead, true));
+        return true;
+    }
 }

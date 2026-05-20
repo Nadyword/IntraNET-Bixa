@@ -14,4 +14,6 @@ public interface ISoporteChatService
     Task<Result<SoporteChat[]>> GetHistoriChat(string Ci);
 
     Task<Result<List<SolicitudesChats>>> GetChatRequests();
+
+    Task<Result<bool>> SetMessageStatus(string Ci);
 }

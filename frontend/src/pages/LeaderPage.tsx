@@ -3,6 +3,7 @@ import api from '../lib/api';
 import type { ApiResponse } from '../services/authService';
 import type { UserProfile } from '../store/userProfileStore';
 import { soporteService, type SolicitudChatDTO } from '../services/soporteService';
+import { SoporteChatAdminModal } from '../components/ui/SoporteChatAdminModal';
 import { CreateUserModal } from '../components/ui/CreateUserModal';
 import { DeleteUserModal } from '../components/ui/DeleteUserModal';
 import { EditUserModal } from '../components/ui/EditUserModal';
@@ -41,6 +42,7 @@ export const LeaderPage: React.FC = () => {
   const [chats, setChats] = useState<SolicitudChatDTO[]>([]);
   const [chatsLoading, setChatsLoading] = useState(false);
   const [chatsError, setChatsError] = useState('');
+  const [selectedChat, setSelectedChat] = useState<SolicitudChatDTO | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [selectedCi, setSelectedCi] = useState<string | null>(null);
@@ -156,13 +158,13 @@ export const LeaderPage: React.FC = () => {
           className={`tab-btn ${activeTab === 'aprobaciones' ? 'active' : ''}`}
           onClick={() => handleTabChange('aprobaciones')}
         >
-          Aprobaciones Pendientes
+          Procesos pendientes
         </button>
         <button
           className={`tab-btn ${activeTab === 'equipo' ? 'active' : ''}`}
           onClick={() => handleTabChange('equipo')}
         >
-          Mi Equipo
+          Mi equipo
         </button>
         <button
           className={`tab-btn ${activeTab === 'chats' ? 'active' : ''}`}
@@ -320,6 +322,7 @@ export const LeaderPage: React.FC = () => {
                     <th>Nombre y Apellido</th>
                     <th>CI</th>
                     <th>Estado</th>
+                    <th>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -331,6 +334,14 @@ export const LeaderPage: React.FC = () => {
                         <span className={`chat-status-badge ${chat.respondido === 0 ? 'badge-pending' : 'badge-answered'}`}>
                           {chat.respondido === 0 ? 'Sin responder' : 'Respondido'}
                         </span>
+                      </td>
+                      <td>
+                        <button
+                          className="action-link-btn"
+                          onClick={() => setSelectedChat(chat)}
+                        >
+                          {chat.respondido === 0 ? 'Responder →' : 'Ver →'}
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -356,6 +367,9 @@ export const LeaderPage: React.FC = () => {
       )}
       {selectedCi && (
         <EmployeeProfileModal ci={selectedCi} onClose={() => setSelectedCi(null)} />
+      )}
+      {selectedChat && (
+        <SoporteChatAdminModal chat={selectedChat} onClose={() => setSelectedChat(null)} />
       )}
     </>
   );

@@ -40,4 +40,7 @@ export const soporteService = {
 
   getChatAbiertos: () =>
     api.get<ApiResponse<SolicitudChatDTO[]>>('/soporte/ChatAbiertos'),
+
+  setMessageStatus: (ci: string) =>
+    api.put<ApiResponse<boolean>>(`/soporte/SetMessageStatus/${ci}`),
 };
