@@ -13,7 +13,12 @@
       "Bash(Select-Object -First 20)",
       "Bash(dir /s /b \"C:\\\\Users\\\\samue\\\\Documents\\\\Proyectos\\\\IntraNET Bixa\\\\backend\")",
       "Bash(findstr /i \"chat\\\\|soporte\")",
-      "Bash(dotnet ef *)"
+      "Bash(dotnet ef *)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\samue\\\\Documents\\\\Proyectos\\\\IntraNET Bixa\\\\backend\\\\Bixa.Backend.DataAccess\\\\Entities\\\\Tramites.cs\")",
+      "Bash(Remove-Item \"C:\\\\Users\\\\samue\\\\Documents\\\\Proyectos\\\\IntraNET Bixa\\\\backend\\\\Bixa.Backend.DataAccess\\\\Entities\\\\Aprovaciones.cs\")",
+      "Bash(Remove-Item \"C:\\\\Users\\\\samue\\\\Documents\\\\Proyectos\\\\IntraNET Bixa\\\\backend\\\\Bixa.Backend.DataAccess\\\\Entities\\\\TypeOfRequest.cs\")",
+      "Bash(Remove-Item \"C:\\\\Users\\\\samue\\\\Documents\\\\Proyectos\\\\IntraNET Bixa\\\\backend\\\\Bixa.Backend.DataAccess\\\\Entities\\\\DbProfit\\\\Solicitudes\\\\SoliVacaciones.cs\")",
+      "Bash(Remove-Item \"C:\\\\Users\\\\samue\\\\Documents\\\\Proyectos\\\\IntraNET Bixa\\\\backend\\\\Bixa.Backend.Models\\\\Enums\\\\TypeOfRequestEnum.cs\")"
     ]
   }
 }

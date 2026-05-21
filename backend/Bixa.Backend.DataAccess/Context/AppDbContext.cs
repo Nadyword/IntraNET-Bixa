@@ -1,6 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Bixa.Backend.Models.Configurations;
 using Bixa.Backend.DataAccess.Entities;
+using Bixa.Backend.DataAccess.Entities.DbProfit.Solicitudes;
 using Bixa.Backend.DataAccess.Models;
 using Microsoft.EntityFrameworkCore;
 using Bixa.Backend.Models.Utilities;
@@ -14,8 +15,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public virtual DbSet<UserRol> UserRols { get; set; }
     public virtual DbSet<Users> Users { get; set; }
     public virtual DbSet<SoporteChat> SoporteChats { get; set; }
-
     public virtual DbSet<SolicitudesChats> SolicitudesChats { get; set; }
+    public virtual DbSet<TipoTramite> TipoTramites { get; set; }
+    public virtual DbSet<Tramite> Tramites { get; set; }
+    public virtual DbSet<Aprobacion> Aprobaciones { get; set; }
+    public virtual DbSet<SolicitudVacaciones> SolicitudesVacaciones { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -84,12 +88,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasDefaultValue(false);
 
         modelBuilder.Entity<Users>()
-               .Property(u => u.RefreshToken);
+            .Property(u => u.RefreshToken);
 
         modelBuilder.Entity<Users>()
             .Property(u => u.RefreshTokenDate);
 
-        // Relación Uno a Muchos de User a UserNotification
         modelBuilder.Entity<Users>()
             .HasMany(u => u.Notification)
             .WithOne(n => n.User)
@@ -97,7 +100,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Datos semilla para User (Administrador)
         var usuarios = new List<Users>
         {
             new ()
@@ -211,8 +213,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasForeignKey(sc => sc.RespondidoPorCi)
             .HasPrincipalKey(u => u.Ci)
             .IsRequired(false)
-            .OnDelete(DeleteBehavior.Restrict)
-            .HasConstraintName("FK_SoporteChat_RespondidoPor");
+            .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<SoporteChat>()
             .HasIndex(sc => sc.UserCi)
@@ -224,11 +225,104 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         #endregion SoporteChat Entity Configuration
 
+        #region TipoTramite Entity Configuration
+
+        modelBuilder.Entity<TipoTramite>().ToTable("TipoTramite");
+        modelBuilder.Entity<TipoTramite>().HasKey(tt => tt.Id);
+        modelBuilder.Entity<TipoTramite>().Property(tt => tt.Id).ValueGeneratedOnAdd();
+        modelBuilder.Entity<TipoTramite>().Property(tt => tt.Nombre).IsRequired().HasMaxLength(ModelLengths.Name);
+        modelBuilder.Entity<TipoTramite>().Property(tt => tt.Descripcion).IsRequired(false).HasMaxLength(ModelLengths.Description);
+
+        modelBuilder.Entity<TipoTramite>().HasData(
+            Enum.GetValues<TipoTramiteEnum>()
+                .Cast<TipoTramiteEnum>()
+                .Select(t => new TipoTramite
+                {
+                    Id = (int)t,
+                    Nombre = t.GetDescription(),
+                })
+                .ToList());
+
+        #endregion TipoTramite Entity Configuration
+
+        #region Tramite Entity Configuration
+
+        modelBuilder.Entity<Tramite>().HasKey(t => t.Id);
+        modelBuilder.Entity<Tramite>().Property(t => t.Id).ValueGeneratedOnAdd();
+        modelBuilder.Entity<Tramite>().Property(t => t.TipoTramiteId).IsRequired();
+        modelBuilder.Entity<Tramite>().Property(t => t.UserCi).IsRequired().HasMaxLength(ModelLengths.Ci);
+        modelBuilder.Entity<Tramite>().Property(t => t.Estado).IsRequired().HasConversion<int>();
+        modelBuilder.Entity<Tramite>().Property(t => t.Observacion).IsRequired(false).HasMaxLength(ModelLengths.Observation);
+        modelBuilder.Entity<Tramite>().Property(t => t.MotivoRechazo).IsRequired(false).HasMaxLength(ModelLengths.Observation);
+
+        modelBuilder.Entity<Tramite>()
+            .HasOne(t => t.TipoTramite)
+            .WithMany()
+            .HasForeignKey(t => t.TipoTramiteId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Tramite>()
+            .HasOne(t => t.User)
+            .WithMany(u => u.Tramites)
+            .HasForeignKey(t => t.UserCi)
+            .HasPrincipalKey(u => u.Ci)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
+        #endregion Tramite Entity Configuration
+
+        #region Aprobacion Entity Configuration
+
+        modelBuilder.Entity<Aprobacion>().HasKey(a => a.Id);
+        modelBuilder.Entity<Aprobacion>().Property(a => a.Id).ValueGeneratedOnAdd();
+        modelBuilder.Entity<Aprobacion>().Property(a => a.TramiteId).IsRequired();
+        modelBuilder.Entity<Aprobacion>().Property(a => a.AprobadorCi).IsRequired().HasMaxLength(ModelLengths.Ci);
+        modelBuilder.Entity<Aprobacion>().Property(a => a.Orden).IsRequired();
+        modelBuilder.Entity<Aprobacion>().Property(a => a.Estado).IsRequired().HasConversion<int>();
+        modelBuilder.Entity<Aprobacion>().Property(a => a.Comentario).IsRequired(false).HasMaxLength(ModelLengths.Observation);
+        modelBuilder.Entity<Aprobacion>().Property(a => a.FechaRespuesta).IsRequired(false);
+
+        modelBuilder.Entity<Aprobacion>()
+            .HasOne(a => a.Tramite)
+            .WithMany(t => t.Aprobaciones)
+            .HasForeignKey(a => a.TramiteId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Aprobacion>()
+            .HasOne(a => a.Aprobador)
+            .WithMany(u => u.Aprobaciones)
+            .HasForeignKey(a => a.AprobadorCi)
+            .HasPrincipalKey(u => u.Ci)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Restrict);
+
+        #endregion Aprobacion Entity Configuration
+
+        #region SolicitudVacaciones Entity Configuration
+
+        modelBuilder.Entity<SolicitudVacaciones>().HasKey(sv => sv.Id);
+        modelBuilder.Entity<SolicitudVacaciones>().Property(sv => sv.Id).ValueGeneratedOnAdd();
+        modelBuilder.Entity<SolicitudVacaciones>().Property(sv => sv.TramiteId).IsRequired();
+        modelBuilder.Entity<SolicitudVacaciones>().Property(sv => sv.Desde).IsRequired();
+        modelBuilder.Entity<SolicitudVacaciones>().Property(sv => sv.Hasta).IsRequired();
+        modelBuilder.Entity<SolicitudVacaciones>().Property(sv => sv.DiasTotales).IsRequired();
+        modelBuilder.Entity<SolicitudVacaciones>().Property(sv => sv.Observaciones).IsRequired(false).HasMaxLength(ModelLengths.Observation);
+
+        modelBuilder.Entity<SolicitudVacaciones>()
+            .HasOne(sv => sv.Tramite)
+            .WithOne()
+            .HasForeignKey<SolicitudVacaciones>(sv => sv.TramiteId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
+        #endregion SolicitudVacaciones Entity Configuration
+
         #region BaseEntities Relationships Configuration (Auditoría)
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
-            // Excluir UserNotification y UserRol ya que no heredan de BaseEntities
             if (typeof(BaseEntities).IsAssignableFrom(entityType.ClrType) && entityType.ClrType != typeof(BaseEntities))
             {
                 modelBuilder.Entity(entityType.ClrType)

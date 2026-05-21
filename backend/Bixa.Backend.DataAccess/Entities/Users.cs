@@ -20,4 +20,6 @@ public class Users : BaseEntities
     public virtual ICollection<Notifications>? Notification { get; set; }
     public virtual UserRol? UserRol { get; set; }
     public virtual ICollection<SoporteChat>? SoporteChats { get; set; }
+    public virtual ICollection<Tramite>? Tramites { get; set; }
+    public virtual ICollection<Aprobacion>? Aprobaciones { get; set; }
 }
