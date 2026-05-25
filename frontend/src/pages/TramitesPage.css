@@ -10,6 +10,13 @@
   animation: fadeIn 0.6s ease-out;
 }
 
+.tramites-header-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .tramites-header h1 {
   font-family: var(--font-display);
   font-size: 48px;
@@ -21,6 +28,27 @@
   font-size: 16px;
   color: var(--gray-500);
   margin: 0;
+}
+
+.tramites-nueva-btn {
+  flex-shrink: 0;
+  padding: 12px 22px;
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.tramites-nueva-btn:hover {
+  background: var(--red-dark, #b71c1c);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(217, 26, 26, 0.3);
 }
 
 /* Filter Section */
@@ -247,6 +275,120 @@
   margin: 0;
 }
 
+/* Section labels and divider */
+.tramites-section-label {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--black);
+  margin: 0 0 20px;
+}
+
+.tramites-section-divider {
+  height: 1px;
+  background: var(--gray-200);
+  margin: 40px 0 32px;
+}
+
+/* Historial cards */
+.historial-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.historial-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 20px 24px;
+  transition: all var(--transition);
+}
+
+.historial-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateX(4px);
+}
+
+.historial-card-left {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  background: var(--gray-50);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.historial-tipo-icon {
+  font-size: 26px;
+}
+
+.historial-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.historial-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.historial-tipo {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--black);
+}
+
+.historial-detalle {
+  font-size: 14px;
+  color: var(--gray-600);
+  margin: 0 0 6px;
+}
+
+.historial-comentario {
+  font-size: 13px;
+  color: var(--gray-400);
+  font-style: italic;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historial-card-right {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: right;
+}
+
+.historial-fecha-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.historial-fecha-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--gray-400);
+}
+
+.historial-fecha {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-600);
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {
@@ -286,6 +428,16 @@
     padding: 16px;
   }
 
+  .tramites-header-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tramites-nueva-btn {
+    width: 100%;
+    text-align: center;
+  }
+
   .tramites-header h1 {
     font-size: 32px;
   }
@@ -319,5 +471,18 @@
 
   .flow-label {
     font-size: 9px;
+  }
+
+  .historial-card {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .historial-card-right {
+    flex-direction: row;
+    gap: 16px;
+    text-align: left;
+    width: 100%;
   }
 }

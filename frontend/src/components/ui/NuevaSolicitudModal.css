@@ -1,0 +1,362 @@
+/* Overlay */
+.ns-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: ns-fade-in 0.15s ease-out;
+}
+
+/* Modal box */
+.ns-modal {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+  padding: 32px;
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: ns-slide-up 0.2s ease-out;
+}
+
+/* Close button */
+.ns-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--gray-400);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+
+.ns-close:hover {
+  background: var(--gray-100);
+  color: var(--black);
+}
+
+/* Header */
+.ns-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  color: var(--black);
+  margin: 0 0 6px;
+}
+
+.ns-subtitle {
+  font-size: 14px;
+  color: var(--gray-500);
+  margin: 0 0 24px;
+}
+
+/* Type selector */
+.ns-tipos {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ns-tipo-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  background: var(--gray-50);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.ns-tipo-btn:hover {
+  border-color: var(--red);
+  background: white;
+}
+
+.ns-tipo-btn.active {
+  border-color: var(--red);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(217, 26, 26, 0.1);
+}
+
+.ns-tipo-icon {
+  font-size: 22px;
+}
+
+.ns-tipo-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gray-600);
+  text-align: center;
+  line-height: 1.3;
+}
+
+.ns-tipo-btn.active .ns-tipo-label {
+  color: var(--red);
+}
+
+/* Form */
+.ns-form-divider {
+  height: 1px;
+  background: var(--gray-100);
+  margin: 20px 0;
+}
+
+.ns-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ns-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.ns-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ns-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+.ns-required {
+  color: var(--red);
+  margin-left: 2px;
+}
+
+.ns-field input,
+.ns-field textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--black);
+  background: var(--gray-50);
+  outline: none;
+  transition: all var(--transition);
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.ns-field input:focus,
+.ns-field textarea:focus {
+  border-color: var(--red);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(217, 26, 26, 0.1);
+}
+
+.ns-field input.input-error,
+.ns-field textarea.input-error {
+  border-color: #e53935;
+}
+
+.ns-error {
+  font-size: 12px;
+  color: #e53935;
+}
+
+/* Monto input */
+.ns-monto-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius);
+  background: var(--gray-50);
+  overflow: hidden;
+  transition: all var(--transition);
+}
+
+.ns-monto-wrapper:focus-within {
+  border-color: var(--red);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(217, 26, 26, 0.1);
+}
+
+.ns-monto-wrapper input.input-error {
+  border: none;
+  box-shadow: none;
+}
+
+.ns-monto-wrapper.has-error {
+  border-color: #e53935;
+}
+
+.ns-monto-prefix {
+  padding: 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-500);
+  border-right: 1.5px solid var(--gray-200);
+  background: var(--gray-100);
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+
+.ns-monto-wrapper input {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  flex: 1;
+}
+
+.ns-monto-wrapper input:focus {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+/* Días badge */
+.ns-dias-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e8f5e9;
+  color: #27ae60;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 20px;
+  align-self: flex-start;
+}
+
+/* Actions */
+.ns-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+
+.ns-btn-primary {
+  padding: 11px 24px;
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.ns-btn-primary:hover {
+  background: var(--red-dark, #b71c1c);
+}
+
+.ns-btn-secondary {
+  padding: 11px 24px;
+  background: white;
+  color: var(--gray-600);
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.ns-btn-secondary:hover {
+  border-color: var(--gray-400);
+  color: var(--black);
+}
+
+/* Success state */
+.ns-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  text-align: center;
+}
+
+.ns-success-icon {
+  width: 56px;
+  height: 56px;
+  background: #e8f5e9;
+  color: #27ae60;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.ns-success h3 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  color: var(--black);
+  margin: 0;
+}
+
+.ns-success p {
+  font-size: 14px;
+  color: var(--gray-500);
+  margin: 0;
+  max-width: 320px;
+}
+
+/* Animations */
+@keyframes ns-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes ns-slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .ns-modal {
+    padding: 24px 20px;
+  }
+
+  .ns-tipos {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .ns-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ns-actions {
+    flex-direction: column-reverse;
+  }
+
+  .ns-btn-primary,
+  .ns-btn-secondary {
+    width: 100%;
+    text-align: center;
+  }
+}

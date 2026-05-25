@@ -88,7 +88,7 @@ export const LeaderPage: React.FC = () => {
           setChats(sorted);
         }
       } catch {
-        if (!cancelled) setChatsError('Error al cargar los chats de soporte.');
+        if (!cancelled) setChatsError('Sin chats de soporte activos.');
       } finally {
         if (!cancelled) setChatsLoading(false);
       }

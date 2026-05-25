@@ -19,7 +19,9 @@ import './styles/globals.css';
 export default function App() {
   const { isAuthenticated, user } = useAuthStore();
   const { activeSection } = useUIStore();
-  const isAdmin = user?.rolId === '1';
+
+  const isAdmin    = user?.rolId === '1';
+  const isEmployee = user?.rolId === '3';
 
   return (
     <Router>
@@ -38,13 +40,13 @@ export default function App() {
               path="*"
               element={
                 <AppLayout>
-                  {activeSection === 'mydata' && <MyDataPage />}
-                  {activeSection === 'culture' && <CulturePage />}
-                  {activeSection === 'consultas' && <ConsultasPage />}
-                  {activeSection === 'solicitudes' && <SolicitudesPage />}
-                  {activeSection === 'tramites' && <TramitesPage />}
-                  {activeSection === 'leader' && (isAdmin ? <LeaderPage /> : <Navigate to="/" replace />)}
-                  {activeSection === 'soporte' && !isAdmin && <ChatPage />}
+                  {activeSection === 'mydata'      && <MyDataPage />}
+                  {activeSection === 'culture'     && <CulturePage />}
+                  {activeSection === 'consultas'   && <ConsultasPage />}
+                  {activeSection === 'tramites'    && <TramitesPage />}
+                  {activeSection === 'solicitudes' && !isEmployee && <SolicitudesPage />}
+                  {activeSection === 'leader'      && (isAdmin ? <LeaderPage /> : <Navigate to="/" replace />)}
+                  {activeSection === 'soporte'     && !isAdmin && <ChatPage />}
                 </AppLayout>
               }
             />

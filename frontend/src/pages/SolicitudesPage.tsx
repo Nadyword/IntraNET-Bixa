@@ -1,191 +1,271 @@
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
 import './SolicitudesPage.css';
 
-interface RequestFormData {
-  type: string;
-  description: string;
-  startDate?: string;
-  endDate?: string;
-  amount?: number;
+type TabType = 'porAprobar' | 'enEspera';
+
+interface SolicitudPendiente {
+  id: number;
+  empleadoNombre: string;
+  empleadoCi: string;
+  tipoTramite: string;
+  tipoIcon: string;
+  fechaSolicitud: string;
+  detalle: string;
 }
 
+interface AccionModal {
+  solicitud: SolicitudPendiente;
+  accion: 'aprobar' | 'rechazar';
+}
+
+const SOLICITUDES_POR_APROBAR: SolicitudPendiente[] = [
+  {
+    id: 1,
+    empleadoNombre: 'Juan Pérez',
+    empleadoCi: '12.345.678',
+    tipoTramite: 'Vacaciones',
+    tipoIcon: '✈️',
+    fechaSolicitud: '01/05/2026',
+    detalle: '15 al 25 de Mayo · 10 días',
+  },
+  {
+    id: 2,
+    empleadoNombre: 'María García',
+    empleadoCi: '9.876.543',
+    tipoTramite: 'Día Especial',
+    tipoIcon: '📝',
+    fechaSolicitud: '18/04/2026',
+    detalle: '30 de Abril · Cita médica',
+  },
+  {
+    id: 3,
+    empleadoNombre: 'Carlos Rodríguez',
+    empleadoCi: '15.234.567',
+    tipoTramite: 'Préstamo Utilidades',
+    tipoIcon: '💳',
+    fechaSolicitud: '10/04/2026',
+    detalle: 'Monto solicitado: $800',
+  },
+];
+
+const SOLICITUDES_EN_ESPERA: SolicitudPendiente[] = [
+  {
+    id: 4,
+    empleadoNombre: 'Ana Martínez',
+    empleadoCi: '8.765.432',
+    tipoTramite: 'Vacaciones',
+    tipoIcon: '✈️',
+    fechaSolicitud: '05/05/2026',
+    detalle: '01 al 15 de Junio · 15 días',
+  },
+  {
+    id: 5,
+    empleadoNombre: 'Luis Torres',
+    empleadoCi: '11.223.344',
+    tipoTramite: 'Prestaciones Sociales',
+    tipoIcon: '📋',
+    fechaSolicitud: '28/04/2026',
+    detalle: 'Liquidación parcial de prestaciones',
+  },
+];
+
+interface SolicitudCardProps {
+  solicitud: SolicitudPendiente;
+  tipo: TabType;
+  onAprobar?: () => void;
+  onRechazar?: () => void;
+}
+
+const SolicitudCard: React.FC<SolicitudCardProps> = ({ solicitud, tipo, onAprobar, onRechazar }) => (
+  <div className={`sol-card ${tipo === 'enEspera' ? 'sol-card--espera' : ''}`}>
+    <div className="sol-card-header">
+      <div className="sol-card-tipo">
+        <span className="sol-tipo-icon">{solicitud.tipoIcon}</span>
+        <span className="sol-tipo-label">{solicitud.tipoTramite}</span>
+      </div>
+      <span className={`status-badge ${tipo === 'porAprobar' ? 'badge-revision' : 'badge-espera'}`}>
+        {tipo === 'porAprobar' ? 'En Revisión' : 'En Espera'}
+      </span>
+    </div>
+
+    <div className="sol-card-body">
+      <p className="sol-empleado">{solicitud.empleadoNombre}</p>
+      <p className="sol-ci">CI: {solicitud.empleadoCi}</p>
+      <p className="sol-detalle">{solicitud.detalle}</p>
+      <p className="sol-fecha">Solicitado: {solicitud.fechaSolicitud}</p>
+    </div>
+
+    {tipo === 'porAprobar' ? (
+      <div className="sol-card-actions">
+        <button className="btn-reject" onClick={onRechazar}>✕ Rechazar</button>
+        <button className="btn-approve" onClick={onAprobar}>✓ Aprobar</button>
+      </div>
+    ) : (
+      <div className="sol-card-waiting">
+        <span className="waiting-icon">⏳</span>
+        <span className="waiting-text">Pendiente de aprobación previa</span>
+      </div>
+    )}
+  </div>
+);
+
 export const SolicitudesPage: React.FC = () => {
-  const [showModal, setShowModal] = useState(false);
-  const [selectedType, setSelectedType] = useState<string | null>(null);
-  const { register, handleSubmit, reset } = useForm<RequestFormData>();
+  const [activeTab, setActiveTab] = useState<TabType>('porAprobar');
+  const [accionModal, setAccionModal] = useState<AccionModal | null>(null);
+  const [comentario, setComentario] = useState('');
+  const [comentarioError, setComentarioError] = useState(false);
 
-  const requestTypes = [
-    { id: 'vacaciones', label: 'Vacaciones', icon: '✈️', desc: 'Solicitar días de descanso' },
-    { id: 'permiso', label: 'Permiso Especial', icon: '📝', desc: 'Solicitar permiso puntual' },
-    { id: 'prestamo', label: 'Préstamo Utilidades', icon: '💳', desc: 'Solicitar adelanto de utilidades' },
-    { id: 'certificado', label: 'Certificado Laboral', icon: '📄', desc: 'Obtener certificado' },
-    { id: 'cambio', label: 'Cambio de Departamento', icon: '🔄', desc: 'Solicitar transferencia' },
-    { id: 'otro', label: 'Otra Solicitud', icon: '❓', desc: 'Solicitud personalizada' },
-  ];
-
-  const existingRequests = [
-    { id: 1, type: 'Vacaciones', date: '15-26 Abril', status: 'Aprobada' },
-    { id: 2, type: 'Permiso Especial', date: '22 Marzo (2h)', status: 'Pendiente' },
-    { id: 3, type: 'Préstamo Utilidades', amount: 1000, status: 'Aprobado' },
-  ];
-
-  const handleTypeSelect = (typeId: string) => {
-    setSelectedType(typeId);
-    reset();
+  const handleAccion = (solicitud: SolicitudPendiente, accion: 'aprobar' | 'rechazar') => {
+    setAccionModal({ solicitud, accion });
+    setComentario('');
+    setComentarioError(false);
   };
 
-  const onSubmit = async (data: RequestFormData) => {
-    console.log({ ...data, type: selectedType });
-    alert('Solicitud creada exitosamente');
-    setShowModal(false);
-    setSelectedType(null);
+  const handleConfirmar = () => {
+    if (!comentario.trim()) {
+      setComentarioError(true);
+      return;
+    }
+    // TODO: conectar con backend
+    console.log({ accion: accionModal?.accion, id: accionModal?.solicitud.id, comentario });
+    setAccionModal(null);
+    setComentario('');
+  };
+
+  const handleCloseModal = () => {
+    setAccionModal(null);
+    setComentario('');
+    setComentarioError(false);
   };
 
   return (
     <div className="solicitudes-page">
-      {/* Header */}
       <div className="solicitudes-header">
-        <h1>Mis Solicitudes</h1>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>
-          + Nueva Solicitud
+        <h1>Solicitudes</h1>
+      </div>
+
+      <div className="sol-tabs">
+        <button
+          className={`sol-tab ${activeTab === 'porAprobar' ? 'active' : ''}`}
+          onClick={() => setActiveTab('porAprobar')}
+        >
+          Por Aprobar
+          <span className="tab-count">{SOLICITUDES_POR_APROBAR.length}</span>
+        </button>
+        <button
+          className={`sol-tab ${activeTab === 'enEspera' ? 'active' : ''}`}
+          onClick={() => setActiveTab('enEspera')}
+        >
+          En Espera
+          <span className="tab-count muted">{SOLICITUDES_EN_ESPERA.length}</span>
         </button>
       </div>
 
-      {/* Existing Requests */}
-      <div className="requests-container">
-        <h2>Solicitudes Activas</h2>
-        <div className="requests-grid">
-          {existingRequests.map((req) => (
-            <div key={req.id} className="request-card">
-              <div className="request-header">
-                <h3>{req.type}</h3>
-                <span className={`status-badge ${req.status.toLowerCase()}`}>{req.status}</span>
-              </div>
-              <div className="request-body">
-                <p>
-                  {'amount' in req ? `Monto: $${req.amount}` : `Fechas: ${req.date}`}
-                </p>
-              </div>
-              <div className="request-footer">
-                <a href="#" className="link">
-                  Ver detalles →
-                </a>
-              </div>
+      {activeTab === 'porAprobar' && (
+        <div className="sol-section">
+          <p className="sol-section-desc">
+            Solicitudes asignadas a ti que están listas para tu revisión.
+          </p>
+          {SOLICITUDES_POR_APROBAR.length === 0 ? (
+            <div className="sol-empty">
+              <span className="sol-empty-icon">✅</span>
+              <p>No tienes solicitudes pendientes de aprobación.</p>
             </div>
-          ))}
+          ) : (
+            <div className="sol-grid">
+              {SOLICITUDES_POR_APROBAR.map((sol) => (
+                <SolicitudCard
+                  key={sol.id}
+                  solicitud={sol}
+                  tipo="porAprobar"
+                  onAprobar={() => handleAccion(sol, 'aprobar')}
+                  onRechazar={() => handleAccion(sol, 'rechazar')}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
-      {/* Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+      {activeTab === 'enEspera' && (
+        <div className="sol-section">
+          <p className="sol-section-desc">
+            Solicitudes en las que deberás actuar, pero primero requieren aprobación de otro paso.
+          </p>
+          {SOLICITUDES_EN_ESPERA.length === 0 ? (
+            <div className="sol-empty">
+              <span className="sol-empty-icon">📭</span>
+              <p>No hay solicitudes en espera.</p>
+            </div>
+          ) : (
+            <div className="sol-grid">
+              {SOLICITUDES_EN_ESPERA.map((sol) => (
+                <SolicitudCard key={sol.id} solicitud={sol} tipo="enEspera" />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {accionModal && (
+        <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Nueva Solicitud</h2>
-              <button className="close-btn" onClick={() => setShowModal(false)}>
-                ✕
-              </button>
+            <div className={`modal-header ${accionModal.accion === 'rechazar' ? 'modal-header--danger' : 'modal-header--success'}`}>
+              <h2>
+                {accionModal.accion === 'aprobar' ? '✓ Aprobar Solicitud' : '✕ Rechazar Solicitud'}
+              </h2>
+              <button className="close-btn" onClick={handleCloseModal}>✕</button>
             </div>
 
-            {!selectedType ? (
-              <div className="modal-body">
-                <p className="modal-subtitle">Selecciona el tipo de solicitud</p>
-                <div className="request-types-grid">
-                  {requestTypes.map((type) => (
-                    <button
-                      key={type.id}
-                      className="type-card"
-                      onClick={() => handleTypeSelect(type.id)}
-                    >
-                      <div className="type-icon">{type.icon}</div>
-                      <h4>{type.label}</h4>
-                      <p>{type.desc}</p>
-                    </button>
-                  ))}
+            <div className="modal-body">
+              <div className="modal-sol-info">
+                <span className="modal-sol-icon">{accionModal.solicitud.tipoIcon}</span>
+                <div>
+                  <p className="modal-sol-nombre">{accionModal.solicitud.empleadoNombre}</p>
+                  <p className="modal-sol-detalle">
+                    {accionModal.solicitud.tipoTramite} · {accionModal.solicitud.detalle}
+                  </p>
+                  <p className="modal-sol-fecha">
+                    Solicitado el {accionModal.solicitud.fechaSolicitud}
+                  </p>
                 </div>
               </div>
-            ) : (
-              <div className="modal-body">
-                <button className="back-btn" onClick={() => setSelectedType(null)}>
-                  ← Atrás
-                </button>
 
-                <form onSubmit={handleSubmit(onSubmit)} className="request-form">
-                  <div className="form-group">
-                    <label>Tipo de Solicitud</label>
-                    <input
-                      type="hidden"
-                      {...register('type')}
-                      value={selectedType}
-                    />
-                    <input
-                      type="text"
-                      disabled
-                      value={requestTypes.find((t) => t.id === selectedType)?.label || ''}
-                      className="form-input disabled"
-                    />
-                  </div>
-
-                  {/* Conditional fields based on type */}
-                  {(selectedType === 'vacaciones' || selectedType === 'permiso') && (
-                    <>
-                      <div className="form-group">
-                        <label>Fecha de Inicio</label>
-                        <input
-                          type="date"
-                          {...register('startDate', { required: true })}
-                          className="form-input"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label>Fecha de Fin</label>
-                        <input
-                          type="date"
-                          {...register('endDate', { required: true })}
-                          className="form-input"
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {selectedType === 'prestamo' && (
-                    <div className="form-group">
-                      <label>Monto Solicitado ($)</label>
-                      <input
-                        type="number"
-                        {...register('amount', { required: true, min: 100 })}
-                        placeholder="100"
-                        className="form-input"
-                      />
-                    </div>
-                  )}
-
-                  <div className="form-group">
-                    <label>Descripción / Motivo</label>
-                    <textarea
-                      {...register('description', { required: true })}
-                      placeholder="Explica brevemente el motivo de tu solicitud..."
-                      rows={4}
-                      className="form-input"
-                    ></textarea>
-                  </div>
-
-                  <div className="form-actions">
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={() => setShowModal(false)}
-                    >
-                      Cancelar
-                    </button>
-                    <button type="submit" className="btn-primary">
-                      Enviar Solicitud
-                    </button>
-                  </div>
-                </form>
+              <div className="form-group">
+                <label>
+                  Comentario <span className="required">*</span>
+                </label>
+                <textarea
+                  className={`form-input ${comentarioError ? 'input-error' : ''}`}
+                  rows={4}
+                  placeholder={
+                    accionModal.accion === 'aprobar'
+                      ? 'Escribe un comentario sobre la aprobación...'
+                      : 'Indica el motivo del rechazo...'
+                  }
+                  value={comentario}
+                  onChange={(e) => {
+                    setComentario(e.target.value);
+                    if (e.target.value.trim()) setComentarioError(false);
+                  }}
+                />
+                {comentarioError && (
+                  <span className="error-msg">El comentario es obligatorio.</span>
+                )}
               </div>
-            )}
+
+              <div className="form-actions">
+                <button className="btn-secondary" onClick={handleCloseModal}>
+                  Cancelar
+                </button>
+                <button
+                  className={accionModal.accion === 'aprobar' ? 'btn-success' : 'btn-danger'}
+                  onClick={handleConfirmar}
+                >
+                  {accionModal.accion === 'aprobar' ? 'Confirmar Aprobación' : 'Confirmar Rechazo'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

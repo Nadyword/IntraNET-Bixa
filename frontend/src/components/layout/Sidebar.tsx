@@ -10,25 +10,32 @@ interface NavItem {
   badge?: number;
   adminOnly?: boolean;
   nonAdminOnly?: boolean;
+  nonEmployeeOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Mis Datos', icon: '📄', id: 'mydata' },
+  { label: 'Mis Datos',           icon: '📄', id: 'mydata' },
   { label: 'Cultura & Beneficios', icon: '👥', id: 'culture' },
-  { label: 'Consultas', icon: 'ℹ️', id: 'consultas' },
-  { label: 'Solicitudes', icon: '📋', id: 'solicitudes'},
-  { label: 'Mis Trámites', icon: '📊', id: 'tramites' },
-  { label: '🔒 Portal del Líder', icon: '⭐', id: 'leader', adminOnly: true },
-  { label: 'Soporte', icon: '💬', id: 'soporte', nonAdminOnly: true }
+  { label: 'Consultas',            icon: 'ℹ️', id: 'consultas' },
+  { label: 'Mis Trámites',         icon: '📊', id: 'tramites' },
+  { label: 'Solicitudes',          icon: '📋', id: 'solicitudes', nonEmployeeOnly: true },
+  { label: '🔒 Portal del Líder',  icon: '⭐', id: 'leader',    adminOnly: true },
+  { label: 'Soporte',              icon: '💬', id: 'soporte',   nonAdminOnly: true },
 ];
 
 export const Sidebar: React.FC = () => {
   const { sidebarOpen, activeSection, setActiveSection } = useUIStore();
   const rolId = useAuthStore((state) => state.user?.rolId);
-  const isAdmin = rolId === '1';
-  const visibleItems = NAV_ITEMS.filter((item) =>
-    (!item.adminOnly || isAdmin) && (!item.nonAdminOnly || !isAdmin)
-  );
+
+  const isAdmin    = rolId === '1';
+  const isEmployee = rolId === '3';
+
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if (item.adminOnly && !isAdmin) return false;
+    if (item.nonAdminOnly && isAdmin) return false;
+    if (item.nonEmployeeOnly && isEmployee) return false;
+    return true;
+  });
 
   return (
     <nav className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
