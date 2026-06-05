@@ -53,6 +53,7 @@ public static class ServiceRegistrationExtensions
         services.AddScoped<IUserRolRepository, UserRolRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<ISoporteChatRepository, SoporteChatRepository>();
+        services.AddScoped<ISolicitudesRepository, SolicitudesRepository>();
     }
 
     /// <summary>
@@ -67,6 +68,7 @@ public static class ServiceRegistrationExtensions
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<ISendMailServices, SendMailServices>();
         services.AddScoped<ISoporteChatService, SoporteChatService>();
+        services.AddScoped<ISolicitudesService, SolicitudesService>();
     }
 
     /// <summary>

@@ -74,7 +74,7 @@ export const CreateUserModal: React.FC<Props> = ({ onClose }) => {
       <div className="modal-box" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}>✕</button>
 
-        <h3>Crear usuario</h3>
+        <h3>Crear uasdsasuario</h3>
         <p>Ingresa la cédula y el rol del nuevo usuario. Los datos del empleado se obtendrán automáticamente.</p>
 
         <form onSubmit={handleSubmit}>

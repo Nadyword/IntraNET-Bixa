@@ -10,7 +10,7 @@ using Bixa.Backend.Models;
 using Bixa.Backend.Base;
 using AutoMapper;
 
-namespace Bixa.Backend.Controllers.SoporteControllers;
+namespace Bixa.Backend.Controllers.SoporteCharApiControllers;
 
 /// <summary>
 /// API Controller for user management operations following RESTful standards.
@@ -25,7 +25,7 @@ namespace Bixa.Backend.Controllers.SoporteControllers;
 [Authorize]
 [ApiController]
 [Route("api/soporte")]
-public class SoporteCharControllers(ISoporteChatService soporteChatService,
+public class SoporteCharApiControllers(ISoporteChatService soporteChatService,
     IMapper mapper,
     LoggerWrapper loggerWrapper) : BaseApiController(mapper, loggerWrapper)
 {

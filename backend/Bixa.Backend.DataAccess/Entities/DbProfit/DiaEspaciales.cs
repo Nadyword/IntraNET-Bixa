@@ -7,5 +7,6 @@ public class DiaEspaciales
     public string? AutorisadoPor { get; set; }
     public DateTime? Desde { get; set; }
     public DateTime? Hasta { get; set; }
+    public string? Comentario { get; set; }
     public int? Dias { get; set; }
 }

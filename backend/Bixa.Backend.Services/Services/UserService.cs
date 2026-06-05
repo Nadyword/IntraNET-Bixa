@@ -57,7 +57,7 @@ public class UserService(
                 return Result.Fail<string>(validationResult.Error!, ErrorTypeEnum.Conflict);
             }
 
-            var snEmple = await _readOnlyUnitOfWork.SnEmple.GetFullInfoByCiAsync(userDto.Ci);
+            var snEmple = await _readOnlyUnitOfWork.SnEmple.GetFullInfoByCiAsync(ciNormalized);
 
             if (!snEmple.IsSuccess)
             {
@@ -191,6 +191,7 @@ public class UserService(
     /// <returns>A <see cref="Result{T}"/> indicating success or failure, with the <see cref="UserDTO"/> on success.</returns>
     public async Task<Result<UserIdDTO>> GetUserByCiAsync(string ci)
     {
+        ci = UtilityService.NormalizeCiFormat(ci);
         var userEntity = (await _userRepository.GetByCiAsync(ci)).FirstOrDefault();
         if (userEntity == null)
             return Result.Fail<UserIdDTO>("Usuario no encontrado", ErrorTypeEnum.NotFound);
@@ -209,6 +210,7 @@ public class UserService(
         await _unitOfWork.BeginTransactionAsync();
         try
         {
+            dto.Ci = UtilityService.NormalizeCiFormat(dto.Ci);
             var userResult = await ValidateUserExistsAsync(dto.Ci);
             if (!userResult.IsSuccess)
                 return userResult;

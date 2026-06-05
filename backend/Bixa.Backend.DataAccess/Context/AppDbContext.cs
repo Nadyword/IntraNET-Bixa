@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Bixa.Backend.Models.Configurations;
 using Bixa.Backend.DataAccess.Entities;
-using Bixa.Backend.DataAccess.Entities.DbProfit.Solicitudes;
 using Bixa.Backend.DataAccess.Models;
 using Microsoft.EntityFrameworkCore;
 using Bixa.Backend.Models.Utilities;
 using Bixa.Backend.Models.Enums;
+using Bixa.Backend.DataAccess.Entities.Solicitudes;
 
 namespace Bixa.Backend.DataAccess.Context;
 
@@ -231,7 +231,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<TipoTramite>().HasKey(tt => tt.Id);
         modelBuilder.Entity<TipoTramite>().Property(tt => tt.Id).ValueGeneratedOnAdd();
         modelBuilder.Entity<TipoTramite>().Property(tt => tt.Nombre).IsRequired().HasMaxLength(ModelLengths.Name);
-        modelBuilder.Entity<TipoTramite>().Property(tt => tt.Descripcion).IsRequired(false).HasMaxLength(ModelLengths.Description);
 
         modelBuilder.Entity<TipoTramite>().HasData(
             Enum.GetValues<TipoTramiteEnum>()

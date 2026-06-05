@@ -1,4 +1,4 @@
-namespace Bixa.Backend.DataAccess.Entities.DbProfit.Solicitudes;
+namespace Bixa.Backend.DataAccess.Entities.Solicitudes;
 
 public class SolicitudVacaciones
 {

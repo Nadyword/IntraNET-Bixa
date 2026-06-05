@@ -20,6 +20,7 @@ interface DiaEspecial {
   desde: string | null;
   hasta: string | null;
   dias: number | null;
+  comentario: string | null;
 }
 
 const formatFecha = (fecha: string | null): string => {
@@ -250,6 +251,7 @@ export const ConsultasPage: React.FC = () => {
                     <th>Hasta</th>
                     <th>Días</th>
                     <th>Autorizado por</th>
+                    <th>Comentario</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -260,6 +262,7 @@ export const ConsultasPage: React.FC = () => {
                       <td>{formatFecha(d.hasta)}</td>
                       <td>{d.dias ?? '—'}</td>
                       <td>{d.autorisadoPor ?? '—'}</td>
+                      <td>{d.comentario ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>

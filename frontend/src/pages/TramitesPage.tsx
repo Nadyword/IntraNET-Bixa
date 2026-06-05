@@ -28,51 +28,6 @@ interface TramiteHistorial {
 type FilterStatus = 'todos' | Tramite['status'] | 'archivado';
 
 const TRAMITES: Tramite[] = [
-  {
-    id: 1,
-    type: 'Vacaciones',
-    description: 'Solicitud de 10 días de vacaciones',
-    startDate: '15 Abril 2026',
-    status: 'finalizado',
-    progress: 100,
-    documents: 2,
-  },
-  {
-    id: 2,
-    type: 'Permiso Especial',
-    description: 'Permiso de 4 horas - Cita médica',
-    startDate: '22 Marzo 2026',
-    status: 'procesando',
-    progress: 75,
-    documents: 1,
-  },
-  {
-    id: 3,
-    type: 'Préstamo Utilidades',
-    description: 'Solicitud de adelanto de utilidades',
-    startDate: '10 Marzo 2026',
-    status: 'revision',
-    progress: 50,
-    documents: 3,
-  },
-  {
-    id: 4,
-    type: 'Constancia Laboral',
-    description: 'Solicitud de constancia para trámite bancario',
-    startDate: '01 Marzo 2026',
-    status: 'finalizado',
-    progress: 100,
-    documents: 1,
-  },
-  {
-    id: 5,
-    type: 'Finiquito',
-    description: 'Liquidación de beneficios',
-    startDate: '25 Febrero 2026',
-    status: 'pendiente',
-    progress: 25,
-    documents: 0,
-  },
 ];
 
 const HISTORIAL: TramiteHistorial[] = [

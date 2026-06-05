@@ -102,7 +102,8 @@ internal static class ProfitSqlTemplates
 	    e.nombre_completo AutorisadoPor,
 	    a.desde,
 	    a.hasta,
-	    a.dias
+	    a.dias,
+		a.comentario
     FROM snnovedad_dia a
     INNER JOIN snemple e ON e.cod_emp = a.cod_emp
     WHERE a.cod_emp = @codEmp AND a.co_tipoaus = '999' AND
@@ -110,4 +111,27 @@ internal static class ProfitSqlTemplates
     a.hasta <= (SELECT val_f FROM snconst WHERE co_const = 'A004')
 
 """;
+
+    internal const string GetListAprovadoresByCi = """
+    CREATE TABLE #EmpleadosTemp (
+        orden INT IDENTITY(1,1),
+        ci char(15) NOT NULL
+    );
+    DECLARE @Ci char(20) = '@ci';
+    DECLARE @supervisor char(15);
+    DECLARE @contador BIT = 0;
+    WHILE (@contador = 0)
+    BEGIN
+        SET @supervisor = (SELECT supervisor FROM snemple WHERE ci = @Ci);
+        INSERT INTO #EmpleadosTemp ( ci )  SELECT ci FROM snemple WHERE cod_emp = @supervisor;
+
+        IF (@supervisor IS NULL)
+        BEGIN
+            SET @contador = 1;
+        END
+        SET @Ci = (SELECT ci FROM snemple WHERE cod_emp = @supervisor);
+    END
+    SELECT * FROM #EmpleadosTemp;
+    DROP TABLE #EmpleadosTemp;
+    """;
 }

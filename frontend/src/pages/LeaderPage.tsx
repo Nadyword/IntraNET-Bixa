@@ -214,16 +214,16 @@ export const LeaderPage: React.FC = () => {
         {activeTab === 'equipo' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'center', margin: '15px', flexWrap: 'wrap', gap: '8px' }}>
-              <button className="btn-primary" onClick={() => setShowCreateUserModal(true)}>
+              <button className="tramites-nueva-btn" onClick={() => setShowCreateUserModal(true)}>
                 Crear usuario
               </button>
-              <button className="btn-primary" onClick={() => setShowDeleteUserModal(true)}>
+              <button className="tramites-nueva-btn" onClick={() => setShowDeleteUserModal(true)}>
                 Borrar usuario
               </button>
-              <button className="btn-primary" onClick={() => setShowEditUserModal(true)}>
+              <button className="tramites-nueva-btn" onClick={() => setShowEditUserModal(true)}>
                 Editar usuario
               </button>
-              <button className="btn-primary" onClick={() => setShowResendWelcomeEmailModal(true)}>
+              <button className="tramites-nueva-btn" onClick={() => setShowResendWelcomeEmailModal(true)}>
                 Reenviar correo de bienvenida
               </button>
             </div>
