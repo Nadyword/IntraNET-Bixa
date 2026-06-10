@@ -1,0 +1,308 @@
+================================================================================
+  GUÍA COMPLETA DE DEPLOY — Backend .NET + Conexión Frontend
+  Servidor: comunik2.productosbixa.com  |  Usuario: root
+  Puerto backend: 1509
+================================================================================
+
+
+================================================================================
+PASO 0 — VERIFICAR appsettings.json ANTES DE SUBIR
+================================================================================
+
+Abre el appsettings.json que tienes preparado y verifica CADA punto:
+
+  [ ] 1. CONNECTION STRING — debe apuntar a SQL Server en el mismo servidor:
+         "WebApiDatabase": "Server=localhost,1433;Database=Bixa;User Id=sa;Password=TU_PASSWORD_SA;TrustServerCertificate=True;"
+         "DbProxi":        "Server=localhost,1433;Database=DEMON;User Id=sa;Password=TU_PASSWORD_SA;TrustServerCertificate=True;"
+         PROBLEMA ACTUAL: ambas apuntan a "(localdb)\\mssqllocaldb" (solo funciona en Windows)
+
+  [ ] 2. JWT KEY — debe ser diferente a la de desarrollo y mínimo 32 caracteres:
+         "Llave": "CLAVE_LARGA_Y_ALEATORIA_MINIMO_32_CARACTERES_AQUI"
+         Para generar una clave segura ejecuta en Git Bash o Ubuntu:
+           openssl rand -hex 32
+         PROBLEMA ACTUAL: usa la misma clave del desarrollo
+
+  [ ] 3. ALLOWED ORIGINS — debe incluir el dominio de producción con HTTPS:
+         "AllowedOrigins": [
+           "https://comunik2.productosbixa.com"
+         ]
+         PROBLEMA ACTUAL: tiene "productosbixa.com" sin https:// y sin el subdominio comunik2
+
+  [ ] 4. ALLOWED IPs — agrega localhost para que nginx pueda comunicarse:
+         "AllowedIPs": [
+           "127.0.0.1",
+           "::1"
+         ]
+         PROBLEMA ACTUAL: tiene IPs privadas de desarrollo (172.28.0.x)
+
+  [ ] 5. EMAIL HOST — debe apuntar al dominio real, no a localhost:
+         "Host": "https://comunik2.productosbixa.com"
+         PROBLEMA ACTUAL: tiene "http://localhost:5173"
+
+  [ ] 6. SERILOG PATH — agrega la ruta donde se guardarán los logs en el servidor:
+         En el bloque "WriteTo[0].Args" agrega:
+           "path": "/var/log/bixa-backend/app-.log"
+         PROBLEMA ACTUAL: no tiene path, los logs no se guardarán correctamente
+
+  Tu appsettings.json de producción debe quedar así:
+
+  -----------------------------------------------------------------------
+  {
+    "Logging": {
+      "LogLevel": {
+        "Default": "Information",
+        "Microsoft.AspNetCore": "Warning"
+      }
+    },
+    "AllowedHosts": "*",
+    "ConnectionStrings": {
+      "WebApiDatabase": "Server=localhost,1433;Database=Bixa;User Id=sa;Password=TU_PASSWORD_SA;TrustServerCertificate=True;",
+      "DbProxi":        "Server=localhost,1433;Database=DEMON;User Id=sa;Password=TU_PASSWORD_SA;TrustServerCertificate=True;"
+    },
+    "ConfiguracionJwt": {
+      "Llave": "PEGA_AQUI_EL_RESULTADO_DE_openssl_rand_-hex_32",
+      "Issuer": "Bixa",
+      "Audience": "All",
+      "ExpirationMinutes": 60
+    },
+    "AllowedOrigins": [
+      "https://comunik2.productosbixa.com"
+    ],
+    "AllowedIPs": [
+      "127.0.0.1",
+      "::1"
+    ],
+    "ShowInformationLog": true,
+    "Serilog": {
+      "Using": [
+        "Serilog.Sinks.File",
+        "Serilog.Enrichers.Environment"
+      ],
+      "MinimumLevel": {
+        "Default": "Information",
+        "Override": {
+          "Microsoft": "Warning",
+          "Microsoft.Hosting.Lifetime": "Information",
+          "System": "Warning"
+        }
+      },
+      "WriteTo": [
+        {
+          "Name": "File",
+          "Args": {
+            "path": "/var/log/bixa-backend/app-.log",
+            "outputTemplate": "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{ApplicationName}][{EnvironmentName}][{Level:u3}] {Message:lj}{NewLine}{Exception}",
+            "fileSizeLimitBytes": 10485760,
+            "rollingInterval": "Day",
+            "retainedFileCountLimit": 7
+          }
+        }
+      ],
+      "Enrich": [
+        "FromLogContext",
+        "WithMachineName",
+        "WithEnvironmentName"
+      ]
+    },
+    "EmailSettings": {
+      "Remitente": "samuelsc1509@gmail.com",
+      "Password": "keax kmfi juzd qiln",
+      "SmtpHost": "smtp.gmail.com",
+      "SmtpPort": 587,
+      "EnableSsl": false,
+      "Host": "https://comunik2.productosbixa.com"
+    }
+  }
+  -----------------------------------------------------------------------
+
+
+================================================================================
+PASO 1 — COMPILAR EL BACKEND EN WINDOWS
+================================================================================
+
+Desde la raíz del proyecto en PowerShell:
+
+  dotnet publish backend/Bixa.Backend/Bixa.Backend.csproj `
+    -c Release `
+    -r linux-x64 `
+    --self-contained false `
+    -o ./publish_backend
+
+IMPORTANTE: Antes de subir, copia tu appsettings.json de producción
+(ya revisado en el Paso 0) dentro de la carpeta ./publish_backend,
+reemplazando el que generó el build.
+
+
+================================================================================
+PASO 2 — SUBIR EL BACKEND AL SERVIDOR
+================================================================================
+
+Desde PowerShell en tu máquina Windows:
+
+  # Crear la carpeta en el servidor (si no existe)
+  ssh root@comunik2.productosbixa.com "mkdir -p /var/www/bixa-backend"
+
+  # Subir los archivos
+  scp -r ./publish_backend/* root@comunik2.productosbixa.com:/var/www/bixa-backend/
+
+
+================================================================================
+PASO 3 — PREPARAR EL SERVIDOR (una sola vez)
+================================================================================
+
+Conéctate al servidor:
+  ssh root@comunik2.productosbixa.com
+
+Crear carpeta de logs:
+  mkdir -p /var/log/bixa-backend
+  chmod 755 /var/log/bixa-backend
+
+Dar permisos de ejecución al binario:
+  chmod +x /var/www/bixa-backend/Bixa.Backend
+
+
+================================================================================
+PASO 4 — CREAR EL SERVICIO SYSTEMD
+================================================================================
+
+En el servidor, crea el archivo del servicio:
+  nano /etc/systemd/system/bixa-backend.service
+
+Pega este contenido EXACTO:
+
+  -----------------------------------------------------------------------
+  [Unit]
+  Description=Bixa Backend API (.NET)
+  After=network.target mssql-server.service
+
+  [Service]
+  WorkingDirectory=/var/www/bixa-backend
+  ExecStart=/usr/bin/dotnet /var/www/bixa-backend/Bixa.Backend.dll
+  Restart=always
+  RestartSec=10
+  KillSignal=SIGINT
+  SyslogIdentifier=bixa-backend
+  User=root
+  Environment=ASPNETCORE_ENVIRONMENT=Production
+  Environment=ASPNETCORE_URLS=http://localhost:1509
+
+  [Install]
+  WantedBy=multi-user.target
+  -----------------------------------------------------------------------
+
+Activar e iniciar el servicio:
+  systemctl daemon-reload
+  systemctl enable bixa-backend
+  systemctl start bixa-backend
+
+Verificar que está corriendo:
+  systemctl status bixa-backend
+
+Ver logs en tiempo real:
+  journalctl -u bixa-backend -f
+
+
+================================================================================
+PASO 5 — ACTUALIZAR NGINX (proxy al puerto 1509)
+================================================================================
+
+Edita el archivo de configuración de nginx para comunik2:
+  nano /etc/nginx/sites-available/comunik2.productosbixa.com
+
+Asegúrate de que el bloque del backend apunte al puerto 1509:
+
+  location /api/ {
+      proxy_pass         http://127.0.0.1:1509/api/;
+      proxy_http_version 1.1;
+      proxy_set_header   Upgrade $http_upgrade;
+      proxy_set_header   Connection keep-alive;
+      proxy_set_header   Host $host;
+      proxy_set_header   X-Real-IP $remote_addr;
+      proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header   X-Forwarded-Proto $scheme;
+  }
+
+El bloque completo de nginx ya está en el archivo NGINX_CONFIG.txt de este proyecto.
+
+Aplicar cambios:
+  nginx -t && systemctl reload nginx
+
+
+================================================================================
+PASO 6 — VERIFICAR CONEXIÓN FRONTEND ↔ BACKEND
+================================================================================
+
+El frontend ya está configurado con:
+  VITE_API_URL=https://comunik2.productosbixa.com/api
+  (archivo frontend/.env.production)
+
+Flujo de una petición:
+  Navegador → https://comunik2.productosbixa.com/api/login/AuthenticateLogin
+           → nginx recibe en :443
+           → proxy_pass a http://127.0.0.1:1509/api/login/AuthenticateLogin
+           → Backend .NET responde
+           → nginx devuelve la respuesta al navegador
+
+Pruebas manuales en el servidor:
+
+  # 1. Verificar que el backend escucha en 1509
+  ss -tlnp | grep 1509
+
+  # 2. Probar el endpoint de login directamente
+  curl -s -X POST http://localhost:1509/api/login/AuthenticateLogin \
+    -H "Content-Type: application/json" \
+    -d '{"taxId":"test","password":"test"}' | head -c 200
+
+  # 3. Probar a través de nginx (como lo hace el frontend)
+  curl -s -X POST https://comunik2.productosbixa.com/api/login/AuthenticateLogin \
+    -H "Content-Type: application/json" \
+    -d '{"taxId":"test","password":"test"}' | head -c 200
+
+  Si el paso 2 responde pero el paso 3 no, el problema es nginx.
+  Si ninguno responde, el problema es el servicio del backend.
+
+
+================================================================================
+PASO 7 — COMANDOS ÚTILES DE DIAGNÓSTICO
+================================================================================
+
+  # Estado del backend
+  systemctl status bixa-backend
+
+  # Últimos 50 líneas de log del backend
+  journalctl -u bixa-backend -n 50 --no-pager
+
+  # Reiniciar el backend
+  systemctl restart bixa-backend
+
+  # Logs de Serilog (archivo)
+  tail -f /var/log/bixa-backend/app-$(date +%Y%m%d).log
+
+  # Estado de nginx
+  systemctl status nginx
+
+  # Verificar puerto 1509
+  ss -tlnp | grep 1509
+
+  # Verificar SQL Server
+  systemctl status mssql-server
+
+
+================================================================================
+CHECKLIST FINAL
+================================================================================
+
+  [ ] appsettings.json corregido (6 puntos del Paso 0)
+  [ ] Backend compilado con dotnet publish
+  [ ] Archivos subidos a /var/www/bixa-backend
+  [ ] Carpeta de logs creada: /var/log/bixa-backend
+  [ ] Servicio bixa-backend corriendo: systemctl status bixa-backend
+  [ ] Nginx actualizado al puerto 1509 y recargado
+  [ ] curl a localhost:1509/api responde JSON
+  [ ] curl a https://comunik2.productosbixa.com/api responde JSON
+  [ ] Frontend hace login correctamente desde el navegador
+
+
+================================================================================
+FIN DE LA GUÍA
+================================================================================

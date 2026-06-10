@@ -1,0 +1,80 @@
+# ================================================================
+#  Archivo: /etc/nginx/sites-available/comunik2.productosbixa.com
+#  Aplicar con:
+#    sudo nginx -t && sudo systemctl reload nginx
+# ================================================================
+
+
+# ---------------------------------------------------------------
+# 1) Catch-all: cualquier dominio que NO sea comunik2
+#    Sigue apuntando al servicio anterior en :1607
+# ---------------------------------------------------------------
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    server_name _;
+
+    location / {
+        proxy_pass         http://127.0.0.1:1607;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection 'upgrade';
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+}
+
+
+# ---------------------------------------------------------------
+# 2) Redirección HTTP → HTTPS para comunik2.productosbixa.com
+# ---------------------------------------------------------------
+server {
+    listen 80;
+    listen [::]:80;
+    server_name comunik2.productosbixa.com;
+
+    return 301 https://$host$request_uri;
+}
+
+
+# ---------------------------------------------------------------
+# 3) Frontend React (estático) + Backend .NET API — HTTPS
+# ---------------------------------------------------------------
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl ipv6only=on;
+    server_name comunik2.productosbixa.com;
+
+    # --- Certbot (no modificar) ---
+    ssl_certificate      /etc/letsencrypt/live/comunik2.productosbixa.com/fullchain.pem;
+    ssl_certificate_key  /etc/letsencrypt/live/comunik2.productosbixa.com/privkey.pem;
+    include              /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam          /etc/letsencrypt/ssl-dhparams.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/comunik2.productosbixa.com/chain.pem;
+    ssl_stapling         on;
+    ssl_stapling_verify  on;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
+    # --- Frontend: archivos estáticos del build de React ---
+    root  /var/www/bixa-frontend;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # --- Backend: proxy al API .NET en :1509 ---
+    location /api/ {
+        proxy_pass         http://127.0.0.1:1509/api/;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection keep-alive;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+}
