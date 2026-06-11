@@ -7,6 +7,7 @@ Bixa Backend es una solución basada en .NET 9 diseñada para gestionar y proces
 - [Descripción](#descripción)
 - [Tabla de Contenido](#tabla-de-contenido)
 - [Instalación](#instalación)
+- [Despliegue](#despliegue)
 - [Uso](#uso)
 - [Características](#características)
 - [Configuración](#configuración)
@@ -45,6 +46,9 @@ Bixa Backend es una solución basada en .NET 9 diseñada para gestionar y proces
        dotnet ef database update --context AppDbContext -p Bixa.Backend.DataAccess -s Bixa.Backend
        ```
    ```
+ 
+ ## Despliegue
+dotnet publish backend/Bixa.Backend/Bixa.Backend.csproj -c Release -r linux-x64 --self-contained false -o ./Publicacion
 
 ## Uso
 1. **Ejecuta el proyecto:**

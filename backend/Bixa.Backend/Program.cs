@@ -58,6 +58,39 @@ var appVersion = configuration["APP_VERSION"] ?? "LOCAL-DEBUG-NO-HASH";
 
 logger.LogInformation("Bixa Backend API Initialized.");
 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+
+    try
+    {
+        var db = services.GetRequiredService<AppDbContext>();
+        var ok = await db.Database.CanConnectAsync();
+        if (ok)
+            logger.LogInformation("Base de datos principal (Bixa): conexion establecida correctamente.");
+        else
+            logger.LogError("Base de datos principal (Bixa): no se pudo establecer conexion.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError("Base de datos principal (Bixa): error al conectar — {Message}", ex.Message);
+    }
+
+    try
+    {
+        var profitDb = services.GetRequiredService<ProfitDbContext>();
+        var ok = await profitDb.Database.CanConnectAsync();
+        if (ok)
+            logger.LogInformation("Base de datos Profit (DEMON): conexion establecida correctamente.");
+        else
+            logger.LogError("Base de datos Profit (DEMON): no se pudo establecer conexion.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError("Base de datos Profit (DEMON): error al conectar — {Message}", ex.Message);
+    }
+}
+
 app.UseMiddleware<ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
