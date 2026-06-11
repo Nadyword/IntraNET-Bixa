@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/backend/">
+    <File Path="README.md" />
+    <Project Path="Bixa.Backend.DataAccess/Bixa.Backend.DataAccess.csproj" />
+    <Project Path="Bixa.Backend.Models/Bixa.Backend.Models.csproj" />
+    <Project Path="Bixa.Backend.Services/Bixa.Backend.Services.csproj" />
+    <Project Path="Bixa.Backend/Bixa.Backend.csproj" />
+  </Folder>
+</Solution>
