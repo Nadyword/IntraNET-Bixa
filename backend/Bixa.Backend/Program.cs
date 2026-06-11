@@ -65,29 +65,31 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var db = services.GetRequiredService<AppDbContext>();
+        logger.LogInformation("Base de datos principal (Bixa): cadena de conexion → {ConnString}", connString);
         var ok = await db.Database.CanConnectAsync();
         if (ok)
             logger.LogInformation("Base de datos principal (Bixa): conexion establecida correctamente.");
         else
-            logger.LogError("Base de datos principal (Bixa): no se pudo establecer conexion.");
+            logger.LogError("Base de datos principal (Bixa): no se pudo establecer conexion. Cadena usada → {ConnString}", connString);
     }
     catch (Exception ex)
     {
-        logger.LogError("Base de datos principal (Bixa): error al conectar — {Message}", ex.Message);
+        logger.LogError("Base de datos principal (Bixa): error al conectar. Cadena usada → {ConnString} | Error → {Message}", connString, ex.Message);
     }
 
     try
     {
         var profitDb = services.GetRequiredService<ProfitDbContext>();
+        logger.LogInformation("Base de datos Profit (DEMON): cadena de conexion → {ConnString}", ProfitConnString);
         var ok = await profitDb.Database.CanConnectAsync();
         if (ok)
             logger.LogInformation("Base de datos Profit (DEMON): conexion establecida correctamente.");
         else
-            logger.LogError("Base de datos Profit (DEMON): no se pudo establecer conexion.");
+            logger.LogError("Base de datos Profit (DEMON): no se pudo establecer conexion. Cadena usada → {ConnString}", ProfitConnString);
     }
     catch (Exception ex)
     {
-        logger.LogError("Base de datos Profit (DEMON): error al conectar — {Message}", ex.Message);
+        logger.LogError("Base de datos Profit (DEMON): error al conectar. Cadena usada → {ConnString} | Error → {Message}", ProfitConnString, ex.Message);
     }
 }
 
