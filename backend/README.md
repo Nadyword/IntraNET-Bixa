@@ -38,7 +38,7 @@ Bixa Backend es una solución basada en .NET 9 diseñada para gestionar y proces
 
      - Para crear una nueva migración:
        ```bash
-       dotnet ef migrations add [NameMigration] (MigrationV23) --context AppDbContext -p Bixa.Backend.DataAccess -s Bixa.Backend
+       dotnet ef migrations add MigrationV23P --context AppDbContext -p Bixa.Backend.DataAccess -s Bixa.Backend
        ```
 
      - Para aplicar las migraciones y actualizar la base de datos:
@@ -48,7 +48,9 @@ Bixa Backend es una solución basada en .NET 9 diseñada para gestionar y proces
    ```
  
  ## Despliegue
-dotnet publish backend/Bixa.Backend/Bixa.Backend.csproj -c Release -r linux-x64 --self-contained false -o ./Publicacion
+  ```bash
+    dotnet publish backend/Bixa.Backend/Bixa.Backend.csproj -c Release -r linux-x64 --self-contained false -o ./Publicacion
+  ```
 
 ## Uso
 1. **Ejecuta el proyecto:**
@@ -56,7 +58,7 @@ dotnet publish backend/Bixa.Backend/Bixa.Backend.csproj -c Release -r linux-x64 
    dotnet run --project Bixa.Backend
    ```
 2. **Accede a la API en tu navegador o cliente HTTP en:**
-   ```
+   ```                                                                                                                                                                                                      i
    https://localhost:7194;http://localhost:5108
    ```
 3. **Explora la documentación Swagger disponible en:**
