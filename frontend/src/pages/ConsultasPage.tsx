@@ -175,7 +175,7 @@ export const ConsultasPage: React.FC = () => {
 
       <div className="support-section">
         <div className="support-box" style={{ marginTop: '30px' }}>
-          <h3>¿No crees que está bien la información mostrata aquí?</h3>
+          <h3>¿No crees que está bien la información mostrada aquí?</h3>
           <p>
             Si tienes algún reclamo o duda sobre la información mostrada en esta pantalla, por favor crea un ticket detallando tu inquietud. Un supervisor revisará el caso y enviará la respuesta al correo electrónico asociado a tu cuenta, el cual puedes consultar en el apartado 'Mis datos, Correo personal'.
           </p>

@@ -5,7 +5,7 @@ export const CulturePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('cultura');
 
   const values = [
-    { icon: '🏠', title: 'Sentido de Pertenencia', desc: 'Sentirse parte de la familia Bixa, cuidando la marca y sus raíces como si fueran propias.' },
+    { icon: '🏠', title: 'Sentido de Pertenencia', desc: 'Sentirse parte de Bixa, cuidando la marca y sus raíces como si fueran propias.' },
     { icon: '🤝', title: 'Orientación al Servicio', desc: 'La disposición constante de ayudar y superar las expectativas de clientes y compañeros con calidez.' },
     { icon: '⭐', title: 'Búsqueda de la Excelencia', desc: 'El esfuerzo diario por innovar y entregar productos de la más alta calidad, sin conformarse con lo ordinario.' },
     { icon: '💍', title: 'Compromiso', desc: 'La firme determinación de cumplir con nuestra misión y ser leales a los objetivos de la organización.' },
@@ -32,7 +32,7 @@ export const CulturePage: React.FC = () => {
     },
     {
       title: 'Bonificación y Permiso por Muerte de Familiar',
-      detail: 'Pago = 45 días de sueldo. Permiso 7 días continuos (Trabajador, Cónyuge, Padres e Hijos).',
+      detail: 'Pago = 45 días de sueldo. Permiso 7 días continuos (Trabajador, Cónyuge, Padres e Hijos), Contribución por cumpleaños.',
     },
     {
       title: 'Bonificación y Permiso por Nacimiento de Hijos',
