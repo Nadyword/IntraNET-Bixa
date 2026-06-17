@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../lib/api';
 import type { ApiResponse } from '../services/authService';
 import type { UserProfile } from '../store/userProfileStore';
-import { soporteService, type SolicitudChatDTO } from '../services/soporteService';
+import { soporteService, type SolicitudChatDTO, type FAQsDTO } from '../services/soporteService';
 import { SoporteChatAdminModal } from '../components/ui/SoporteChatAdminModal';
 import { CreateUserModal } from '../components/ui/CreateUserModal';
 import { DeleteUserModal } from '../components/ui/DeleteUserModal';
@@ -23,6 +23,7 @@ interface ApprovalRequest {
   submittedDate: string;
 }
 
+
 export const LeaderPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('aprobaciones');
   const [actionedRequests, setActionedRequests] = useState<number[]>([]);
@@ -37,6 +38,62 @@ export const LeaderPage: React.FC = () => {
   const [teamUsers, setTeamUsers] = useState<UserProfile[]>([]);
   const [teamLoading, setTeamLoading] = useState(false);
   const [teamError, setTeamError] = useState('');
+
+  // Estado de preguntas frecuentes
+  const [faqs, setFaqs] = useState<FAQsDTO[]>([]);
+  const [faqsLoading, setFaqsLoading] = useState(false);
+  const [faqsError, setFaqsError] = useState('');
+  const [faqSaving, setFaqSaving] = useState(false);
+  const [faqExpandedId, setFaqExpandedId] = useState<number | null>(null);
+  const [showFaqCreateForm, setShowFaqCreateForm] = useState(false);
+  const [faqCreateForm, setFaqCreateForm] = useState({ question: '', response: '' });
+  const [faqEditingId, setFaqEditingId] = useState<number | null>(null);
+  const [faqEditForm, setFaqEditForm] = useState({ question: '', response: '' });
+  const [faqDeleteConfirmId, setFaqDeleteConfirmId] = useState<number | null>(null);
+
+  const handleFaqCreate = async () => {
+    if (!faqCreateForm.question.trim() || !faqCreateForm.response.trim()) return;
+    setFaqSaving(true);
+    try {
+      await soporteService.createFAQ({ id: 0, ...faqCreateForm });
+      const res = await soporteService.getFAQs();
+      setFaqs(res.data.data ?? []);
+      setFaqCreateForm({ question: '', response: '' });
+      setShowFaqCreateForm(false);
+    } finally {
+      setFaqSaving(false);
+    }
+  };
+
+  const handleFaqEditStart = (faq: FAQsDTO) => {
+    setFaqEditingId(faq.id);
+    setFaqEditForm({ question: faq.question, response: faq.response });
+    setFaqExpandedId(null);
+  };
+
+  const handleFaqEditSave = async () => {
+    if (!faqEditForm.question.trim() || !faqEditForm.response.trim()) return;
+    setFaqSaving(true);
+    try {
+      await soporteService.updateFAQ({ id: faqEditingId!, ...faqEditForm });
+      const res = await soporteService.getFAQs();
+      setFaqs(res.data.data ?? []);
+      setFaqEditingId(null);
+    } finally {
+      setFaqSaving(false);
+    }
+  };
+
+  const handleFaqDelete = async () => {
+    setFaqSaving(true);
+    try {
+      await soporteService.deleteFAQ(faqDeleteConfirmId!);
+      setFaqs(faqs.filter((f) => f.id !== faqDeleteConfirmId));
+      setFaqDeleteConfirmId(null);
+    } finally {
+      setFaqSaving(false);
+    }
+  };
 
   // Estado de chats de soporte
   const [chats, setChats] = useState<SolicitudChatDTO[]>([]);
@@ -75,6 +132,25 @@ export const LeaderPage: React.FC = () => {
   }, [activeTab, currentPage]);
 
   useEffect(() => {
+    if (activeTab !== 'faqs') return;
+    let cancelled = false;
+    const load = async () => {
+      setFaqsLoading(true);
+      setFaqsError('');
+      try {
+        const res = await soporteService.getFAQs();
+        if (!cancelled) setFaqs(res.data.data ?? []);
+      } catch {
+        if (!cancelled) setFaqsError('Error al cargar las preguntas frecuentes.');
+      } finally {
+        if (!cancelled) setFaqsLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [activeTab]);
+
+  useEffect(() => {
     if (activeTab !== 'chats') return;
     let cancelled = false;
     const load = async () => {
@@ -103,30 +179,7 @@ export const LeaderPage: React.FC = () => {
   };
 
   const approvalRequests: ApprovalRequest[] = [
-    {
-      id: 1,
-      employeeName: 'Juan Rodríguez',
-      type: 'Vacaciones',
-      description: 'Solicitud de 10 días de vacaciones',
-      dates: '20-30 Abril',
-      submittedDate: '15 Marzo 2026',
-    },
-    {
-      id: 2,
-      employeeName: 'María Gonzalez',
-      type: 'Permiso Especial',
-      description: 'Permiso de 2 horas - Cita médica',
-      dates: '22 Marzo',
-      submittedDate: '20 Marzo 2026',
-    },
-    {
-      id: 3,
-      employeeName: 'Carlos Mendez',
-      type: 'Préstamo Utilidades',
-      description: 'Solicitud de adelanto de utilidades',
-      amount: 2000,
-      submittedDate: '18 Marzo 2026',
-    },
+  
   ];
 
   const handleApprove = (id: number) => setActionedRequests([...actionedRequests, id]);
@@ -171,6 +224,12 @@ export const LeaderPage: React.FC = () => {
           onClick={() => handleTabChange('chats')}
         >
           Chats de soporte
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'faqs' ? 'active' : ''}`}
+          onClick={() => handleTabChange('faqs')}
+        >
+          Preguntas frecuentes
         </button>
       </div>
 
@@ -347,6 +406,129 @@ export const LeaderPage: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'faqs' && (
+          <div className="faq-section">
+            <div className="faq-header-row">
+              <button
+                className="tramites-nueva-btn"
+                onClick={() => { setShowFaqCreateForm(true); setFaqEditingId(null); }}
+                disabled={showFaqCreateForm || faqsLoading}
+              >
+                + Nueva pregunta frecuente
+              </button>
+            </div>
+
+            {showFaqCreateForm && (
+              <div className="faq-card faq-card-form">
+                <p className="faq-form-title">Nueva pregunta frecuente</p>
+                <div className="faq-form-field">
+                  <label>Pregunta</label>
+                  <input
+                    type="text"
+                    placeholder="¿Cuál es la pregunta?"
+                    value={faqCreateForm.question}
+                    onChange={(e) => setFaqCreateForm({ ...faqCreateForm, question: e.target.value })}
+                  />
+                </div>
+                <div className="faq-form-field">
+                  <label>Respuesta</label>
+                  <textarea
+                    placeholder="Escribe la respuesta..."
+                    rows={4}
+                    value={faqCreateForm.response}
+                    onChange={(e) => setFaqCreateForm({ ...faqCreateForm, response: e.target.value })}
+                  />
+                </div>
+                <div className="faq-form-actions">
+                  <button className="faq-btn-save" onClick={handleFaqCreate} disabled={faqSaving}>
+                    {faqSaving ? 'Guardando...' : 'Guardar'}
+                  </button>
+                  <button className="faq-btn-cancel" disabled={faqSaving} onClick={() => { setShowFaqCreateForm(false); setFaqCreateForm({ question: '', response: '' }); }}>Cancelar</button>
+                </div>
+              </div>
+            )}
+
+            <div className="faq-list">
+              {faqsLoading && <p className="team-empty">Cargando preguntas frecuentes...</p>}
+              {!faqsLoading && faqsError && <p className="team-error">{faqsError}</p>}
+              {!faqsLoading && !faqsError && faqs.length === 0 && (
+                <div className="empty-state"><p>No hay preguntas frecuentes registradas.</p></div>
+              )}
+              {!faqsLoading && !faqsError && faqs.map((faq) => (
+                <div key={faq.id} className={`faq-card${faqEditingId === faq.id ? ' faq-card-form' : ''}`}>
+                  {faqEditingId === faq.id ? (
+                    <>
+                      <p className="faq-form-title">Editar pregunta frecuente</p>
+                      <div className="faq-form-field">
+                        <label>Pregunta</label>
+                        <input
+                          type="text"
+                          value={faqEditForm.question}
+                          onChange={(e) => setFaqEditForm({ ...faqEditForm, question: e.target.value })}
+                        />
+                      </div>
+                      <div className="faq-form-field">
+                        <label>Respuesta</label>
+                        <textarea
+                          rows={4}
+                          value={faqEditForm.response}
+                          onChange={(e) => setFaqEditForm({ ...faqEditForm, response: e.target.value })}
+                        />
+                      </div>
+                      <div className="faq-form-actions">
+                        <button className="faq-btn-save" onClick={handleFaqEditSave} disabled={faqSaving}>
+                          {faqSaving ? 'Guardando...' : 'Guardar'}
+                        </button>
+                        <button className="faq-btn-cancel" disabled={faqSaving} onClick={() => setFaqEditingId(null)}>Cancelar</button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        className="faq-card-header"
+                        onClick={() => setFaqExpandedId(faqExpandedId === faq.id ? null : faq.id)}
+                      >
+                        <span className="faq-expand-icon">{faqExpandedId === faq.id ? '▼' : '►'}</span>
+                        <span className="faq-question-text">{faq.question}</span>
+                        <div className="faq-actions" onClick={(e) => e.stopPropagation()}>
+                          <button className="faq-action-btn faq-btn-edit" onClick={() => handleFaqEditStart(faq)}>
+                            Editar
+                          </button>
+                          <button className="faq-action-btn faq-btn-delete" onClick={() => setFaqDeleteConfirmId(faq.id)}>
+                            Borrar
+                          </button>
+                        </div>
+                      </div>
+                      {faqExpandedId === faq.id && (
+                        <div className="faq-answer">
+                          <p>{faq.response}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {faqDeleteConfirmId !== null && (
+              <div className="faq-delete-overlay">
+                <div className="faq-delete-modal">
+                  <p className="faq-delete-title">¿Eliminar pregunta?</p>
+                  <p className="faq-delete-desc">
+                    Esta acción no se puede deshacer. ¿Confirmas que deseas eliminar esta pregunta frecuente?
+                  </p>
+                  <div className="faq-delete-actions">
+                    <button className="faq-btn-delete-confirm" onClick={handleFaqDelete} disabled={faqSaving}>
+                      {faqSaving ? 'Eliminando...' : 'Sí, eliminar'}
+                    </button>
+                    <button className="faq-btn-cancel" disabled={faqSaving} onClick={() => setFaqDeleteConfirmId(null)}>Cancelar</button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         )}

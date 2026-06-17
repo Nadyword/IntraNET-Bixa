@@ -1,4 +1,5 @@
 ﻿using Bixa.Backend.Models.DTOs.SoporteChatModelDTO;
+using Bixa.Backend.Models.DTOs.FAQsDTO;
 using Bixa.Backend.DataAccess.Wrappers;
 using Microsoft.AspNetCore.Authorization;
 using Bixa.Backend.DataAccess.Entities;
@@ -115,6 +116,75 @@ public class SoporteCharApiControllers(ISoporteChatService soporteChatService,
         if (authResult != null) return authResult;
 
         var result = await _soporteChatService.SetMessageStatus(Ci);
+        return HandleServiceResult(result);
+    }
+
+    /// <summary>
+    /// Crear una nueva pregunta frecuente (FAQ) en el sistema.
+    /// </summary>
+    /// <returns>Devuelve el resultado de la operación de creación de la FAQ.</returns>
+    [HttpPost("CreateFAQ")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CreateFAQ([FromBody] FAQsDTO pregunta)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
+        if (authResult != null) return authResult;
+
+        var result = await _soporteChatService.CreateFAQ(pregunta);
+        return HandleServiceResult(result);
+    }
+
+    /// <summary>
+    /// Crear una nueva pregunta frecuente (FAQ) en el sistema.
+    /// </summary>
+    /// <returns>Devuelve el resultado de la operación de creación de la FAQ.</returns>
+    [HttpPut("UpdateFAQ")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateFAQ([FromBody] FAQsDTO pregunta)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
+        if (authResult != null) return authResult;
+
+        var result = await _soporteChatService.UpdateFAQ(pregunta);
+        return HandleServiceResult(result);
+    }
+
+    /// <summary>
+    /// Crear una nueva pregunta frecuente (FAQ) en el sistema.
+    /// </summary>
+    /// <returns>Devuelve el resultado de la operación de creación de la FAQ.</returns>
+    [HttpDelete("DeleteFAQ/{id}")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteFAQ([FromRoute] int id)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
+        if (authResult != null) return authResult;
+
+        var result = await _soporteChatService.DeleteFAQ(id);
+        return HandleServiceResult(result);
+    }
+
+    /// <summary>
+    /// Crear una nueva pregunta frecuente (FAQ) en el sistema.
+    /// </summary>
+    /// <returns>Devuelve el resultado de la operación de creación de la FAQ.</returns>
+    [HttpGet("FAQ")]
+    [ProducesResponseType(typeof(ApiResponse<FAQs[]>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetFAQs()
+    {
+        var result = await _soporteChatService.GetAllFAQs();
         return HandleServiceResult(result);
     }
 }

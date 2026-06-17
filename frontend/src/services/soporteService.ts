@@ -1,6 +1,12 @@
 import api from '../lib/api';
 import type { ApiResponse } from './authService';
 
+export interface FAQsDTO {
+  id: number;
+  question: string;
+  response: string;
+}
+
 export interface SoporteChatMessageDTO {
   id: number;
   userCi: string;
@@ -43,4 +49,16 @@ export const soporteService = {
 
   setMessageStatus: (ci: string) =>
     api.put<ApiResponse<boolean>>(`/soporte/SetMessageStatus/${ci}`),
+
+  getFAQs: () =>
+    api.get<ApiResponse<FAQsDTO[]>>('/soporte/FAQ'),
+
+  createFAQ: (payload: FAQsDTO) =>
+    api.post<ApiResponse<boolean>>('/soporte/CreateFAQ', payload),
+
+  updateFAQ: (payload: FAQsDTO) =>
+    api.put<ApiResponse<boolean>>('/soporte/UpdateFAQ', payload),
+
+  deleteFAQ: (id: number) =>
+    api.delete<ApiResponse<boolean>>(`/soporte/DeleteFAQ/${id}`),
 };

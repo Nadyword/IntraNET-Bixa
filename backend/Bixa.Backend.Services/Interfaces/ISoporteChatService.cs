@@ -1,4 +1,5 @@
 using Bixa.Backend.Models.DTOs.SoporteChatModelDTO;
+using Bixa.Backend.Models.DTOs.FAQsDTO;
 using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.DataAccess.Models;
 using Bixa.Backend.Models.Response;
@@ -16,4 +17,12 @@ public interface ISoporteChatService
     Task<Result<List<SolicitudesChats>>> GetChatRequests();
 
     Task<Result<bool>> SetMessageStatus(string Ci);
+
+    Task<Result<bool>> CreateFAQ(FAQsDTO fAQs);
+
+    Task<Result<bool>> UpdateFAQ(FAQsDTO fAQs);
+
+    Task<Result<bool>> DeleteFAQ(int id);
+
+    Task<Result<FAQs[]>> GetAllFAQs();
 }

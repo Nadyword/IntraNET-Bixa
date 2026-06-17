@@ -565,3 +565,269 @@
   background-color: #d1e7dd;
   color: #0a3622;
 }
+
+/* Preguntas frecuentes */
+.faq-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+}
+
+.faq-header-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.faq-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  transition: box-shadow var(--transition);
+}
+
+.faq-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.faq-card-form {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.faq-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition);
+}
+
+.faq-card-header:hover {
+  background: var(--gray-50);
+}
+
+.faq-expand-icon {
+  font-size: 11px;
+  color: var(--red);
+  flex-shrink: 0;
+  width: 14px;
+}
+
+.faq-question-text {
+  flex: 1;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--black);
+}
+
+.faq-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.faq-action-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  border: 1.5px solid;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all var(--transition);
+}
+
+.faq-btn-edit {
+  color: var(--red);
+  border-color: var(--red);
+  background: transparent;
+}
+
+.faq-btn-edit:hover {
+  background: var(--red);
+  color: white;
+}
+
+.faq-btn-delete {
+  color: #c62828;
+  border-color: #c62828;
+  background: transparent;
+}
+
+.faq-btn-delete:hover {
+  background: #c62828;
+  color: white;
+}
+
+.faq-answer {
+  padding: 0 20px 18px 36px;
+  border-top: 1px solid var(--gray-100);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.faq-answer p {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--gray-600);
+  line-height: 1.6;
+}
+
+/* Formulario inline FAQ */
+.faq-form-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--black);
+  margin: 0;
+}
+
+.faq-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.faq-form-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+.faq-form-field input,
+.faq-form-field textarea {
+  padding: 10px 14px;
+  border: 1.5px solid var(--gray-100);
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--black);
+  background: var(--white);
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.faq-form-field input:focus,
+.faq-form-field textarea:focus {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(217, 26, 26, 0.10);
+}
+
+.faq-form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.faq-btn-save {
+  padding: 9px 22px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--red);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all var(--transition);
+}
+
+.faq-btn-save:hover {
+  background: var(--red-dark);
+  transform: translateY(-1px);
+}
+
+.faq-btn-cancel {
+  padding: 9px 22px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--gray-100);
+  background: white;
+  color: var(--gray-700);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all var(--transition);
+}
+
+.faq-btn-cancel:hover {
+  border-color: var(--gray-400);
+  color: var(--black);
+}
+
+/* Modal de confirmación de borrado */
+.faq-delete-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.faq-delete-modal {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.faq-delete-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--black);
+  margin: 0;
+}
+
+.faq-delete-desc {
+  font-size: 14px;
+  color: var(--gray-500);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.faq-delete-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.faq-btn-delete-confirm {
+  padding: 9px 22px;
+  border-radius: var(--radius);
+  border: none;
+  background: #c62828;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all var(--transition);
+}
+
+.faq-btn-delete-confirm:hover {
+  background: #a01e1e;
+  transform: translateY(-1px);
+}

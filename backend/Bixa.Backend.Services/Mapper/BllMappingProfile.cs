@@ -1,11 +1,12 @@
-﻿using Bixa.Backend.Models.DTOs.UserModelDTO;
+﻿using Bixa.Backend.Models.DTOs.SoporteChatModelDTO;
+using Bixa.Backend.Models.DTOs.UserModelDTO;
 using Bixa.Backend.DataAccess.Entities.DbProfit;
 using Bixa.Backend.Models.DTOs.UserRolDTO;
+using Bixa.Backend.Models.DTOs.FAQsDTO;
 using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.Models.Response;
 using System.Reflection;
 using AutoMapper;
-using Bixa.Backend.Models.DTOs.SoporteChatModelDTO;
 
 namespace Bixa.Backend.Services.Mapper;
 
@@ -88,6 +89,16 @@ public class BllMappingProfile : Profile
             .ReverseMap();
 
         #endregion SoporteChat Mappings
+
+        #region FAQs Mappings
+
+        CreateMap<FAQs, FAQsDTO>()
+            .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+            .ForMember(dest => dest.Question, opt => opt.MapFrom(src => src.Question))
+            .ForMember(dest => dest.Response, opt => opt.MapFrom(src => src.Response))
+            .ReverseMap();
+
+        #endregion FAQs Mappings
 
         #region ResultPaginated
 

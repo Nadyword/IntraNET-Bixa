@@ -15,46 +15,7 @@ interface TramiteHistorial {
 }
 
 const HISTORIAL: TramiteHistorial[] = [
-  {
-    id: 1,
-    tipoTramite: 'Vacaciones',
-    tipoIcon: '✈️',
-    detalle: '15 al 25 de Abril · 10 días',
-    fechaSolicitud: '01/04/2026',
-    fechaResolucion: '10/04/2026',
-    estado: 'finalizado',
-    comentario: 'Aprobado sin observaciones.',
-  },
-  {
-    id: 2,
-    tipoTramite: 'Permiso Especial',
-    tipoIcon: '📝',
-    detalle: '22 de Marzo · 2 horas',
-    fechaSolicitud: '18/03/2026',
-    fechaResolucion: '20/03/2026',
-    estado: 'archivado',
-    comentario: 'Permiso concedido y archivado por administración.',
-  },
-  {
-    id: 3,
-    tipoTramite: 'Préstamo Utilidades',
-    tipoIcon: '💳',
-    detalle: 'Monto solicitado: $500',
-    fechaSolicitud: '05/02/2026',
-    fechaResolucion: '12/02/2026',
-    estado: 'rechazado',
-    comentario: 'No cumple con los requisitos mínimos del período de antigüedad.',
-  },
-  {
-    id: 4,
-    tipoTramite: 'Constancia Laboral',
-    tipoIcon: '📄',
-    detalle: 'Para trámite bancario',
-    fechaSolicitud: '10/01/2026',
-    fechaResolucion: '13/01/2026',
-    estado: 'finalizado',
-    comentario: 'Documento generado y entregado.',
-  },
+
 ];
 
 const ESTADO_CONFIG: Record<EstadoHistorial, { label: string; className: string }> = {

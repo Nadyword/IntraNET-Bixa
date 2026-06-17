@@ -26,4 +26,31 @@ public interface ISoporteChatRepository
     /// <param name="Ci">El CI del agente que respondió los mensajes.</param>
     /// <returns>Devuelve un valor booleano que indica si la operación fue exitosa.</returns>
     Task<bool> SetMessageStatus(string Ci);
+
+    /// <summary>
+    /// Crear una nueva entrada de FAQ en la base de datos utilizando el objeto FAQs proporcionado.
+    /// </summary>
+    /// <param name="fAQs"></param>
+    /// <returns></returns>
+    Task<bool> CreateFAQ(FAQs fAQs);
+
+    /// <summary>
+    ///  Actualizar una entrada de FAQ existente en la base de datos utilizando el objeto FAQs proporcionado, identificando la entrada a actualizar por su ID o algún otro identificador único.
+    /// </summary>
+    /// <param name="fAQs"></param>
+    /// <returns></returns>
+    Task<bool> UpdateFAQ(FAQs fAQs);
+
+    /// <summary>
+    ///  Eliminar una entrada de FAQ de la base de datos utilizando el ID proporcionado para identificar la entrada a eliminar.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    Task<bool> DeleteFAQ(int id);
+
+    /// <summary>
+    /// Recuperar todas las entradas de FAQ de la base de datos y devolverlas como un array de objetos FAQs.
+    /// </summary>
+    /// <returns></returns>
+    Task<FAQs[]> GetAllFAQs();
 }

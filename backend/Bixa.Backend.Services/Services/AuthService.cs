@@ -186,11 +186,6 @@ public class AuthService(
     // Removed unused _lock field.
     public async Task<string> Refresh(Users user)
     {
-        if (string.IsNullOrWhiteSpace(user.RefreshToken))
-        {
-            return "Intento de refresco de token con token nulo o vacío.";
-        }
-
         try
         {
             if (user == null)

@@ -1,3 +1,4 @@
+using Bixa.Backend.DataAccess.Entities.Solicitudes;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Bixa.Backend.Models.Configurations;
 using Bixa.Backend.DataAccess.Entities;
@@ -5,21 +6,21 @@ using Bixa.Backend.DataAccess.Models;
 using Microsoft.EntityFrameworkCore;
 using Bixa.Backend.Models.Utilities;
 using Bixa.Backend.Models.Enums;
-using Bixa.Backend.DataAccess.Entities.Solicitudes;
 
 namespace Bixa.Backend.DataAccess.Context;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
+    public virtual DbSet<SolicitudVacaciones> SolicitudesVacaciones { get; set; }
+    public virtual DbSet<SolicitudesChats> SolicitudesChats { get; set; }
+    public virtual DbSet<SoporteChat> SoporteChats { get; set; }
+    public virtual DbSet<Aprobacion> Aprobaciones { get; set; }
+    public virtual DbSet<TipoTramite> TipoTramites { get; set; }
     public virtual DbSet<Notifications> Notifications { get; set; }
     public virtual DbSet<UserRol> UserRols { get; set; }
-    public virtual DbSet<Users> Users { get; set; }
-    public virtual DbSet<SoporteChat> SoporteChats { get; set; }
-    public virtual DbSet<SolicitudesChats> SolicitudesChats { get; set; }
-    public virtual DbSet<TipoTramite> TipoTramites { get; set; }
     public virtual DbSet<Tramite> Tramites { get; set; }
-    public virtual DbSet<Aprobacion> Aprobaciones { get; set; }
-    public virtual DbSet<SolicitudVacaciones> SolicitudesVacaciones { get; set; }
+    public virtual DbSet<Users> Users { get; set; }
+    public virtual DbSet<FAQs> FAQs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -317,6 +318,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .OnDelete(DeleteBehavior.Cascade);
 
         #endregion SolicitudVacaciones Entity Configuration
+
+        #region FAQs Entity Configuration
+
+        modelBuilder.Entity<FAQs>().HasKey(f => f.Id);
+        modelBuilder.Entity<FAQs>().Property(f => f.Id).ValueGeneratedOnAdd();
+        modelBuilder.Entity<FAQs>().Property(f => f.Question).IsRequired().HasMaxLength(ModelLengths.Description);
+        modelBuilder.Entity<FAQs>().Property(f => f.Response).IsRequired().HasMaxLength(ModelLengths.Description);
+
+        #endregion FAQs Entity Configuration
 
         #region BaseEntities Relationships Configuration (Auditoría)
 

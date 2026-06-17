@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { soporteService } from '../services/soporteService';
+import { soporteService, type FAQsDTO } from '../services/soporteService';
 import './ChatPage.css';
 
-// Normaliza el CI al formato 000.000.000 (igual que UtilityService.NormalizeCiFormat en el backend)
 function normalizeCi(ci: string): string {
   if (!ci?.trim()) return '';
   const trimmed = ci.trim();
@@ -47,7 +46,6 @@ const MessageTicks: React.FC<{ status: MessageStatus }> = ({ status }) => {
       </span>
     );
   }
-
   if (status === 'sent') {
     return (
       <span className="msg-ticks status-sent">
@@ -57,7 +55,6 @@ const MessageTicks: React.FC<{ status: MessageStatus }> = ({ status }) => {
       </span>
     );
   }
-
   if (status === 'delivered') {
     return (
       <span className="msg-ticks status-delivered">
@@ -68,7 +65,6 @@ const MessageTicks: React.FC<{ status: MessageStatus }> = ({ status }) => {
       </span>
     );
   }
-
   if (status === 'read') {
     return (
       <span className="msg-ticks status-read">
@@ -79,7 +75,6 @@ const MessageTicks: React.FC<{ status: MessageStatus }> = ({ status }) => {
       </span>
     );
   }
-
   return null;
 };
 
@@ -104,18 +99,34 @@ const shouldShowDate = (messages: ChatMessage[], index: number): boolean => {
 
 export const ChatPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
+
+  // Estado FAQs
+  const [faqs, setFaqs] = useState<FAQsDTO[]>([]);
+  const [faqsLoading, setFaqsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Estado chat popup
+  const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const nextIdRef = useRef(1);
 
   useEffect(() => {
-    if (!user?.ci) return;
-    // CI del usuario logueado, normalizado igual que el backend
-    const userCiNorm = normalizeCi(user.ci);
+    soporteService.getFAQs()
+      .then(({ data: res }) => {
+        if (res.success) setFaqs(res.data ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setFaqsLoading(false));
+  }, []);
 
+  useEffect(() => {
+    if (!showChat || !user?.ci) return;
+    const userCiNorm = normalizeCi(user.ci);
+    setIsLoading(true);
     soporteService.getHistoriChat(user.ci)
       .then(({ data: res }) => {
         if (res.success && Array.isArray(res.data)) {
@@ -137,7 +148,7 @@ export const ChatPage: React.FC = () => {
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));
-  }, [user?.ci]);
+  }, [showChat, user?.ci]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -146,12 +157,9 @@ export const ChatPage: React.FC = () => {
   const handleSend = async () => {
     const text = inputValue.trim();
     if (!text || !user?.ci || isSending) return;
-
     setIsSending(true);
     setInputValue('');
-
     const msgId = nextIdRef.current++;
-
     setMessages(prev => [...prev, {
       id: msgId,
       content: text,
@@ -159,17 +167,10 @@ export const ChatPage: React.FC = () => {
       status: 'sending',
       timestamp: new Date(),
     }]);
-
     try {
-      const { data: res } = await soporteService.sendMessage({
-        userCi: user.ci,
-        message: text,
-      });
-
+      const { data: res } = await soporteService.sendMessage({ userCi: user.ci, message: text });
       if (res.success) {
-        setMessages(prev =>
-          prev.map(m => m.id === msgId ? { ...m, status: 'delivered' } : m),
-        );
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, status: 'delivered' } : m));
       } else {
         setMessages(prev => prev.filter(m => m.id !== msgId));
         setInputValue(text);
@@ -189,86 +190,140 @@ export const ChatPage: React.FC = () => {
     }
   };
 
+  const filteredFaqs = faqs.filter(faq =>
+    faq.question.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="support-chat-page">
-      <div className="support-chat-container">
+    <div className="support-page">
 
-        {/* Header */}
-        <div className="support-chat-header">
-          <div className="support-avatar">💬</div>
-          <div className="support-info">
-            <span className="support-name-description">Todos los mensajes podran ser leidos y respondidos por cualquier miembro del equipo de Soporte.</span>
-            <span className="support-name">Soporte BIXA</span>
-            <span className="support-status">
-              <><span className="online-dot" />En línea</>
-            </span>
-          </div>
+      {/* ── Encabezado ── */}
+      <div className="support-page-header">
+        <div className="support-page-title">
+          <h1>Centro de Ayuda</h1>
+          <p>Encuentra respuestas a las preguntas más frecuentes</p>
         </div>
+        <button className="support-open-chat-btn" onClick={() => setShowChat(true)}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+          </svg>
+          Hablar con soporte
+        </button>
+      </div>
 
-        {/* Área de mensajes */}
-        <div className="messages-area">
-          {isLoading ? (
-            <div className="chat-loading">Cargando historial...</div>
-          ) : messages.length === 0 ? (
-            <div className="msg-row from-agent">
-              <div className="msg-bubble">
-                <span className="msg-agent-label">Soporte BIXA</span>
-                <p className="msg-text">¡Hola! Bienvenido al canal de Soporte BIXA. Este es un canal de mensajería con el equipo de Soporte BIXA.</p>
-                <div className="msg-footer">
-                  <span className="msg-time">{formatTime(new Date())}</span>
-                </div>
-              </div>
+      {/* ── Buscador ── */}
+      <div className="support-search-wrap">
+        <svg className="support-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input
+          type="text"
+          className="support-search-input"
+          placeholder="Buscar pregunta..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
+      {/* ── Grid de FAQs ── */}
+      {faqsLoading && <p className="support-faq-loading">Cargando preguntas frecuentes...</p>}
+
+      {!faqsLoading && filteredFaqs.length === 0 && (
+        <p className="support-faq-empty">
+          {searchQuery.trim() ? 'No se encontraron preguntas para esa búsqueda.' : 'No hay preguntas frecuentes registradas.'}
+        </p>
+      )}
+
+      {!faqsLoading && filteredFaqs.length > 0 && (
+        <div className="support-faq-grid">
+          {filteredFaqs.map((faq) => (
+            <div key={faq.id} className="support-faq-card">
+              <p className="support-faq-question">{faq.question}</p>
+              <p className="support-faq-response">{faq.response}</p>
             </div>
-          ) : (
-            messages.map((msg, idx) => (
-              <React.Fragment key={msg.id}>
-                {shouldShowDate(messages, idx) && (
-                  <div className="date-separator">
-                    <span>{formatDateLabel(msg.timestamp)}</span>
-                  </div>
-                )}
-                <div className={`msg-row ${msg.isFromUser ? 'from-user' : 'from-agent'}`}>
+          ))}
+        </div>
+      )}
+
+      {/* ── Popup del chat ── */}
+      {showChat && (
+        <div className="support-chat-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowChat(false); }}>
+          <div className="support-chat-container">
+
+            <div className="support-chat-header">
+              <div className="support-avatar">💬</div>
+              <div className="support-info">
+                <span className="support-name-description">Todos los mensajes podrán ser leídos y respondidos por cualquier miembro del equipo de Soporte.</span>
+                <span className="support-name">Soporte BIXA</span>
+                <span className="support-status">
+                  <span className="online-dot" />En línea
+                </span>
+              </div>
+              <button className="support-chat-close" onClick={() => setShowChat(false)} aria-label="Cerrar chat">✕</button>
+            </div>
+
+            <div className="messages-area">
+              {isLoading ? (
+                <div className="chat-loading">Cargando historial...</div>
+              ) : messages.length === 0 ? (
+                <div className="msg-row from-agent">
                   <div className="msg-bubble">
-                    {!msg.isFromUser && (
-                      <span className="msg-agent-label">{msg.agentName}</span>
-                    )}
-                    <p className="msg-text">{msg.content}</p>
+                    <span className="msg-agent-label">Soporte BIXA</span>
+                    <p className="msg-text">¡Hola! Bienvenido al canal de Soporte BIXA. Este es un canal de mensajería con el equipo de Soporte BIXA.</p>
                     <div className="msg-footer">
-                      <span className="msg-time">{formatTime(msg.timestamp)}</span>
-                      {msg.isFromUser && <MessageTicks status={msg.status} />}
+                      <span className="msg-time">{formatTime(new Date())}</span>
                     </div>
                   </div>
                 </div>
-              </React.Fragment>
-            ))
-          )}
+              ) : (
+                messages.map((msg, idx) => (
+                  <React.Fragment key={msg.id}>
+                    {shouldShowDate(messages, idx) && (
+                      <div className="date-separator">
+                        <span>{formatDateLabel(msg.timestamp)}</span>
+                      </div>
+                    )}
+                    <div className={`msg-row ${msg.isFromUser ? 'from-user' : 'from-agent'}`}>
+                      <div className="msg-bubble">
+                        {!msg.isFromUser && <span className="msg-agent-label">{msg.agentName}</span>}
+                        <p className="msg-text">{msg.content}</p>
+                        <div className="msg-footer">
+                          <span className="msg-time">{formatTime(msg.timestamp)}</span>
+                          {msg.isFromUser && <MessageTicks status={msg.status} />}
+                        </div>
+                      </div>
+                    </div>
+                  </React.Fragment>
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </div>
 
-          <div ref={messagesEndRef} />
+            <div className="support-chat-input-area">
+              <input
+                type="text"
+                className="support-msg-input"
+                placeholder="Escribe un mensaje..."
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              <button
+                className="support-send-btn"
+                onClick={handleSend}
+                disabled={!inputValue.trim() || isSending}
+                aria-label="Enviar mensaje"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                </svg>
+              </button>
+            </div>
+
+          </div>
         </div>
+      )}
 
-        {/* Área de entrada */}
-        <div className="support-chat-input-area">
-          <input
-            type="text"
-            className="support-msg-input"
-            placeholder="Escribe un mensaje..."
-            value={inputValue}
-            onChange={e => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <button
-            className="support-send-btn"
-            onClick={handleSend}
-            disabled={!inputValue.trim() || isSending}
-            aria-label="Enviar mensaje"
-          >
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-            </svg>
-          </button>
-        </div>
-
-      </div>
     </div>
   );
 };

@@ -100,4 +100,34 @@ public class SoporteChatRepository(AppDbContext dbContext) : ISoporteChatReposit
             .ExecuteUpdateAsync(s => s.SetProperty(sc => sc.IsRead, true));
         return true;
     }
+
+    public async Task<bool> CreateFAQ(FAQs fAQs)
+    {
+        await _context.FAQs.AddAsync(fAQs);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> UpdateFAQ(FAQs fAQs)
+    {
+        var existingFAQ = await _context.FAQs.FindAsync(fAQs.Id);
+        if (existingFAQ == null) return false;
+        existingFAQ.Question = fAQs.Question;
+        existingFAQ.Response = fAQs.Response;
+        _context.FAQs.Update(existingFAQ);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> DeleteFAQ(int id)
+    {
+        var existingFAQ = await _context.FAQs.FindAsync(id);
+        if (existingFAQ == null) return false;
+        _context.FAQs.Remove(existingFAQ);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<FAQs[]> GetAllFAQs() =>
+        await _context.FAQs.ToArrayAsync();
 }

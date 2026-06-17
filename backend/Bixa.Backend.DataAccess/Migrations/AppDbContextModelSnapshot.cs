@@ -71,6 +71,40 @@ namespace Bixa.Backend.DataAccess.Migrations
                     b.ToTable("Aprobaciones");
                 });
 
+            modelBuilder.Entity("Bixa.Backend.DataAccess.Entities.FAQs", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedByCi")
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Response")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModifiedByCi");
+
+                    b.ToTable("FAQs");
+                });
+
             modelBuilder.Entity("Bixa.Backend.DataAccess.Entities.Notifications", b =>
                 {
                     b.Property<int>("Id")
@@ -406,7 +440,7 @@ namespace Bixa.Backend.DataAccess.Migrations
                             IdUserRol = 1,
                             IsActive = true,
                             LastName = "MATHEUS",
-                            PasswordHash = "6n6SwrZf48UTEsrxT17QQ53bIe3xGLq+mqTYJiK9OpPiI3IlMy+B+n9ZVsFF9u15",
+                            PasswordHash = "oXpapXUsD3yTb8VGpIYCwSmdx+oL4WRkyrgia6+HAuxBUquQ8r39kP8NiQYkaJqD",
                             UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         });
                 });
@@ -460,6 +494,18 @@ namespace Bixa.Backend.DataAccess.Migrations
                     b.Navigation("ModifiedUser");
 
                     b.Navigation("Tramite");
+                });
+
+            modelBuilder.Entity("Bixa.Backend.DataAccess.Entities.FAQs", b =>
+                {
+                    b.HasOne("Bixa.Backend.DataAccess.Entities.Users", "ModifiedUser")
+                        .WithMany()
+                        .HasForeignKey("ModifiedByCi")
+                        .HasPrincipalKey("Ci")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_FAQs_ModifiedUser");
+
+                    b.Navigation("ModifiedUser");
                 });
 
             modelBuilder.Entity("Bixa.Backend.DataAccess.Entities.Notifications", b =>

@@ -1,10 +1,11 @@
 ﻿using Bixa.Backend.Models.DTOs.SoporteChatModelDTO;
 using Bixa.Backend.DataAccess.Interfaces.Repositories;
+using Bixa.Backend.Models.DTOs.FAQsDTO;
 using Bixa.Backend.DataAccess.Entities;
+using Bixa.Backend.DataAccess.Models;
 using Bixa.Backend.Services.Interfaces;
 using Bixa.Backend.Models.Response;
 using AutoMapper;
-using Bixa.Backend.DataAccess.Models;
 
 namespace Bixa.Backend.Services.Services;
 
@@ -23,14 +24,14 @@ public class SoporteChatService(
     private readonly ISoporteChatRepository _soporteChatRepository = soporteChatRepository;
     private readonly IMapper _mapper = mapper;
 
-    public Task<Result<string>> AddNewAnswerAsync(SoporteChatRDTO soporte)
+    public async Task<Result<string>> AddNewAnswerAsync(SoporteChatRDTO soporte)
     {
         soporte.UserCi = UtilityService.NormalizeCiFormat(soporte.UserCi);
         if (!string.IsNullOrEmpty(soporte.RespondidoPorCi))
             soporte.RespondidoPorCi = UtilityService.NormalizeCiFormat(soporte.RespondidoPorCi);
         SoporteChat newMensajeUser = _mapper.Map<SoporteChat>(soporte);
 
-        return _soporteChatRepository.AddNewAnswerAsync(newMensajeUser).ContinueWith(task =>
+        return await _soporteChatRepository.AddNewAnswerAsync(newMensajeUser).ContinueWith(task =>
         {
             if (task.IsFaulted)
             {
@@ -70,9 +71,49 @@ public class SoporteChatService(
         return Result.Success(result);
     }
 
-    public Task<Result<bool>> SetMessageStatus(string Ci)
+    public async Task<Result<bool>> SetMessageStatus(string Ci)
     {
-        var result = _soporteChatRepository.SetMessageStatus(UtilityService.NormalizeCiFormat(Ci));
-        return Task.FromResult(Result.Success(result.Result));
+        var result = await _soporteChatRepository.SetMessageStatus(UtilityService.NormalizeCiFormat(Ci));
+        return Result.Success(result);
+    }
+
+    public async Task<Result<bool>> CreateFAQ(FAQsDTO fAQs)
+    {
+        var result = await _soporteChatRepository.CreateFAQ(_mapper.Map<FAQs>(fAQs));
+        if (!result)
+        {
+            return Result.Fail<bool>("Failed to create FAQ.");
+        }
+        return Result.Success(true);
+    }
+
+    public async Task<Result<bool>> UpdateFAQ(FAQsDTO fAQs)
+    {
+        var result = _soporteChatRepository.UpdateFAQ(_mapper.Map<FAQs>(fAQs));
+        if (!result.Result)
+        {
+            return Result.Fail<bool>("Failed to update FAQ.");
+        }
+        return Result.Success(true);
+    }
+
+    public async Task<Result<bool>> DeleteFAQ(int id)
+    {
+        var result = await _soporteChatRepository.DeleteFAQ(id);
+        if (!result)
+        {
+            return Result.Fail<bool>("Failed to delete FAQ.");
+        }
+        return Result.Success(true);
+    }
+
+    public async Task<Result<FAQs[]>> GetAllFAQs()
+    {
+        var result = await _soporteChatRepository.GetAllFAQs();
+        if (result == null || result.Length == 0)
+        {
+            return Result.Fail<FAQs[]>("No FAQs found.");
+        }
+        return Result.Success(result);
     }
 }
