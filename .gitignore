@@ -34,4 +34,4 @@ dist-ssr
 /backend/Bixa.Backend.Services/bin
 /backend/Bixa.Backend.Models/obj
 /backend/Bixa.Backend.Models/bin
-/backend/Bixa.Backend.DataAccess/Migrations
+backend/Bixa.Backend.DataAccess/Migrations
