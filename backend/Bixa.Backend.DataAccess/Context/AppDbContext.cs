@@ -228,7 +228,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         #region TipoTramite Entity Configuration
 
-        modelBuilder.Entity<TipoTramite>().ToTable("TipoTramite");
         modelBuilder.Entity<TipoTramite>().HasKey(tt => tt.Id);
         modelBuilder.Entity<TipoTramite>().Property(tt => tt.Id).ValueGeneratedOnAdd();
         modelBuilder.Entity<TipoTramite>().Property(tt => tt.Nombre).IsRequired().HasMaxLength(ModelLengths.Name);
