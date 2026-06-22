@@ -105,13 +105,58 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             new ()
             {
-                Id = 74,
+                Id = 1,
                 PasswordHash = Hasher.HashPassword("Sa753951."),
                 FirstName = "MAGLENY",
                 LastName = "MATHEUS",
                 IsActive = true,
                 Ci = "10.486.165",
                 IdUserRol = (int)UserRolEnum.Administrador,
+                CreatedAt = new DateTime(2025, 1, 1),
+                UpdatedAt = new DateTime(2025, 1, 1),
+                ModifiedByCi = null,
+                RefreshToken = null,
+                RefreshTokenDate = null
+            },
+            new ()
+            {
+                Id = 2,
+                PasswordHash = Hasher.HashPassword("Sa753951."),
+                FirstName = "ROBERTO JOSE",
+                LastName = "ESPINOZA MARMOL",
+                IsActive = true,
+                Ci = "10.508.836",
+                IdUserRol = (int)UserRolEnum.Supervisor,
+                CreatedAt = new DateTime(2025, 1, 1),
+                UpdatedAt = new DateTime(2025, 1, 1),
+                ModifiedByCi = null,
+                RefreshToken = null,
+                RefreshTokenDate = null
+            },
+            new ()
+            {
+                Id = 3,
+                PasswordHash = Hasher.HashPassword("Sa753951."),
+                FirstName = "RICARDO",
+                LastName = "RUEDA ALONSO",
+                IsActive = true,
+                Ci = "3.666.186",
+                IdUserRol = (int)UserRolEnum.Administrador,
+                CreatedAt = new DateTime(2025, 1, 1),
+                UpdatedAt = new DateTime(2025, 1, 1),
+                ModifiedByCi = null,
+                RefreshToken = null,
+                RefreshTokenDate = null
+            },
+            new ()
+            {
+                Id = 4,
+                PasswordHash = Hasher.HashPassword("Sa753951."),
+                FirstName = "ELAIDER MARILYN",
+                LastName = "ALVAREZ RAMIREZ",
+                IsActive = true,
+                Ci = "20.603.146",
+                IdUserRol = (int)UserRolEnum.Empleado,
                 CreatedAt = new DateTime(2025, 1, 1),
                 UpdatedAt = new DateTime(2025, 1, 1),
                 ModifiedByCi = null,

@@ -31,4 +31,8 @@
     <ProjectReference Include="..\Bixa.Backend.Models\Bixa.Backend.Models.csproj" />    
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
+
 </Project>

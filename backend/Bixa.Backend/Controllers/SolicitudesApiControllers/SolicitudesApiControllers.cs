@@ -28,19 +28,19 @@ public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
 {
     private readonly ISolicitudesService _solicitudesService = solicitudesService;
 
-    ///// <summary>
-    ///// Registra una nueva solicitud de vacaciones en el sistema.
-    ///// </summary>
-    ///// <param name="solicitud">El objeto SolicVacacionesDTO que contiene la información de la solicitud.</param>
-    ///// <returns>Guarda una nueva solicitud de vacaciones en el sistema.</returns>
-    //[HttpPost("Vacaciones")]
-    //[ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
-    //[ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    //[ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
-    //[ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    //public async Task<IActionResult> SolicVacaciones([FromBody] SolicVacacionesDTO solicitud)
-    //{
-    //    var result = await _solicitudesService.AddNewSolicitudAsync(solicitud);
-    //    return HandleServiceResult(result);
-    //}
+    /// <summary>
+    /// Registra una nueva solicitud de vacaciones en el sistema.
+    /// </summary>
+    /// <param name="solicitud">El objeto SolicVacacionesDTO que contiene la información de la solicitud.</param>
+    /// <returns>Guarda una nueva solicitud de vacaciones en el sistema.</returns>
+    [HttpPost("Vacaciones")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SolicVacaciones([FromBody] SolicVacacionesDTO solicitud)
+    {
+        var result = await _solicitudesService.SolicVacacionesAsync(solicitud);
+        return HandleServiceResult(result);
+    }
 }

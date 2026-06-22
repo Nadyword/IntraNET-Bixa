@@ -41,10 +41,17 @@ interface FormMonto {
 
 function calcularDias(inicio: string, fin: string): number {
   if (!inicio || !fin) return 0;
-  const d1 = new Date(inicio);
-  const d2 = new Date(fin);
-  const diff = Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  return diff > 0 ? diff : 0;
+  const d1 = new Date(inicio + 'T00:00:00');
+  const d2 = new Date(fin + 'T00:00:00');
+  if (d2 < d1) return 0;
+  let count = 0;
+  const current = new Date(d1);
+  while (current <= d2) {
+    const day = current.getDay();
+    if (day !== 0 && day !== 6) count++;
+    current.setDate(current.getDate() + 1);
+  }
+  return count;
 }
 
 export const NuevaSolicitudModal: React.FC<Props> = ({ onClose }) => {
@@ -200,9 +207,9 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose }) => {
                   </div>
                 </div>
 
-                {dias > 0 && (
+                {vacaciones.fechaInicio && vacaciones.fechaFin && (
                   <div className="ns-dias-badge">
-                    📅 {dias} {dias === 1 ? 'día' : 'días'} solicitados
+                    📅 Días de disfrute: <strong>{dias}</strong>
                   </div>
                 )}
 
