@@ -1,11 +1,13 @@
-﻿using Bixa.Backend.Models.DTOs.SolicitudesModelDTO;
-using Bixa.Backend.DataAccess.Wrappers;
-using Microsoft.AspNetCore.Authorization;
-using Bixa.Backend.Services.Interfaces;
-using Microsoft.AspNetCore.Mvc;
-using Bixa.Backend.Models;
+﻿using AutoMapper;
 using Bixa.Backend.Base;
-using AutoMapper;
+using Bixa.Backend.DataAccess.Models;
+using Bixa.Backend.DataAccess.Wrappers;
+using Bixa.Backend.Models;
+using Bixa.Backend.Models.DTOs.SolicitudesModelDTO;
+using Bixa.Backend.Models.Enums;
+using Bixa.Backend.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Bixa.Backend.Controllers.SolicitudesApiControllers;
 
@@ -40,7 +42,91 @@ public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> SolicVacaciones([FromBody] SolicVacacionesDTO solicitud)
     {
-        var result = await _solicitudesService.SolicVacacionesAsync(solicitud);
+        var result = await _solicitudesService.AddSolicitudVacaciones(solicitud);
+        return HandleServiceResult(result);
+    }
+
+    ///// <summary>
+    ///// Obtiene todos los tramites de un usuario específico, identificados por su CI.
+    ///// </summary>
+    ///// <param name="ci">El CI del usuario para obtener sus trámites.</param>
+    ///// <returns>Obtiene todos los trámites de un usuario específico.</returns>
+    [HttpGet("{ci}")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetTramitesByCi(string ci)
+    {
+        var result = await _solicitudesService.GetTramitesByCi(ci);
+        return HandleServiceResult(result);
+    }
+
+    ///// <summary>
+    ///// Obtiene todos los tramites que no estén finalizados.
+    ///// </summary>
+    ///// <param name="ci">El CI del usuario para obtener sus trámites.</param>
+    ///// <returns>Obtiene todos los trámites de un usuario específico.</returns>
+    [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAllTramites()
+    {
+        var result = await _solicitudesService.GetAllTramites();
+        return HandleServiceResult(result);
+    }
+
+    ///// <summary>
+    ///// Obtiene todos los tramites que no estén finalizados.
+    ///// </summary>
+    ///// <param name="ci">El CI del usuario para obtener sus trámites.</param>
+    ///// <returns>Obtiene todos los trámites de un usuario específico.</returns>
+    [HttpGet("PorAprobarByCi/{ci}")]
+    [ProducesResponseType(typeof(ApiResponse<PorAprobar>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetTramitesForAprobacion(string ci)
+    {
+        var result = await _solicitudesService.GetTramitesForAprobacion(ci);
+        return HandleServiceResult(result);
+    }
+
+    ///// <summary>
+    ///// Obtiene todos los tramites que no estén finalizados.
+    ///// </summary>
+    ///// <param name="ci">El CI del usuario para obtener sus trámites.</param>
+    ///// <returns>Obtiene todos los trámites de un usuario específico.</returns>
+    [HttpGet("Aprobaciones/{tramiteId}")]
+    [ProducesResponseType(typeof(ApiResponse<AprobacionDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAprobacionesByTramiteId(int tramiteId)
+    {
+        var result = await _solicitudesService.GetAprobacionesByTramiteId(tramiteId);
+        return HandleServiceResult(result);
+    }
+
+    ///// <summary>
+    ///// Aprueba un trámite específico, identificado por su ID, y registra la aprobación en el sistema.
+    ///// </summary>
+    ///// <param name="ci">El CI del usuario que aprueba el trámite.</param>
+    ///// <param name="estado">El estado de la aprobación.</param>
+    ///// <returns>Un resultado indicando si la operación fue exitosa o no.</returns>
+    [HttpPut("Aprobar/{tramiteId}/{ci}/{estado}")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> AprobarTramite(int tramiteId, string ci, int estado)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Supervisor);
+        if (authResult != null) return authResult;
+
+        var result = await _solicitudesService.AprobarTramite(tramiteId, ci, estado);
         return HandleServiceResult(result);
     }
 }

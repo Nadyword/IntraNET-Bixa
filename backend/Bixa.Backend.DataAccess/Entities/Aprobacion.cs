@@ -9,6 +9,7 @@ public class Aprobacion : BaseEntities
     public required string AprobadorCi { get; set; }
     public int Orden { get; set; }
     public EstadoAprobacionEnum Estado { get; set; }
+    public string? Nombre { get; set; }
     public string? Comentario { get; set; }
     public DateTime? FechaRespuesta { get; set; }
 

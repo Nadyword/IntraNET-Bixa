@@ -113,17 +113,21 @@ internal static class ProfitSqlTemplates
 """;
 
     internal const string GetListAprovadoresByCi = """
+    IF OBJECT_ID('tempdb..#EmpleadosTemp') IS NOT NULL
+        DROP TABLE #EmpleadosTemp;
+
     CREATE TABLE #EmpleadosTemp (
-        orden INT IDENTITY(1,1),
+        nombre varchar(100) NOT NULL,
         ci char(15) NOT NULL
     );
+
     DECLARE @Ci char(20) = '@ci';
     DECLARE @supervisor char(15);
     DECLARE @contador BIT = 0;
     WHILE (@contador = 0)
     BEGIN
         SET @supervisor = (SELECT supervisor FROM snemple WHERE ci = @Ci);
-        INSERT INTO #EmpleadosTemp ( ci )  SELECT ci FROM snemple WHERE cod_emp = @supervisor;
+        INSERT INTO #EmpleadosTemp ( ci, nombre)  SELECT ci, nombre_completo FROM snemple WHERE cod_emp = @supervisor;
 
         IF (@supervisor IS NULL)
         BEGIN
@@ -133,5 +137,14 @@ internal static class ProfitSqlTemplates
     END
     SELECT * FROM #EmpleadosTemp;
     DROP TABLE #EmpleadosTemp;
+    """;
+
+    internal const string GetTramitesForAprobacion = """
+        SELECT
+        	TramiteId, AprobadorCi, Orden, Comentario, TipoTramiteId, u.FirstName, u.LastName
+        FROM Aprobaciones a
+        INNER JOIN Tramites t ON a.TramiteId = t.Id
+        INNER JOIN Users u ON t.UserCi = u.Ci
+        WHERE AprobadorCi = '@ci'
     """;
 }

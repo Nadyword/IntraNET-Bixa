@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import './NuevaSolicitudModal.css';
+import api from '../../lib/api';
+import { useAuthStore } from '../../store/authStore';
 
 interface Props {
   onClose: () => void;
@@ -39,6 +41,15 @@ interface FormMonto {
   observaciones: string;
 }
 
+function fechaLocalHoy(): string {
+  const d = new Date();
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
 function calcularDias(inicio: string, fin: string): number {
   if (!inicio || !fin) return 0;
   const d1 = new Date(inicio + 'T00:00:00');
@@ -55,8 +66,11 @@ function calcularDias(inicio: string, fin: string): number {
 }
 
 export const NuevaSolicitudModal: React.FC<Props> = ({ onClose }) => {
+  const user = useAuthStore((s) => s.user);
   const [tipo, setTipo] = useState<TipoTramite | null>(null);
   const [enviado, setEnviado] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [vacaciones, setVacaciones] = useState<FormVacaciones>({
@@ -74,7 +88,9 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose }) => {
     const errs: Record<string, string> = {};
 
     if (tipo === 'vacaciones') {
+      const hoy = fechaLocalHoy();
       if (!vacaciones.fechaInicio) errs.fechaInicio = 'Requerido';
+      else if (vacaciones.fechaInicio < hoy) errs.fechaInicio = 'La fecha de inicio no puede ser anterior a hoy';
       if (!vacaciones.fechaFin) errs.fechaFin = 'Requerido';
       if (vacaciones.fechaInicio && vacaciones.fechaFin && vacaciones.fechaFin < vacaciones.fechaInicio)
         errs.fechaFin = 'La fecha de fin debe ser posterior al inicio';
@@ -91,32 +107,34 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose }) => {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tipo || !validate()) return;
 
-    const tipoConfig = TIPOS.find((t) => t.id === tipo)!;
+    setSubmitError(null);
 
-    // TODO: conectar con backend — POST /api/tramites
-    const payload = {
-      tipoTramiteId: tipoConfig.enumId,
-      ...(tipo === 'vacaciones' && {
-        fechaInicio: vacaciones.fechaInicio,
-        fechaFin: vacaciones.fechaFin,
-        diasTotales: vacaciones.diasTotales,
-        observaciones: vacaciones.observaciones || null,
-      }),
-      ...(tipo === 'diaEspecial' && {
-        fecha: diaEspecial.fecha,
-        motivo: diaEspecial.motivo,
-      }),
-      ...((tipo === 'utilidades' || tipo === 'sociales' || tipo === 'prestaciones') && {
-        monto: Number(monto.monto),
-        observaciones: monto.observaciones || null,
-      }),
-    };
-    console.log('[NuevaSolicitud] payload:', payload);
+    if (tipo === 'vacaciones') {
+      setIsLoading(true);
+      try {
+        const payload = {
+          ci: user?.ci ?? '',
+          fechaInicio: vacaciones.fechaInicio,
+          fechaFin: vacaciones.fechaFin,
+          diasTotales: calcularDias(vacaciones.fechaInicio, vacaciones.fechaFin),
+          observaciones: vacaciones.observaciones || null,
+        };
+        await api.post('/solicitudes/Vacaciones', payload);
+        setEnviado(true);
+      } catch (err: any) {
+        const msg = err?.response?.data?.message ?? 'Error al enviar la solicitud. Intenta de nuevo.';
+        setSubmitError(msg);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
 
+    // Resto de tipos — pendientes de conectar
     setEnviado(true);
   };
 
@@ -175,6 +193,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose }) => {
                     <input
                       type="date"
                       value={vacaciones.fechaInicio}
+                      min={fechaLocalHoy()}
                       onChange={(e) => {
                         const val = e.target.value;
                         setVacaciones((v) => ({
@@ -281,12 +300,14 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose }) => {
               </>
             )}
 
+            {submitError && <p className="ns-error ns-submit-error">{submitError}</p>}
+
             <div className="ns-actions">
-              <button type="button" className="ns-btn-secondary" onClick={onClose}>
+              <button type="button" className="ns-btn-secondary" onClick={onClose} disabled={isLoading}>
                 Cancelar
               </button>
-              <button type="submit" className="ns-btn-primary">
-                Enviar solicitud
+              <button type="submit" className="ns-btn-primary" disabled={isLoading}>
+                {isLoading ? 'Enviando...' : 'Enviar solicitud'}
               </button>
             </div>
           </form>

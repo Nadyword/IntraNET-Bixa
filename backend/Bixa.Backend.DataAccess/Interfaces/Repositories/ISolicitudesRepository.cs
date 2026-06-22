@@ -1,6 +1,6 @@
-﻿using Bixa.Backend.DataAccess.Entities;
-using Bixa.Backend.DataAccess.Entities.Solicitudes;
-using Microsoft.EntityFrameworkCore;
+﻿using Bixa.Backend.DataAccess.Entities.Solicitudes;
+using Bixa.Backend.DataAccess.Entities;
+using Bixa.Backend.DataAccess.Models;
 
 namespace Bixa.Backend.DataAccess.Interfaces.Repositories;
 
@@ -10,8 +10,8 @@ public interface ISolicitudesRepository
     /// Lista de las personas que tienen que aprobar la solicitud de permiso de un usuario, identificada por su CI.
     /// </summary>
     /// <param name="ci">La cédula de identidad del usuario.</param>
-    /// <returns>Una lista de nombres de los aprobadores.</returns>
-    Task<List<string>> GetAprovadoresPermisosByCi(string ci);
+    /// <returns>Una lista de aprobadores con nombre y cédula.</returns>
+    Task<List<AprobadorPermisoInfo>> GetAprovadoresPermisosByCi(string ci);
 
     /// <summary>
     /// Agrega una nueva solicitud de vacaciones a la base de datos.
@@ -24,6 +24,13 @@ public interface ISolicitudesRepository
     /// Agrega un nuevo trámite a la base de datos.
     /// </summary>
     /// <param name="tramite"></param>
-    /// <returns></returns>
-    Task<bool> AddNewTramite(Tramite tramite);
+    /// <returns>Id trámite</returns>
+    Task<int> AddNewTramite(Tramite tramite);
+
+    /// <summary>
+    /// Agrega una aprobación para un trámite a la base de datos.
+    /// </summary>
+    /// <param name="aprobaciones">La aprobación a agregar.</param>
+    /// <returns>El número de aprobaciones agregadas.</returns>
+    Task<int> AddAprobaciones(Aprobacion aprobaciones);
 }

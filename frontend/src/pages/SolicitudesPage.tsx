@@ -1,113 +1,101 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '../store/authStore';
+import api from '../lib/api';
 import './SolicitudesPage.css';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface PorAprobarAPI {
+  tramiteId: number;
+  aprobadorCi: string;
+  orden: number;
+  comentario?: string;
+  tipoTramiteId: number;
+  firstName?: string;
+  lastName?: string;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  statusCode: number;
+}
 
 type TabType = 'porAprobar' | 'enEspera';
 
-interface SolicitudPendiente {
-  id: number;
-  empleadoNombre: string;
-  empleadoCi: string;
-  tipoTramite: string;
-  tipoIcon: string;
-  fechaSolicitud: string;
-  detalle: string;
-}
-
 interface AccionModal {
-  solicitud: SolicitudPendiente;
+  item: PorAprobarAPI;
   accion: 'aprobar' | 'rechazar';
 }
 
-const SOLICITUDES_POR_APROBAR: SolicitudPendiente[] = [
-  {
-    id: 1,
-    empleadoNombre: 'Juan Pérez',
-    empleadoCi: '12.345.678',
-    tipoTramite: 'Vacaciones',
-    tipoIcon: '✈️',
-    fechaSolicitud: '01/05/2026',
-    detalle: '15 al 25 de Mayo · 10 días',
-  },
-  {
-    id: 2,
-    empleadoNombre: 'María García',
-    empleadoCi: '9.876.543',
-    tipoTramite: 'Día Especial',
-    tipoIcon: '📝',
-    fechaSolicitud: '18/04/2026',
-    detalle: '30 de Abril · Cita médica',
-  },
-  {
-    id: 3,
-    empleadoNombre: 'Carlos Rodríguez',
-    empleadoCi: '15.234.567',
-    tipoTramite: 'Préstamo Utilidades',
-    tipoIcon: '💳',
-    fechaSolicitud: '10/04/2026',
-    detalle: 'Monto solicitado: $800',
-  },
-];
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-const SOLICITUDES_EN_ESPERA: SolicitudPendiente[] = [
-  {
-    id: 4,
-    empleadoNombre: 'Ana Martínez',
-    empleadoCi: '8.765.432',
-    tipoTramite: 'Vacaciones',
-    tipoIcon: '✈️',
-    fechaSolicitud: '05/05/2026',
-    detalle: '01 al 15 de Junio · 15 días',
-  },
-  {
-    id: 5,
-    empleadoNombre: 'Luis Torres',
-    empleadoCi: '11.223.344',
-    tipoTramite: 'Prestaciones Sociales',
-    tipoIcon: '📋',
-    fechaSolicitud: '28/04/2026',
-    detalle: 'Liquidación parcial de prestaciones',
-  },
-];
+const TIPO_TRAMITE_INFO: Record<number, { nombre: string; icon: string }> = {
+  1: { nombre: 'Anticipo de Utilidades',  icon: '💰' },
+  2: { nombre: 'Prestaciones Sociales',   icon: '📋' },
+  3: { nombre: 'Préstamo Prestaciones',   icon: '🏦' },
+  4: { nombre: 'Vacaciones',              icon: '✈️' },
+  5: { nombre: 'Día Especial',            icon: '📅' },
+};
+
+// ─── API ──────────────────────────────────────────────────────────────────────
+
+const fetchPorAprobar = async (ci: string): Promise<PorAprobarAPI[]> => {
+  const res = await api.get<ApiResponse<PorAprobarAPI[]>>(`/solicitudes/PorAprobarByCi/${ci}`);
+  return res.data.data;
+};
+
+// ─── Card ─────────────────────────────────────────────────────────────────────
 
 interface SolicitudCardProps {
-  solicitud: SolicitudPendiente;
+  item: PorAprobarAPI;
   tipo: TabType;
   onAprobar?: () => void;
   onRechazar?: () => void;
 }
 
-const SolicitudCard: React.FC<SolicitudCardProps> = ({ solicitud, tipo, onAprobar, onRechazar }) => (
-  <div className={`sol-card ${tipo === 'enEspera' ? 'sol-card--espera' : ''}`}>
-    <div className="sol-card-header">
-      <div className="sol-card-tipo">
-        <span className="sol-tipo-icon">{solicitud.tipoIcon}</span>
-        <span className="sol-tipo-label">{solicitud.tipoTramite}</span>
-      </div>
-      <span className={`status-badge ${tipo === 'porAprobar' ? 'badge-revision' : 'badge-espera'}`}>
-        {tipo === 'porAprobar' ? 'En Revisión' : 'En Espera'}
-      </span>
-    </div>
+const SolicitudCard: React.FC<SolicitudCardProps> = ({ item, tipo, onAprobar, onRechazar }) => {
+  const info = TIPO_TRAMITE_INFO[item.tipoTramiteId] ?? { nombre: 'Trámite', icon: '📄' };
+  const nombreEmpleado = [item.firstName, item.lastName].filter(Boolean).join(' ') || '—';
 
-    <div className="sol-card-body">
-      <p className="sol-empleado">{solicitud.empleadoNombre}</p>
-      <p className="sol-ci">CI: {solicitud.empleadoCi}</p>
-      <p className="sol-detalle">{solicitud.detalle}</p>
-      <p className="sol-fecha">Solicitado: {solicitud.fechaSolicitud}</p>
-    </div>
+  return (
+    <div className={`sol-card ${tipo === 'enEspera' ? 'sol-card--espera' : ''}`}>
+      <div className="sol-card-header">
+        <div className="sol-card-tipo">
+          <span className="sol-tipo-icon">{info.icon}</span>
+          <span className="sol-tipo-label">{info.nombre}</span>
+        </div>
+        <span className={`status-badge ${tipo === 'porAprobar' ? 'badge-revision' : 'badge-espera'}`}>
+          {tipo === 'porAprobar' ? 'En Revisión' : 'En Espera'}
+        </span>
+      </div>
 
-    {tipo === 'porAprobar' ? (
-      <div className="sol-card-actions">
-        <button className="btn-reject" onClick={onRechazar}>✕ Rechazar</button>
-        <button className="btn-approve" onClick={onAprobar}>✓ Aprobar</button>
+      <div className="sol-card-body">
+        <p className="sol-empleado">{nombreEmpleado}</p>
+        <p className="sol-ci">Trámite #{item.tramiteId}</p>
+        {item.comentario && (
+          <p className="sol-detalle">"{item.comentario}"</p>
+        )}
       </div>
-    ) : (
-      <div className="sol-card-waiting">
-        <span className="waiting-icon">⏳</span>
-        <span className="waiting-text">Pendiente de aprobación previa</span>
-      </div>
-    )}
-  </div>
-);
+
+      {tipo === 'porAprobar' ? (
+        <div className="sol-card-actions">
+          <button className="btn-reject" onClick={onRechazar}>✕ Rechazar</button>
+          <button className="btn-approve" onClick={onAprobar}>✓ Aprobar</button>
+        </div>
+      ) : (
+        <div className="sol-card-waiting">
+          <span className="waiting-icon">⏳</span>
+          <span className="waiting-text">Pendiente de aprobación previa (paso {item.orden})</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export const SolicitudesPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('porAprobar');
@@ -115,8 +103,22 @@ export const SolicitudesPage: React.FC = () => {
   const [comentario, setComentario] = useState('');
   const [comentarioError, setComentarioError] = useState(false);
 
-  const handleAccion = (solicitud: SolicitudPendiente, accion: 'aprobar' | 'rechazar') => {
-    setAccionModal({ solicitud, accion });
+  const user = useAuthStore(state => state.user);
+
+  const ci = user?.ci ?? '';
+
+  const { data: items = [], isLoading, isError } = useQuery({
+    queryKey: ['porAprobar', ci],
+    queryFn: () => fetchPorAprobar(ci),
+    enabled: ci.length > 0,
+    retry: false,
+  });
+
+  const porAprobar = items.filter(i => i.orden === 1);
+  const enEspera   = items.filter(i => i.orden > 1);
+
+  const handleAccion = (item: PorAprobarAPI, accion: 'aprobar' | 'rechazar') => {
+    setAccionModal({ item, accion });
     setComentario('');
     setComentarioError(false);
   };
@@ -126,8 +128,8 @@ export const SolicitudesPage: React.FC = () => {
       setComentarioError(true);
       return;
     }
-    // TODO: conectar con backend
-    console.log({ accion: accionModal?.accion, id: accionModal?.solicitud.id, comentario });
+    // TODO: conectar con endpoint de aprobación/rechazo
+    console.log({ accion: accionModal?.accion, tramiteId: accionModal?.item.tramiteId, comentario });
     setAccionModal(null);
     setComentario('');
   };
@@ -150,66 +152,89 @@ export const SolicitudesPage: React.FC = () => {
           onClick={() => setActiveTab('porAprobar')}
         >
           Por Aprobar
-          <span className="tab-count">{SOLICITUDES_POR_APROBAR.length}</span>
+          {!isLoading && (
+            <span className="tab-count">{porAprobar.length}</span>
+          )}
         </button>
         <button
           className={`sol-tab ${activeTab === 'enEspera' ? 'active' : ''}`}
           onClick={() => setActiveTab('enEspera')}
         >
           En Espera
-          <span className="tab-count muted">{SOLICITUDES_EN_ESPERA.length}</span>
+          {!isLoading && (
+            <span className="tab-count muted">{enEspera.length}</span>
+          )}
         </button>
       </div>
 
-      {activeTab === 'porAprobar' && (
-        <div className="sol-section">
-          <p className="sol-section-desc">
-            Solicitudes asignadas a ti que están listas para tu revisión.
-          </p>
-          {SOLICITUDES_POR_APROBAR.length === 0 ? (
-            <div className="sol-empty">
-              <span className="sol-empty-icon">✅</span>
-              <p>No tienes solicitudes pendientes de aprobación.</p>
-            </div>
-          ) : (
-            <div className="sol-grid">
-              {SOLICITUDES_POR_APROBAR.map((sol) => (
-                <SolicitudCard
-                  key={sol.id}
-                  solicitud={sol}
-                  tipo="porAprobar"
-                  onAprobar={() => handleAccion(sol, 'aprobar')}
-                  onRechazar={() => handleAccion(sol, 'rechazar')}
-                />
-              ))}
-            </div>
-          )}
+      {isLoading && (
+        <div className="sol-empty">
+          <span className="sol-empty-icon">⏳</span>
+          <p>Cargando solicitudes...</p>
         </div>
       )}
 
-      {activeTab === 'enEspera' && (
-        <div className="sol-section">
-          <p className="sol-section-desc">
-            Solicitudes en las que deberás actuar, pero primero requieren aprobación de otro paso.
-          </p>
-          {SOLICITUDES_EN_ESPERA.length === 0 ? (
-            <div className="sol-empty">
-              <span className="sol-empty-icon">📭</span>
-              <p>No hay solicitudes en espera.</p>
-            </div>
-          ) : (
-            <div className="sol-grid">
-              {SOLICITUDES_EN_ESPERA.map((sol) => (
-                <SolicitudCard key={sol.id} solicitud={sol} tipo="enEspera" />
-              ))}
-            </div>
-          )}
+      {isError && (
+        <div className="sol-empty">
+          <span className="sol-empty-icon">⚠️</span>
+          <p>Error al cargar las solicitudes.</p>
         </div>
       )}
 
+      {!isLoading && !isError && (
+        <>
+          {activeTab === 'porAprobar' && (
+            <div className="sol-section">
+              <p className="sol-section-desc">
+                Solicitudes asignadas a ti que están listas para tu revisión.
+              </p>
+              {porAprobar.length === 0 ? (
+                <div className="sol-empty">
+                  <span className="sol-empty-icon">✅</span>
+                  <p>No tienes solicitudes pendientes de aprobación.</p>
+                </div>
+              ) : (
+                <div className="sol-grid">
+                  {porAprobar.map(item => (
+                    <SolicitudCard
+                      key={item.tramiteId}
+                      item={item}
+                      tipo="porAprobar"
+                      onAprobar={() => handleAccion(item, 'aprobar')}
+                      onRechazar={() => handleAccion(item, 'rechazar')}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'enEspera' && (
+            <div className="sol-section">
+              <p className="sol-section-desc">
+                Solicitudes en las que deberás actuar, pero primero requieren la aprobación de un paso anterior.
+              </p>
+              {enEspera.length === 0 ? (
+                <div className="sol-empty">
+                  <span className="sol-empty-icon">📭</span>
+                  <p>No hay solicitudes en espera.</p>
+                </div>
+              ) : (
+                <div className="sol-grid">
+                  {enEspera.map(item => (
+                    <SolicitudCard key={item.tramiteId} item={item} tipo="enEspera" />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Modal aprobar / rechazar */}
       {accionModal && (
         <div className="modal-overlay" onClick={handleCloseModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className={`modal-header ${accionModal.accion === 'rechazar' ? 'modal-header--danger' : 'modal-header--success'}`}>
               <h2>
                 {accionModal.accion === 'aprobar' ? '✓ Aprobar Solicitud' : '✕ Rechazar Solicitud'}
@@ -219,14 +244,15 @@ export const SolicitudesPage: React.FC = () => {
 
             <div className="modal-body">
               <div className="modal-sol-info">
-                <span className="modal-sol-icon">{accionModal.solicitud.tipoIcon}</span>
+                <span className="modal-sol-icon">
+                  {TIPO_TRAMITE_INFO[accionModal.item.tipoTramiteId]?.icon ?? '📄'}
+                </span>
                 <div>
-                  <p className="modal-sol-nombre">{accionModal.solicitud.empleadoNombre}</p>
-                  <p className="modal-sol-detalle">
-                    {accionModal.solicitud.tipoTramite} · {accionModal.solicitud.detalle}
+                  <p className="modal-sol-nombre">
+                    {[accionModal.item.firstName, accionModal.item.lastName].filter(Boolean).join(' ') || '—'}
                   </p>
-                  <p className="modal-sol-fecha">
-                    Solicitado el {accionModal.solicitud.fechaSolicitud}
+                  <p className="modal-sol-detalle">
+                    {TIPO_TRAMITE_INFO[accionModal.item.tipoTramiteId]?.nombre ?? 'Trámite'} · #{accionModal.item.tramiteId}
                   </p>
                 </div>
               </div>
@@ -244,7 +270,7 @@ export const SolicitudesPage: React.FC = () => {
                       : 'Indica el motivo del rechazo...'
                   }
                   value={comentario}
-                  onChange={(e) => {
+                  onChange={e => {
                     setComentario(e.target.value);
                     if (e.target.value.trim()) setComentarioError(false);
                   }}

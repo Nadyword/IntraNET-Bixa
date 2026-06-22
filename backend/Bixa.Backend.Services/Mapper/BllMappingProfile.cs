@@ -7,6 +7,8 @@ using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.Models.Response;
 using System.Reflection;
 using AutoMapper;
+using Bixa.Backend.DataAccess.Entities.Solicitudes;
+using Bixa.Backend.Models.DTOs.SolicitudesModelDTO;
 
 namespace Bixa.Backend.Services.Mapper;
 
@@ -116,6 +118,61 @@ public class BllMappingProfile : Profile
             .ForCtorParam("pageSize", opt => opt.MapFrom(src => GetPropertyValueSafe(src, "PageSize")));
 
         #endregion ResultPaginated
+
+        #region Solicitudes Mappings
+
+        #region Tramites
+
+        CreateMap<TramiteDTO, Tramite>()
+           .ForMember(dest => dest.TipoTramiteId, opt => opt.MapFrom(src => src.TipoTramiteId))
+           .ForMember(dest => dest.UserCi, opt => opt.MapFrom(src => src.UserCi))
+           .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => src.Estado))
+           .ForMember(dest => dest.MotivoRechazo, opt => opt.MapFrom(src => src.MotivoRechazo));
+
+        CreateMap<Tramite, TramiteDTO>()
+           .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+           .ForMember(dest => dest.TipoTramiteNombre, opt => opt.MapFrom(src => src.TipoTramite != null ? src.TipoTramite.Nombre : string.Empty))
+           .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt))
+           .ForMember(dest => dest.Vacaciones, opt => opt.MapFrom(src => src.SolicitudVacaciones));
+
+        CreateMap<SolicitudVacaciones, VacacionesDetalleDTO>();
+
+        #endregion Tramites
+
+        #region Aprobaciones
+
+        CreateMap<Aprobacion, AprobacionDTO>()
+            .ForMember(dest => dest.TramiteId, opt => opt.MapFrom(src => src.TramiteId))
+            .ForMember(dest => dest.AprobadorCi, opt => opt.MapFrom(src => src.AprobadorCi))
+            .ForMember(dest => dest.Nombre, opt => opt.MapFrom(src =>
+                src.Aprobador != null
+                    ? (src.Aprobador.FirstName + " " + src.Aprobador.LastName).Trim()
+                    : src.Nombre))
+            .ForMember(dest => dest.Orden, opt => opt.MapFrom(src => src.Orden))
+            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => src.Estado))
+            .ForMember(dest => dest.Comentario, opt => opt.MapFrom(src => src.Comentario))
+            .ForMember(dest => dest.FechaRespuesta, opt => opt.MapFrom(src => src.FechaRespuesta));
+
+        #endregion Aprobaciones
+
+        #region Vacaciones
+
+        CreateMap<SolicVacacionesDTO, Tramite>()
+            .ForMember(dest => dest.TipoTramiteId, opt => opt.MapFrom(src => src.TipoTramiteId))
+            .ForMember(dest => dest.UserCi, opt => opt.MapFrom(src => src.Ci))
+            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => src.Estado))
+            .ReverseMap();
+
+        CreateMap<SolicVacacionesDTO, SolicitudVacaciones>()
+            .ForMember(dest => dest.Desde, opt => opt.MapFrom(src => src.FechaInicio))
+            .ForMember(dest => dest.Hasta, opt => opt.MapFrom(src => src.FechaFin))
+            .ForMember(dest => dest.DiasTotales, opt => opt.MapFrom(src => src.DiasTotales))
+            .ForMember(dest => dest.Observaciones, opt => opt.MapFrom(src => src.Observaciones))
+            .ReverseMap();
+
+        #endregion Vacaciones
+
+        #endregion Solicitudes Mappings
     }
 
     private static object? GetPropertyValueSafe(object source, string propertyName)

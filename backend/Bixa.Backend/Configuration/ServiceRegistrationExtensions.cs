@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Cors.Infrastructure;
 using Bixa.Backend.DataAccess.UnitOfWork;
 using Bixa.Backend.DataAccess.Repository;
 using Bixa.Backend.DataAccess.Wrappers;
+using Bixa.Backend.DataAccess.Interfaces;
 using Bixa.Backend.Services.Interfaces;
 using Bixa.Backend.Services.Services;
 using Microsoft.Extensions.Options;
@@ -54,6 +55,8 @@ public static class ServiceRegistrationExtensions
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<ISoporteChatRepository, SoporteChatRepository>();
         services.AddScoped<ISolicitudesRepository, SolicitudesRepository>();
+        services.AddScoped<ITramitesRepository, TramitesRepository>();
+        services.AddScoped<IAprobacionesRepository, AprobacionesRepository>();
     }
 
     /// <summary>
@@ -69,6 +72,8 @@ public static class ServiceRegistrationExtensions
         services.AddScoped<ISendMailServices, SendMailServices>();
         services.AddScoped<ISoporteChatService, SoporteChatService>();
         services.AddScoped<ISolicitudesService, SolicitudesService>();
+        services.AddScoped<ITramitesService, TramitesService>();
+        services.AddScoped<IAprobacionesService, AprobacionesService>();
     }
 
     /// <summary>

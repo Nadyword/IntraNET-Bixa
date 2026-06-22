@@ -22,6 +22,11 @@ public class Result
     public static Result Fail(string error, ErrorTypeEnum errorType = ErrorTypeEnum.General) => new(false, error, errorType);
 
     public static Result<T> Fail<T>(string error, ErrorTypeEnum errorType = ErrorTypeEnum.General) => new(default!, false, error, errorType);
+
+    public static Result<Task<T>> Failure<T>(string v)
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public class Result<T> : Result

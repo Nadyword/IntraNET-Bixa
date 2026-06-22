@@ -17,6 +17,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public virtual DbSet<Aprobacion> Aprobaciones { get; set; }
     public virtual DbSet<TipoTramite> TipoTramites { get; set; }
     public virtual DbSet<Notifications> Notifications { get; set; }
+    public virtual DbSet<PorAprobar> PorAprobar { get; set; }
     public virtual DbSet<UserRol> UserRols { get; set; }
     public virtual DbSet<Tramite> Tramites { get; set; }
     public virtual DbSet<Users> Users { get; set; }
@@ -35,6 +36,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         #region Views Configuration
 
         modelBuilder.Entity<SolicitudesChats>().HasNoKey().ToView(null);
+        modelBuilder.Entity<PorAprobar>().HasNoKey().ToView(null);
 
         #endregion Views Configuration
 
@@ -296,7 +298,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Tramite>().Property(t => t.TipoTramiteId).IsRequired();
         modelBuilder.Entity<Tramite>().Property(t => t.UserCi).IsRequired().HasMaxLength(ModelLengths.Ci);
         modelBuilder.Entity<Tramite>().Property(t => t.Estado).IsRequired().HasConversion<int>();
-        modelBuilder.Entity<Tramite>().Property(t => t.Observacion).IsRequired(false).HasMaxLength(ModelLengths.Observation);
         modelBuilder.Entity<Tramite>().Property(t => t.MotivoRechazo).IsRequired(false).HasMaxLength(ModelLengths.Observation);
 
         modelBuilder.Entity<Tramite>()
@@ -324,6 +325,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Aprobacion>().Property(a => a.AprobadorCi).IsRequired().HasMaxLength(ModelLengths.Ci);
         modelBuilder.Entity<Aprobacion>().Property(a => a.Orden).IsRequired();
         modelBuilder.Entity<Aprobacion>().Property(a => a.Estado).IsRequired().HasConversion<int>();
+        modelBuilder.Entity<Aprobacion>().Property(a => a.Nombre).IsRequired(false).HasMaxLength(ModelLengths.Name);
         modelBuilder.Entity<Aprobacion>().Property(a => a.Comentario).IsRequired(false).HasMaxLength(ModelLengths.Observation);
         modelBuilder.Entity<Aprobacion>().Property(a => a.FechaRespuesta).IsRequired(false);
 
@@ -356,7 +358,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         modelBuilder.Entity<SolicitudVacaciones>()
             .HasOne(sv => sv.Tramite)
-            .WithOne()
+            .WithOne(t => t.SolicitudVacaciones)
             .HasForeignKey<SolicitudVacaciones>(sv => sv.TramiteId)
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
