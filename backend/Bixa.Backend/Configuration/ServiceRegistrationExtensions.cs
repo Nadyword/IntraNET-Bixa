@@ -8,6 +8,7 @@ using Bixa.Backend.DataAccess.Wrappers;
 using Bixa.Backend.DataAccess.Interfaces;
 using Bixa.Backend.Services.Interfaces;
 using Bixa.Backend.Services.Services;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace Bixa.Backend.Configuration;
@@ -66,6 +67,12 @@ public static class ServiceRegistrationExtensions
     private static void AddBaseServices(IServiceCollection services)
     {
         // Base Services
+        services.AddScoped<IReportService>(sp =>
+        {
+            var env = sp.GetRequiredService<IWebHostEnvironment>();
+            var path = Path.Combine(env.WebRootPath ?? "wwwroot", "report-assets");
+            return new ReportService(path);
+        });
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IUserRolService, RolService>();
         services.AddScoped<INotificationService, NotificationService>();
