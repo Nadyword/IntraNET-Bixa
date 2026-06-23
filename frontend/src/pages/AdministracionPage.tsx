@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
 import './AdministracionPage.css';
@@ -69,12 +69,31 @@ const formatDate = (iso: string) =>
 // ─── Row ──────────────────────────────────────────────────────────────────────
 
 const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
+  const [downloading, setDownloading] = useState(false);
+
   const icon   = TIPO_TRAMITE_ICON[tramite.tipoTramiteId] ?? '📄';
   const estado = ESTADO_LABEL[tramite.estado] ?? { label: String(tramite.estado), className: '' };
 
   const detalle = tramite.vacaciones
     ? `${formatDate(tramite.vacaciones.desde)} → ${formatDate(tramite.vacaciones.hasta)} (${tramite.vacaciones.diasTotales} días)`
     : '—';
+
+  const handleReporte = async () => {
+    setDownloading(true);
+    try {
+      const response = await api.get(`/solicitudes/Reporte/Vacaciones/${tramite.id}`, {
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `reporte_vacaciones_${tramite.id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <tr className="adm-row">
@@ -98,10 +117,14 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
         )}
       </td>
       <td className="adm-td adm-td-acciones">
-        <button className="adm-btn adm-btn-reporte" disabled>
-          📄 Reporte
+        <button
+          className="adm-btn adm-btn-reporte"
+          disabled={downloading || !tramite.vacaciones}
+          onClick={handleReporte}
+        >
+          {downloading ? '⏳ Generando...' : '📄 Reporte'}
         </button>
-        <button className="adm-btn adm-btn-archivar" disabled>
+        <button className="adm-btn adm-btn-archivar" >
           📦 Archivar
         </button>
       </td>

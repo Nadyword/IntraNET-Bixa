@@ -30,7 +30,14 @@ public class TramitesRepository(AppDbContext dbContext) : ITramitesRepository
     public async Task<List<Tramite>> GetAprobados()
     {
         return await _context.Tramites
+            .Include(t => t.TipoTramite)
+            .Include(t => t.SolicitudVacaciones)
             .Where(t => t.Estado == EstadoTramiteEnum.Aprobado)
             .ToListAsync();
+    }
+
+    public async Task<Tramite> GetTramiteById(int tramiteId)
+    {
+        return await _context.Tramites.FirstOrDefaultAsync(t => t.Id == tramiteId);
     }
 }

@@ -3,8 +3,10 @@ using Bixa.Backend.Base;
 using Bixa.Backend.DataAccess.Models;
 using Bixa.Backend.DataAccess.Wrappers;
 using Bixa.Backend.Models;
+using Bixa.Backend.Models.DTOs.ReportesModelDTO;
 using Bixa.Backend.Models.DTOs.SolicitudesModelDTO;
 using Bixa.Backend.Models.Enums;
+using Bixa.Backend.Models.Response;
 using Bixa.Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,10 +27,12 @@ namespace Bixa.Backend.Controllers.SolicitudesApiControllers;
 [ApiController]
 [Route("api/solicitudes")]
 public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
+    IReportService reportService,
     IMapper mapper,
     LoggerWrapper loggerWrapper) : BaseApiController(mapper, loggerWrapper)
 {
     private readonly ISolicitudesService _solicitudesService = solicitudesService;
+    private readonly IReportService _reportService = reportService;
 
     /// <summary>
     /// Registra una nueva solicitud de vacaciones en el sistema.
@@ -148,5 +152,28 @@ public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
 
         var result = await _solicitudesService.GetAprobados();
         return HandleServiceResult(result);
+    }
+
+    /// <summary>
+    /// Genera un PDF de prueba usando la plantilla genérica con datos de ejemplo.
+    /// </summary>
+    [HttpGet("Reporte/Vacaciones/{tramiteId}")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetReporte(int tramiteId)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador, UserRolEnum.Supervisor);
+        if (authResult != null) return authResult;
+
+        var result = await _solicitudesService.GetInfoReporteVacaciones(tramiteId);
+        if (!result.IsSuccess)
+        {
+            return HandleServiceResult(Result.Fail<TramiteReportModel>(result.Error));
+        }
+
+        TramiteReportModel modelo = result.Value;
+        var bytes = _reportService.GenerateTramiteReport(modelo, "Vacaciones");
+
+        return File(bytes, "application/pdf", "reporte_vacaciones.pdf");
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Bixa.Backend.Models.DTOs.SolicitudesModelDTO;
 using Bixa.Backend.Models.Response;
 using Bixa.Backend.DataAccess.Models;
+using Bixa.Backend.Models.DTOs.ReportesModelDTO;
 
 namespace Bixa.Backend.Services.Interfaces;
 
@@ -59,4 +60,11 @@ public interface ISolicitudesService
     /// </summary>
     /// <returns>Una lista de DTOs de trámites aprobados.</returns>
     Task<Result<List<TramiteDTO>>> GetAprobados();
+
+    /// <summary>
+    /// Obtiene la información del reporte de vacaciones para un trámite específico, identificado por su ID.
+    /// </summary>
+    /// <param name="tramiteId">El ID del trámite para obtener la información del reporte de vacaciones.</param>
+    /// <returns>Un objeto TramiteReportModel con la información del reporte de vacaciones.</returns>
+    Task<Result<TramiteReportModel>> GetInfoReporteVacaciones(int tramiteId);
 }

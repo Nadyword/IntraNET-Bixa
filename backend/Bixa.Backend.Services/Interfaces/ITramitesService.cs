@@ -9,4 +9,6 @@ public interface ITramitesService
     Task<List<Tramite>> GetAllTramites();
 
     Task<List<Tramite>> GetAprobados();
+
+    Task<Tramite> GetTramiteById(int tramiteId);
 }

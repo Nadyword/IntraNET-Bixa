@@ -42,4 +42,14 @@ public class SolicitudesRepository(AppDbContext dbContext, ProfitDbContext profi
         await _context.SaveChangesAsync();
         return (result?.Entity.Id) ?? 0;
     }
+
+    public async Task<SolicitudVacaciones> GetSolicitudVacacionesByTramiteId(int tramiteId)
+    {
+        return await _context.SolicitudesVacaciones.FirstOrDefaultAsync(s => s.TramiteId == tramiteId);
+    }
+
+    public async Task<Users> GetUserByCi(string ci)
+    {
+        return await _context.Users.FirstOrDefaultAsync(u => u.Ci == ci);
+    }
 }

@@ -33,4 +33,18 @@ public interface ISolicitudesRepository
     /// <param name="aprobaciones">La aprobación a agregar.</param>
     /// <returns>El número de aprobaciones agregadas.</returns>
     Task<int> AddAprobaciones(Aprobacion aprobaciones);
+
+    /// <summary>
+    ///  Obtiene una solicitud de vacaciones por el ID del trámite.
+    /// </summary>
+    /// <param name="tramiteId"></param>
+    /// <returns></returns>
+    Task<SolicitudVacaciones> GetSolicitudVacacionesByTramiteId(int tramiteId);
+
+    /// <summary>
+    /// Obtiene un usuario por su cédula de identidad (CI).
+    /// </summary>
+    /// <param name="ci"></param>
+    /// <returns></returns>
+    Task<Users> GetUserByCi(string ci);
 }

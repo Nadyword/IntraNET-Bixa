@@ -6,6 +6,8 @@ public class TramiteReportModel
     public string TipoTramite { get; set; } = string.Empty;
     public string EmpleadoCi { get; set; } = string.Empty;
     public string EmpleadoNombre { get; set; } = string.Empty;
+    public string? EmpleadoCargo { get; set; }
+    public DateTime? FechaIngreso { get; set; }
     public DateTime FechaSolicitud { get; set; }
     public DateTime FechaResolucion { get; set; }
     public string EstadoFinal { get; set; } = string.Empty;
@@ -19,6 +21,7 @@ public class VacacionesReportModel
     public DateTime Desde { get; set; }
     public DateTime Hasta { get; set; }
     public int DiasTotales { get; set; }
+    public int DiasPendientes { get; set; }
     public string? Observaciones { get; set; }
 }
 

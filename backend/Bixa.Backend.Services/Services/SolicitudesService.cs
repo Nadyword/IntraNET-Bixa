@@ -1,21 +1,23 @@
-﻿using Bixa.Backend.Models.DTOs.SolicitudesModelDTO;
-using Bixa.Backend.DataAccess.Interfaces.Repositories;
-using Bixa.Backend.DataAccess.Entities.Solicitudes;
+﻿using AutoMapper;
 using Bixa.Backend.DataAccess.Entities;
+using Bixa.Backend.DataAccess.Entities.Solicitudes;
+using Bixa.Backend.DataAccess.Interfaces.Repositories;
 using Bixa.Backend.DataAccess.Models;
-using Bixa.Backend.Services.Interfaces;
-using Bixa.Backend.Models.Response;
+using Bixa.Backend.Models.DTOs.ReportesModelDTO;
+using Bixa.Backend.Models.DTOs.SolicitudesModelDTO;
 using Bixa.Backend.Models.Enums;
-using AutoMapper;
+using Bixa.Backend.Models.Response;
+using Bixa.Backend.Services.Interfaces;
 
 namespace Bixa.Backend.Services.Services;
 
-public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IMapper mapper, IUnitOfWork unitOfWork, ITramitesService tramitesService, IAprobacionesService aprobacionesService) : ISolicitudesService
+public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IMapper mapper, IUnitOfWork unitOfWork, ITramitesService tramitesService, IAprobacionesService aprobacionesService, IReportService reportService) : ISolicitudesService
 {
     private readonly ISolicitudesRepository _solicitudesRepository = solicitudesRepository;
     private readonly ITramitesService _tramitesService = tramitesService;
     private readonly IAprobacionesService _aprobacionesService = aprobacionesService;
     private readonly IMapper _mapper = mapper;
+    private readonly IReportService _reportService = reportService;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
     public async Task<List<AprobadorPermisoInfo>> GetAprovadoresPermisosByCi(string ci)
@@ -126,5 +128,47 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         var tramites = await _tramitesService.GetAprobados();
         var tramitesDto = _mapper.Map<List<TramiteDTO>>(tramites);
         return Result.Success(tramitesDto);
+    }
+
+    public async Task<Result<TramiteReportModel>> GetInfoReporteVacaciones(int tramiteId)
+    {
+        TramiteReportModel result = new TramiteReportModel();
+        var tramite = await _tramitesService.GetTramiteById(tramiteId);
+        var aprobaciones = await _aprobacionesService.GetAprobacionesByTramiteId(tramiteId);
+        var solicitudVacaciones = await _solicitudesRepository.GetSolicitudVacacionesByTramiteId(tramiteId);
+        var user = await _solicitudesRepository.GetUserByCi(tramite.UserCi);
+        if (tramite == null)
+        {
+            return Result.Fail<TramiteReportModel>($"No se encontró el trámite con ID {tramiteId}");
+        }
+
+        result.TramiteId = tramite.Id;
+        result.TipoTramite = "Solicitud de vacaciones";
+        result.EmpleadoCi = tramite.UserCi;
+        result.EmpleadoNombre = user?.FirstName + " " + user?.LastName;
+        result.EmpleadoCargo = "pendiente";
+        result.FechaIngreso = DateTime.Now;
+        result.FechaSolicitud = tramite.FechaSolicitud;
+        result.FechaResolucion = DateTime.Now;
+        result.Vacaciones = new()
+        {
+            Desde = solicitudVacaciones.Desde,
+            Hasta = solicitudVacaciones.Hasta,
+            DiasTotales = solicitudVacaciones.DiasTotales,
+            Observaciones = solicitudVacaciones.Observaciones
+        };
+
+        foreach (var aprobacion in aprobaciones)
+        {
+            result.Aprobaciones.Add(new AprobacionReportModel
+            {
+                AprobadorCi = aprobacion.AprobadorCi,
+                AprobadorNombre = aprobacion.Nombre,
+                Accion = aprobacion.Estado.ToString(),
+                Fecha = aprobacion.UpdatedAt
+            });
+        }
+
+        return Result.Success(result);
     }
 }

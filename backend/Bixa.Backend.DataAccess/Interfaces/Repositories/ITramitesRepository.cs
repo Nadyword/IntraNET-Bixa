@@ -22,4 +22,11 @@ public interface ITramitesRepository
     /// </summary>
     /// <returns>Una lista de trámites aprobados.</returns>
     Task<List<Tramite>> GetAprobados();
+
+    /// <summary>
+    /// Obtiene un trámite específico por su ID.
+    /// </summary>
+    /// <param name="tramiteId">El ID del trámite.</param>
+    /// <returns>El trámite correspondiente al ID proporcionado.</returns>
+    Task<Tramite> GetTramiteById(int tramiteId);
 }

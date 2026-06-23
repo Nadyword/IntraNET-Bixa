@@ -31,33 +31,36 @@ public class GenericTramiteDocument(TramiteReportModel model) : IDocument
 
     private void ComposeHeader(IContainer container)
     {
-        container.Row(row =>
+        container.Column(col =>
         {
-            if (model.LogoEmpresa is { Length: > 0 })
+            col.Item().Row(row =>
             {
-                row.ConstantItem(80).Image(model.LogoEmpresa).FitArea();
-            }
+                if (model.LogoEmpresa is { Length: > 0 })
+                {
+                    row.ConstantItem(80).Image(model.LogoEmpresa).FitArea();
+                }
 
-            row.RelativeItem().Column(col =>
-            {
-                col.Item()
-                   .Text("IntraNET Bixa")
-                   .FontSize(20).Bold().FontColor(_accentColor);
+                row.RelativeItem().Column(inner =>
+                {
+                    inner.Item()
+                         .Text("IntraNET Bixa")
+                         .FontSize(20).Bold().FontColor(_accentColor);
 
-                col.Item()
-                   .Text("Comprobante de Trámite")
-                   .FontSize(13).FontColor(_textGray);
+                    inner.Item()
+                         .Text("Comprobante de Trámite")
+                         .FontSize(13).FontColor(_textGray);
+                });
+
+                row.ConstantItem(120).AlignRight().Column(inner =>
+                {
+                    inner.Item().Text($"Trámite #{model.TramiteId}").Bold();
+                    inner.Item().Text(DateTime.Now.ToString("dd/MM/yyyy")).FontColor(_textGray);
+                });
             });
 
-            row.ConstantItem(120).AlignRight().Column(col =>
-            {
-                col.Item().Text($"Trámite #{model.TramiteId}").Bold();
-                col.Item().Text(DateTime.Now.ToString("dd/MM/yyyy")).FontColor(_textGray);
-            });
+            col.Item().PaddingTop(8)
+                      .LineHorizontal(2).LineColor(_accentColor);
         });
-
-        container.PaddingTop(8)
-                 .LineHorizontal(2).LineColor(_accentColor);
     }
 
     // ─── Content ──────────────────────────────────────────────────────────────

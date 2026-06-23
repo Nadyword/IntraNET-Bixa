@@ -177,9 +177,18 @@
   border-radius: var(--radius);
   font-size: 13px;
   font-weight: 600;
-  cursor: not-allowed;
+  cursor: pointer;
   transition: all var(--transition);
-  opacity: 0.6;
+  opacity: 1;
+}
+
+.adm-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.adm-btn:not(:disabled):hover {
+  filter: brightness(0.92);
 }
 
 .adm-btn + .adm-btn {

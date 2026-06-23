@@ -16,11 +16,18 @@ public class ReportService(string reportAssetsPath) : IReportService
     {
         QuestPDF.Settings.License = LicenseType.Community;
 
+        if (model.LogoEmpresa is not { Length: > 0 })
+        {
+            var logoPath = Path.Combine(_assetsPath, "Logo.webp");
+            if (File.Exists(logoPath))
+                model.LogoEmpresa = File.ReadAllBytes(logoPath);
+        }
+
         return plantilla switch
         {
-            "Generic" => new GenericTramiteDocument(model).GeneratePdf(),
-            // Agregar nuevas plantillas aquí: "Vacaciones" => new VacacionesDocument(model).GeneratePdf(),
-            _ => new GenericTramiteDocument(model).GeneratePdf(),
+            "Generic"    => new GenericTramiteDocument(model).GeneratePdf(),
+            "Vacaciones" => new VacacionesDocument(model).GeneratePdf(),
+            _            => new GenericTramiteDocument(model).GeneratePdf(),
         };
     }
 

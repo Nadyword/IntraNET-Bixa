@@ -22,4 +22,9 @@ public class TramitesService(ITramitesRepository tramitesRepository) : ITramites
     {
         return await _tramitesRepository.GetAprobados();
     }
+
+    public async Task<Tramite> GetTramiteById(int tramiteId)
+    {
+        return await _tramitesRepository.GetTramiteById(tramiteId);
+    }
 }
