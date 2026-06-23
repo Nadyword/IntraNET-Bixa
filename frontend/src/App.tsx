@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ActivateAccountPage } from './pages/ActivateAccountPage';
 import { FirstLoginPage } from './pages/FirstLoginPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { AdministracionPage } from './pages/AdministracionPage';
 import { AdminRolesPage } from './pages/admin/AdminRolesPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { SolicitudesPage } from './pages/SolicitudesPage';
@@ -45,7 +46,8 @@ export default function App() {
                   {activeSection === 'consultas'   && <ConsultasPage />}
                   {activeSection === 'tramites'    && <TramitesPage />}
                   {activeSection === 'solicitudes' && !isEmployee && <SolicitudesPage />}
-                  {activeSection === 'leader'      && (isAdmin ? <LeaderPage /> : <Navigate to="/" replace />)}
+                  {activeSection === 'leader'          && (isAdmin ? <LeaderPage /> : <Navigate to="/" replace />)}
+                  {activeSection === 'administracion' && (isAdmin ? <AdministracionPage /> : <Navigate to="/" replace />)}
                   {activeSection === 'soporte'     && !isAdmin && <ChatPage />}
                 </AppLayout>
               }

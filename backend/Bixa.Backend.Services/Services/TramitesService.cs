@@ -17,4 +17,9 @@ public class TramitesService(ITramitesRepository tramitesRepository) : ITramites
     {
         return await _tramitesRepository.GetAllTramites();
     }
+
+    public async Task<List<Tramite>> GetAprobados()
+    {
+        return await _tramitesRepository.GetAprobados();
+    }
 }

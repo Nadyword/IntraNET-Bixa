@@ -50,9 +50,13 @@ public interface ISolicitudesService
     /// <summary>
     /// Aprueba un trámite específico, identificado por su ID.
     /// </summary>
-    /// <param name="tramiteId">El ID del trámite a aprobar.</param>
-    /// <param name="ci">El CI del usuario que aprueba el trámite.</param>
-    /// <param name="estado">El estado de la aprobación.</param>
+    /// <param name="aprobarTramiteDTO">El DTO que contiene la información necesaria para aprobar el trámite, incluyendo el ID del trámite, el CI del aprobador y el estado de la aprobación.</param>
     /// <returns>Un resultado indicando si la operación fue exitosa o no.</returns>
-    Task<Result<bool>> AprobarTramite(int tramiteId, string ci, int estado);
+    Task<Result<bool>> AprobarTramite(AprobarTramiteDTO aprobarTramiteDTO);
+
+    /// <summary>
+    /// Obtiene todos los trámites que han sido aprobados.
+    /// </summary>
+    /// <returns>Una lista de DTOs de trámites aprobados.</returns>
+    Task<Result<List<TramiteDTO>>> GetAprobados();
 }

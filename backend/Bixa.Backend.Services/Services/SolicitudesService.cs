@@ -115,9 +115,16 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         return Result.Success(tramites);
     }
 
-    public async Task<Result<bool>> AprobarTramite(int tramiteId, string ci, int estado)
+    public async Task<Result<bool>> AprobarTramite(AprobarTramiteDTO aprobarTramiteDTO)
     {
-        var result = await _aprobacionesService.AprobarTramite(tramiteId, ci, estado);
+        var result = await _aprobacionesService.AprobarTramite(aprobarTramiteDTO);
         return Result.Success(result);
+    }
+
+    public async Task<Result<List<TramiteDTO>>> GetAprobados()
+    {
+        var tramites = await _tramitesService.GetAprobados();
+        var tramitesDto = _mapper.Map<List<TramiteDTO>>(tramites);
+        return Result.Success(tramitesDto);
     }
 }

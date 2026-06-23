@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
 import api from '../lib/api';
 import './SolicitudesPage.css';
@@ -45,6 +45,17 @@ const TIPO_TRAMITE_INFO: Record<number, { nombre: string; icon: string }> = {
 const fetchPorAprobar = async (ci: string): Promise<PorAprobarAPI[]> => {
   const res = await api.get<ApiResponse<PorAprobarAPI[]>>(`/solicitudes/PorAprobarByCi/${ci}`);
   return res.data.data;
+};
+
+interface AprobarTramiteDTO {
+  tramiteId: number;
+  ci: string;
+  estado: number;
+  motivo?: string;
+}
+
+const aprobarTramite = async (dto: AprobarTramiteDTO): Promise<void> => {
+  await api.put('/solicitudes/Aprobar', dto);
 };
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
@@ -102,8 +113,10 @@ export const SolicitudesPage: React.FC = () => {
   const [accionModal, setAccionModal] = useState<AccionModal | null>(null);
   const [comentario, setComentario] = useState('');
   const [comentarioError, setComentarioError] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const user = useAuthStore(state => state.user);
+  const queryClient = useQueryClient();
 
   const ci = user?.ci ?? '';
 
@@ -114,6 +127,19 @@ export const SolicitudesPage: React.FC = () => {
     retry: false,
   });
 
+  const mutation = useMutation({
+    mutationFn: aprobarTramite,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['porAprobar', ci] });
+      setAccionModal(null);
+      setComentario('');
+      setApiError(null);
+    },
+    onError: () => {
+      setApiError('Ocurrió un error al procesar la solicitud. Inténtalo de nuevo.');
+    },
+  });
+
   const porAprobar = items.filter(i => i.orden === 1);
   const enEspera   = items.filter(i => i.orden > 1);
 
@@ -121,23 +147,31 @@ export const SolicitudesPage: React.FC = () => {
     setAccionModal({ item, accion });
     setComentario('');
     setComentarioError(false);
+    setApiError(null);
   };
 
   const handleConfirmar = () => {
-    if (!comentario.trim()) {
+    if (!accionModal) return;
+
+    if (accionModal.accion === 'rechazar' && !comentario.trim()) {
       setComentarioError(true);
       return;
     }
-    // TODO: conectar con endpoint de aprobación/rechazo
-    console.log({ accion: accionModal?.accion, tramiteId: accionModal?.item.tramiteId, comentario });
-    setAccionModal(null);
-    setComentario('');
+
+    mutation.mutate({
+      tramiteId: accionModal.item.tramiteId,
+      ci,
+      estado: accionModal.accion === 'aprobar' ? 2 : 3,
+      motivo: comentario.trim() || undefined,
+    });
   };
 
   const handleCloseModal = () => {
+    if (mutation.isPending) return;
     setAccionModal(null);
     setComentario('');
     setComentarioError(false);
+    setApiError(null);
   };
 
   return (
@@ -259,7 +293,11 @@ export const SolicitudesPage: React.FC = () => {
 
               <div className="form-group">
                 <label>
-                  Comentario <span className="required">*</span>
+                  {accionModal.accion === 'rechazar' ? (
+                    <>Motivo de rechazo <span className="required">*</span></>
+                  ) : (
+                    <>Comentario <span className="optional">(opcional)</span></>
+                  )}
                 </label>
                 <textarea
                   className={`form-input ${comentarioError ? 'input-error' : ''}`}
@@ -274,21 +312,31 @@ export const SolicitudesPage: React.FC = () => {
                     setComentario(e.target.value);
                     if (e.target.value.trim()) setComentarioError(false);
                   }}
+                  disabled={mutation.isPending}
                 />
                 {comentarioError && (
-                  <span className="error-msg">El comentario es obligatorio.</span>
+                  <span className="error-msg">El motivo de rechazo es obligatorio.</span>
                 )}
               </div>
 
+              {apiError && (
+                <p className="error-msg" style={{ marginBottom: '0.75rem' }}>{apiError}</p>
+              )}
+
               <div className="form-actions">
-                <button className="btn-secondary" onClick={handleCloseModal}>
+                <button className="btn-secondary" onClick={handleCloseModal} disabled={mutation.isPending}>
                   Cancelar
                 </button>
                 <button
                   className={accionModal.accion === 'aprobar' ? 'btn-success' : 'btn-danger'}
                   onClick={handleConfirmar}
+                  disabled={mutation.isPending}
                 >
-                  {accionModal.accion === 'aprobar' ? 'Confirmar Aprobación' : 'Confirmar Rechazo'}
+                  {mutation.isPending
+                    ? 'Procesando...'
+                    : accionModal.accion === 'aprobar'
+                      ? 'Confirmar Aprobación'
+                      : 'Confirmar Rechazo'}
                 </button>
               </div>
             </div>

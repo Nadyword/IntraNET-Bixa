@@ -116,17 +116,37 @@ public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
     ///// <param name="ci">El CI del usuario que aprueba el trámite.</param>
     ///// <param name="estado">El estado de la aprobación.</param>
     ///// <returns>Un resultado indicando si la operación fue exitosa o no.</returns>
-    [HttpPut("Aprobar/{tramiteId}/{ci}/{estado}")]
+    [HttpPut("Aprobar")]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> AprobarTramite(int tramiteId, string ci, int estado)
+    public async Task<IActionResult> AprobarTramite(AprobarTramiteDTO aprobarTramiteDTO)
     {
-        var authResult = RequireUserRol(UserRolEnum.Supervisor);
+        var authResult = RequireUserRol(UserRolEnum.Supervisor, UserRolEnum.Administrador);
         if (authResult != null) return authResult;
 
-        var result = await _solicitudesService.AprobarTramite(tramiteId, ci, estado);
+        var result = await _solicitudesService.AprobarTramite(aprobarTramiteDTO);
+        return HandleServiceResult(result);
+    }
+
+    ///// <summary>
+    ///// Aprueba un trámite específico, identificado por su ID, y registra la aprobación en el sistema.
+    ///// </summary>
+    ///// <param name="ci">El CI del usuario que aprueba el trámite.</param>
+    ///// <param name="estado">El estado de la aprobación.</param>
+    ///// <returns>Un resultado indicando si la operación fue exitosa o no.</returns>
+    [HttpGet("Aprobados")]
+    [ProducesResponseType(typeof(ApiResponse<TramiteDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAprobados()
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
+        if (authResult != null) return authResult;
+
+        var result = await _solicitudesService.GetAprobados();
         return HandleServiceResult(result);
     }
 }

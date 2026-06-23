@@ -1,6 +1,7 @@
 ﻿using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.DataAccess.Interfaces;
 using Bixa.Backend.DataAccess.Models;
+using Bixa.Backend.Models.DTOs.SolicitudesModelDTO;
 using Bixa.Backend.Services.Interfaces;
 
 namespace Bixa.Backend.Services.Services;
@@ -19,8 +20,8 @@ public class AprobacionesService(IAprobacionesRepository aprobacionesRepository)
         return await _aprobacionesRepository.GetTramitesForAprobacion(ci);
     }
 
-    public async Task<bool> AprobarTramite(int tramiteId, string ci, int estado)
+    public async Task<bool> AprobarTramite(AprobarTramiteDTO aprobarTramiteDTO)
     {
-        return await _aprobacionesRepository.AprobarTramite(tramiteId, ci, estado);
+        return await _aprobacionesRepository.AprobarTramite(aprobarTramiteDTO);
     }
 }

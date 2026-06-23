@@ -1,7 +1,8 @@
-﻿using Bixa.Backend.DataAccess.Context;
-using Bixa.Backend.DataAccess.Interfaces.Repositories;
+﻿using Bixa.Backend.DataAccess.Interfaces.Repositories;
+using Bixa.Backend.DataAccess.Context;
 using Bixa.Backend.DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
+using Bixa.Backend.Models.Enums;
 
 namespace Bixa.Backend.DataAccess.Repository;
 
@@ -23,6 +24,13 @@ public class TramitesRepository(AppDbContext dbContext) : ITramitesRepository
         return await _context.Tramites
             .Include(t => t.TipoTramite)
             .Include(t => t.SolicitudVacaciones)
+            .ToListAsync();
+    }
+
+    public async Task<List<Tramite>> GetAprobados()
+    {
+        return await _context.Tramites
+            .Where(t => t.Estado == EstadoTramiteEnum.Aprobado)
             .ToListAsync();
     }
 }

@@ -1,4 +1,5 @@
-﻿using Bixa.Backend.DataAccess.Entities;
+﻿using Bixa.Backend.Models.DTOs.SolicitudesModelDTO;
+using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.DataAccess.Models;
 
 namespace Bixa.Backend.Services.Interfaces;
@@ -9,5 +10,5 @@ public interface IAprobacionesService
 
     Task<List<PorAprobar>> GetTramitesForAprobacion(string ci);
 
-    Task<bool> AprobarTramite(int tramiteId, string ci, int estado);
+    Task<bool> AprobarTramite(AprobarTramiteDTO aprobarTramiteDTO);
 }

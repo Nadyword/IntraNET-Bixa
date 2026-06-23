@@ -16,4 +16,10 @@ public interface ITramitesRepository
     /// </summary>
     /// <returns>Una lista de trámites no finalizados.</returns>
     Task<List<Tramite>> GetAllTramites();
+
+    /// <summary>
+    /// Obtiene todos los trámites que han sido aprobados.
+    /// </summary>
+    /// <returns>Una lista de trámites aprobados.</returns>
+    Task<List<Tramite>> GetAprobados();
 }

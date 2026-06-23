@@ -19,8 +19,9 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Consultas',            icon: 'ℹ️', id: 'consultas' },
   { label: 'Mis Trámites',         icon: '📊', id: 'tramites' },
   { label: 'Solicitudes',          icon: '📋', id: 'solicitudes', nonEmployeeOnly: true },
-  { label: '🔒 Portal del Líder',  icon: '⭐', id: 'leader',    adminOnly: true },
-  { label: 'Soporte',              icon: '💬', id: 'soporte',   nonAdminOnly: true },
+  { label: '🔒 Portal del Líder',  icon: '⭐', id: 'leader',          adminOnly: true },
+  { label: 'Administración',       icon: '🗂️', id: 'administracion',  adminOnly: true },
+  { label: 'Soporte',              icon: '💬', id: 'soporte',          nonAdminOnly: true },
 ];
 
 export const Sidebar: React.FC = () => {
