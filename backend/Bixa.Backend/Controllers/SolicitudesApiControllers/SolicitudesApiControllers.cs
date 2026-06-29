@@ -21,6 +21,7 @@ namespace Bixa.Backend.Controllers.SolicitudesApiControllers;
 /// Initializes a new instance of the UserApiController.
 /// </remarks>
 /// <param name="solicitudesService">The solicitudes service instance for business logic.</param>
+/// <param name="reportService"></param>
 /// <param name="mapper">AutoMapper instance for DTO conversions.</param>
 /// <param name="loggerWrapper">Logger wrapper for logging operations.</param>
 [Authorize]

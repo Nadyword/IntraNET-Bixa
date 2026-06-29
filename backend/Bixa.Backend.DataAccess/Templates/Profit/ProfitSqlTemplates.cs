@@ -127,7 +127,7 @@ internal static class ProfitSqlTemplates
     WHILE (@contador = 0)
     BEGIN
         SET @supervisor = (SELECT supervisor FROM snemple WHERE ci = @Ci);
-        INSERT INTO #EmpleadosTemp ( ci, nombre)  SELECT ci, nombre_completo FROM snemple WHERE cod_emp = @supervisor;
+        INSERT INTO #EmpleadosTemp ( ci, nombre)  SELECT ci, nombre_completo FROM snemple WHERE cod_emp = @supervisor AND supervisor NOT IN ('3.666.186', '3.959.047');
 
         IF (@supervisor IS NULL)
         BEGIN

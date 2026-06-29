@@ -92,7 +92,7 @@ const SolicitudCard: React.FC<SolicitudCardProps> = ({ item, tipo, onAprobar, on
       </div>
 
       {tipo === 'porAprobar' ? (
-        <div className="sol-card-actions">
+        <div className="sol-card-actions" style={{ margin: '3%'}}>
           <button className="btn-reject" onClick={onRechazar}>✕ Rechazar</button>
           <button className="btn-approve" onClick={onAprobar}>✓ Aprobar</button>
         </div>
@@ -228,20 +228,23 @@ export const SolicitudesPage: React.FC = () => {
                   <p>No tienes solicitudes pendientes de aprobación.</p>
                 </div>
               ) : (
-                <div className="sol-grid">
+                <div className="sol-grid sol-grid--large-btns"  >
                   {porAprobar.map(item => (
-                    <SolicitudCard
-                      key={item.tramiteId}
-                      item={item}
-                      tipo="porAprobar"
-                      onAprobar={() => handleAccion(item, 'aprobar')}
-                      onRechazar={() => handleAccion(item, 'rechazar')}
-                    />
+                    <div key={item.tramiteId} className="solicitud-card-wrapper solicitud-card-wrapper--big-actions">
+                      <SolicitudCard
+                        item={item}
+                        tipo="porAprobar"
+                        onAprobar={() => handleAccion(item, 'aprobar')}
+                        onRechazar={() => handleAccion(item, 'rechazar')}
+                        />
+                    </div>
                   ))}
                 </div>
               )}
             </div>
+      
           )}
+    
 
           {activeTab === 'enEspera' && (
             <div className="sol-section">
@@ -291,33 +294,28 @@ export const SolicitudesPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>
-                  {accionModal.accion === 'rechazar' ? (
-                    <>Motivo de rechazo <span className="required">*</span></>
-                  ) : (
-                    <>Comentario <span className="optional">(opcional)</span></>
+              {accionModal.accion === 'rechazar' && (
+                <div className="form-group">
+                  <label>
+                    Motivo de rechazo <span className="required">*</span>
+                  </label>
+                  <textarea
+                    className={`form-input ${comentarioError ? 'input-error' : ''}`}
+                    rows={4}
+                    placeholder="Indica el motivo del rechazo..."
+                    value={comentario}
+                    onChange={e => {
+                      setComentario(e.target.value);
+                      if (e.target.value.trim()) setComentarioError(false);
+                    }}
+                    disabled={mutation.isPending}
+                  />
+                  {comentarioError && (
+                    <span className="error-msg">El motivo de rechazo es obligatorio.</span>
                   )}
-                </label>
-                <textarea
-                  className={`form-input ${comentarioError ? 'input-error' : ''}`}
-                  rows={4}
-                  placeholder={
-                    accionModal.accion === 'aprobar'
-                      ? 'Escribe un comentario sobre la aprobación...'
-                      : 'Indica el motivo del rechazo...'
-                  }
-                  value={comentario}
-                  onChange={e => {
-                    setComentario(e.target.value);
-                    if (e.target.value.trim()) setComentarioError(false);
-                  }}
-                  disabled={mutation.isPending}
-                />
-                {comentarioError && (
-                  <span className="error-msg">El motivo de rechazo es obligatorio.</span>
-                )}
-              </div>
+                </div>
+              )}
+        
 
               {apiError && (
                 <p className="error-msg" style={{ marginBottom: '0.75rem' }}>{apiError}</p>

@@ -38,6 +38,6 @@ public class TramitesRepository(AppDbContext dbContext) : ITramitesRepository
 
     public async Task<Tramite> GetTramiteById(int tramiteId)
     {
-        return await _context.Tramites.FirstOrDefaultAsync(t => t.Id == tramiteId);
+        return await _context.Tramites.FirstOrDefaultAsync(t => t.Id == tramiteId) ?? throw new KeyNotFoundException($"Tramite with Id {tramiteId} not found.");
     }
 }

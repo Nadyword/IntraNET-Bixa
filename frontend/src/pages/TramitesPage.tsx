@@ -307,14 +307,15 @@ export const TramitesPage: React.FC = () => {
                     </div>
 
                     {/* Derecha: botón ver aprobaciones */}
-                    <div className="tramite-right">
+                    {/* <div className="tramite-right">
                       <button
                         className="ver-aprobaciones-btn"
                         onClick={() => setSelectedTramiteId(tramite.id)}
                       >
                         Ver Aprobaciones
                       </button>
-                    </div>
+                    </div> */}
+               
                   </div>
                 );
               })

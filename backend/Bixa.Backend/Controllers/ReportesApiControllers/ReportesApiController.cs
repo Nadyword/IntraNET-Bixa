@@ -14,7 +14,6 @@ namespace Bixa.Backend.Controllers.ReportesApiControllers;
 [Route("api/reportes")]
 public class ReportesApiController(
     IReportService reportService,
-    IWebHostEnvironment env,
     IMapper mapper,
     LoggerWrapper loggerWrapper) : BaseApiController(mapper, loggerWrapper)
 {
@@ -59,7 +58,7 @@ public class ReportesApiController(
             .Select(name => new ReportImageDTO
             {
                 FileName = name,
-                Url      = $"{_assetsUrl}/{name}",
+                Url = $"{_assetsUrl}/{name}",
             });
 
         return Ok(imagenes);
@@ -92,7 +91,7 @@ public class ReportesApiController(
         return Ok(new ReportImageDTO
         {
             FileName = savedName,
-            Url      = $"{_assetsUrl}/{savedName}",
+            Url = $"{_assetsUrl}/{savedName}",
         });
     }
 

@@ -9,6 +9,6 @@ public class SolicVacacionesDTO
     public DateTime FechaInicio { get; set; }
     public DateTime FechaFin { get; set; }
     public int DiasTotales { get; set; }
-    public string Observaciones { get; set; } = null!;
+    public string? Observaciones { get; set; } = null!;
     public EstadoTramiteEnum Estado { get; } = EstadoTramiteEnum.Creado;
 }

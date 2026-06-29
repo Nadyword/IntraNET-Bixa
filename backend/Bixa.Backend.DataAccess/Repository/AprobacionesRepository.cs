@@ -5,7 +5,9 @@ using Bixa.Backend.DataAccess.Models;
 using Bixa.Backend.DataAccess.Templates.Profit;
 using Bixa.Backend.Models.DTOs.SolicitudesModelDTO;
 using Bixa.Backend.Models.Enums;
+using Bixa.Backend.Models.Response;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Win32;
 
 namespace Bixa.Backend.DataAccess.Repository;
 
@@ -32,17 +34,40 @@ public class AprobacionesRepository(AppDbContext dbContext) : IAprobacionesRepos
     public async Task<bool> AprobarTramite(AprobarTramiteDTO aprobarTramiteDTO)
     {
         var tramite = await _context.Tramites.FirstOrDefaultAsync(t => t.Id == aprobarTramiteDTO.TramiteId);
-        if (aprobarTramiteDTO.Estado > 2)
+        if (tramite == null)
         {
-            tramite.Estado = EstadoTramiteEnum.Rechazado;
-            tramite.MotivoRechazo = aprobarTramiteDTO.Motivo;
-            await _context.Aprobaciones.Where(a => a.TramiteId == aprobarTramiteDTO.TramiteId).ExecuteDeleteAsync();
-            return true;
+            return Result.Fail("Trámite no encontrado").IsSuccess;
         }
 
-        var aprobacion = await _context.Aprobaciones.Where(a => a.TramiteId == aprobarTramiteDTO.TramiteId).ToListAsync();
+        if (aprobarTramiteDTO.Estado > 2)
+        {
+            return await FirmaRechazo(tramite, aprobarTramiteDTO);
+        }
+
+        List<Aprobacion> aprobacion = await _context.Aprobaciones.Where(a => a.TramiteId == aprobarTramiteDTO.TramiteId).ToListAsync();
+        Aprobacion? registro = aprobacion.FirstOrDefault(a => a.AprobadorCi.Trim() == aprobarTramiteDTO!.Ci!.Trim());
+
+        if (registro == null)
+        {
+            return Result.Fail("No se encontró la aprobación para el usuario actual").IsSuccess;
+        }
+
+        return await FirmaAprobacion(registro, aprobacion, aprobarTramiteDTO, tramite);
+    }
+
+    private async Task<bool> FirmaRechazo(Tramite tramite, AprobarTramiteDTO aprobarTramiteDTO)
+    {
+        tramite.Estado = EstadoTramiteEnum.Rechazado;
+        tramite.MotivoRechazo = aprobarTramiteDTO.Motivo;
+        await _context.Aprobaciones.Where(a => a.TramiteId == aprobarTramiteDTO.TramiteId).ExecuteDeleteAsync();
+        _context.Update(tramite);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    private async Task<bool> FirmaAprobacion(Aprobacion registro, List<Aprobacion> aprobacion, AprobarTramiteDTO aprobarTramiteDTO, Tramite tramite)
+    {
         List<int> EstadoTramite = [];
-        var registro = aprobacion.FirstOrDefault(a => a.AprobadorCi.Trim() == aprobarTramiteDTO.Ci.Trim());
         if (registro != null)
         {
             registro.Estado = (EstadoAprobacionEnum)aprobarTramiteDTO.Estado;
@@ -52,14 +77,18 @@ public class AprobacionesRepository(AppDbContext dbContext) : IAprobacionesRepos
                 EstadoTramite.Add(item.Orden);
             }
         }
+        else
+        {
+            return Result.Fail("No se encontró la aprobación para el usuario actual").IsSuccess;
+        }
 
         if (aprobacion.Any(a => a.Orden >= 1))
         {
-            tramite?.Estado = EstadoTramiteEnum.Revision;
+            tramite.Estado = EstadoTramiteEnum.Revision;
         }
         else
         {
-            tramite?.Estado = EstadoTramiteEnum.Aprobado;
+            tramite.Estado = EstadoTramiteEnum.Firmado;
         }
 
         _ = _context.Update(tramite);

@@ -10,15 +10,18 @@ public enum EstadoTramiteEnum
     [Description("En Revisión")]
     Revision = 2,
 
+    [Description("Firmado")]
+    Firmado = 3,
+
     [Description("Aprobado")]
-    Aprobado = 3,
+    Aprobado = 4,
 
     [Description("Archivado")]
-    Archivado = 4,
+    Archivado = 5,
 
     [Description("Finalizado")]
-    Finalizado = 5,
+    Finalizado = 6,
 
     [Description("Rechazado")]
-    Rechazado = 6,
+    Rechazado = 7,
 }
