@@ -37,11 +37,12 @@ public class UserApiController(
     /// <param name="user">User data transfer object for creation.</param>
     /// <returns>API response with the Id of the created user.</returns>
     [HttpPost]
+    [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(ApiResponse<int>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> CreateUser([FromBody] UserInsertDTO user)
+    public async Task<IActionResult> CreateUser([FromForm] UserInsertDTO user)
     {
         var authResult = RequireUserRol(UserRolEnum.Administrador);
         if (authResult != null) return authResult;
@@ -119,12 +120,13 @@ public class UserApiController(
     /// <param name="userEdited">User data transfer object with updated information.</param>
     /// <returns>API response indicating the operation result.</returns>
     [HttpPut]
+    [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> UpdateUser([FromBody] UserEditDTO userEdited)
+    public async Task<IActionResult> UpdateUser([FromForm] UserEditDTO userEdited)
     {
         var authResult = RequireUserRol(UserRolEnum.Administrador);
         if (authResult != null) return authResult;

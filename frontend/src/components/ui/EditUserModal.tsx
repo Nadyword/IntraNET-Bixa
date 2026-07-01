@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
+import { validateFirmaFile } from '../../lib/firmaValidation';
 import type { ApiResponse } from '../../services/authService';
 import './ForgotPasswordModal.css';
 import './CreateUserModal.css';
@@ -20,9 +21,26 @@ export const EditUserModal: React.FC<Props> = ({ onClose }) => {
   const [ci, setCi] = useState('');
   const [idUserRol, setIdUserRol] = useState<number | ''>('');
   const [enabled, setEnabled] = useState<boolean | ''>('');
+  const [firma, setFirma] = useState<File | null>(null);
+  const [firmaError, setFirmaError] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
+
+  const handleFirmaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setFirmaError('');
+    setFirma(null);
+    if (!file) return;
+
+    const validationError = await validateFirmaFile(file);
+    if (validationError) {
+      setFirmaError(validationError);
+      e.target.value = '';
+      return;
+    }
+    setFirma(file);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,13 +48,15 @@ export const EditUserModal: React.FC<Props> = ({ onClose }) => {
     setLoading(true);
     try {
       const token = accessToken ?? sessionStorage.getItem('accessToken');
-      const payload: { ci: string; idUserRol?: number; enabled?: boolean } = { ci };
-      if (idUserRol !== '') payload.idUserRol = idUserRol;
-      if (enabled !== '') payload.enabled = enabled;
+      const formData = new FormData();
+      formData.append('ci', ci);
+      if (idUserRol !== '') formData.append('idUserRol', String(idUserRol));
+      if (enabled !== '') formData.append('enabled', String(enabled));
+      if (firma) formData.append('firma', firma);
 
       const response = await api.put<ApiResponse<boolean>>(
         '/users',
-        payload,
+        formData,
         token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
       );
       setSuccessMessage(response.data.message);
@@ -110,6 +130,17 @@ export const EditUserModal: React.FC<Props> = ({ onClose }) => {
               <option value="true">Activo</option>
               <option value="false">Inactivo</option>
             </select>
+          </div>
+
+          <div className="modal-field">
+            <label>Foto de firma (opcional)</label>
+            <input
+              type="file"
+              accept="image/png"
+              onChange={handleFirmaChange}
+            />
+            <p className="modal-hint">PNG de 225x225 píxeles. Déjalo vacío para no reemplazar la foto actual.</p>
+            {firmaError && <p className="modal-error">{firmaError}</p>}
           </div>
 
           {error && <p className="modal-error">{error}</p>}

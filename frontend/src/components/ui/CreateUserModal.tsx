@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
+import { validateFirmaFile } from '../../lib/firmaValidation';
 import type { ApiResponse } from '../../services/authService';
 import './ForgotPasswordModal.css';
 import './CreateUserModal.css';
@@ -24,9 +25,26 @@ export const CreateUserModal: React.FC<Props> = ({ onClose }) => {
   const accessToken = useAuthStore(state => state.accessToken);
   const [ci, setCi] = useState('');
   const [idUserRol, setIdUserRol] = useState<number>(3);
+  const [firma, setFirma] = useState<File | null>(null);
+  const [firmaError, setFirmaError] = useState('');
   const [loading, setLoading] = useState(false);
   const [created, setCreated] = useState<CreatedUserInfo | null>(null);
   const [error, setError] = useState('');
+
+  const handleFirmaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setFirmaError('');
+    setFirma(null);
+    if (!file) return;
+
+    const validationError = await validateFirmaFile(file);
+    if (validationError) {
+      setFirmaError(validationError);
+      e.target.value = '';
+      return;
+    }
+    setFirma(file);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,9 +52,17 @@ export const CreateUserModal: React.FC<Props> = ({ onClose }) => {
     setLoading(true);
     try {
       const token = accessToken ?? sessionStorage.getItem('accessToken');
+      const formData = new FormData();
+      formData.append('ci', ci);
+      formData.append('idUserRol', String(idUserRol));
+      formData.append('firstName', '');
+      formData.append('lastName', '');
+      formData.append('passwordHash', '');
+      if (firma) formData.append('firma', firma);
+
       const response = await api.post<ApiResponse<number>>(
         '/users',
-        { idUserRol, firstName: "", passwordHash: "",ci: ci,  lastName: "" },
+        formData,
         token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
       );
       setCreated({ message: response.data.message, userId: response.data.data });
@@ -101,6 +127,17 @@ export const CreateUserModal: React.FC<Props> = ({ onClose }) => {
                 <option key={r.id} value={r.id}>{r.name}</option>
               ))}
             </select>
+          </div>
+
+          <div className="modal-field">
+            <label>Foto de firma (opcional)</label>
+            <input
+              type="file"
+              accept="image/png"
+              onChange={handleFirmaChange}
+            />
+            <p className="modal-hint">PNG de 225x225 píxeles. Si no se sube ninguna, se usa la firma por defecto.</p>
+            {firmaError && <p className="modal-error">{firmaError}</p>}
           </div>
 
           {error && <p className="modal-error">{error}</p>}

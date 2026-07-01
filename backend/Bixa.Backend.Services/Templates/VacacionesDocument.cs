@@ -8,8 +8,8 @@ namespace Bixa.Backend.Services.Templates;
 public class VacacionesDocument(TramiteReportModel model) : IDocument
 {
     private const string BorderColor = "#333333";
-    private const string GrayBg      = "#EEEEEE";
-    private const string LabelColor  = "#555555";
+    private const string GrayBg = "#EEEEEE";
+    private const string LabelColor = "#555555";
 
     public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
 
@@ -25,6 +25,35 @@ public class VacacionesDocument(TramiteReportModel model) : IDocument
     }
 
     // ─── Estructura principal ─────────────────────────────────────────────────
+
+    private static Action<IContainer> SectionTitle(string title) =>
+        c => c.Background(GrayBg).Border(1).BorderColor(BorderColor)
+              .Padding(8).AlignCenter()
+              .Text(title).Bold().FontSize(10);
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+    private static void FormField(IContainer container, string label, string value)
+    {
+        container.Column(col =>
+        {
+            col.Item().Text(label).Bold().FontSize(8).FontColor(LabelColor);
+            col.Item().PaddingTop(4).BorderBottom(1).BorderColor(BorderColor).PaddingBottom(5)
+               .Text(value);
+        });
+    }
+
+    private static void SignatureBox(IContainer container, string role, string name, string date)
+    {
+        container.Column(col =>
+        {
+            col.Item().Height(50);
+            col.Item().LineHorizontal(1).LineColor(BorderColor);
+            col.Item().PaddingTop(8).AlignCenter().Text(role).Bold().FontSize(9);
+            if (!string.IsNullOrEmpty(name))
+                col.Item().AlignCenter().Text(name).FontSize(8).FontColor(LabelColor);
+            col.Item().AlignCenter().Text($"Fecha: {date}").FontSize(8);
+        });
+    }
 
     private void ComposeContent(IContainer container)
     {
@@ -126,9 +155,9 @@ public class VacacionesDocument(TramiteReportModel model) : IDocument
     private void ComposeFirmas(IContainer container)
     {
         string supNombre = model.Aprobaciones.Count > 0 ? model.Aprobaciones[0].AprobadorNombre : "";
-        string supFecha  = model.Aprobaciones.Count > 0 ? model.Aprobaciones[0].Fecha.ToString("dd/MM/yyyy") : "___/___/___";
+        string supFecha = model.Aprobaciones.Count > 0 ? model.Aprobaciones[0].Fecha.ToString("dd/MM/yyyy") : "___/___/___";
         string rrhNombre = model.Aprobaciones.Count > 1 ? model.Aprobaciones[^1].AprobadorNombre : "";
-        string rrhFecha  = model.Aprobaciones.Count > 1 ? model.Aprobaciones[^1].Fecha.ToString("dd/MM/yyyy") : "___/___/___";
+        string rrhFecha = model.Aprobaciones.Count > 1 ? model.Aprobaciones[^1].Fecha.ToString("dd/MM/yyyy") : "___/___/___";
 
         container.Column(col =>
         {
@@ -149,48 +178,5 @@ public class VacacionesDocument(TramiteReportModel model) : IDocument
 
     private void ComposeFooter(IContainer container)
     {
-        container.Column(col =>
-        {
-            col.Item().LineHorizontal(2).LineColor("#CCCCCC");
-            col.Item().PaddingTop(15).Row(row =>
-            {
-                row.RelativeItem().Text("Recibido por RRHH: _______________________").FontSize(9).Bold();
-                row.AutoItem().Text(t =>
-                {
-                    t.Span("Fecha:  ").Bold().FontSize(9);
-                    t.Span("___/___/___").FontSize(9);
-                });
-            });
-        });
-    }
-
-    // ─── Helpers ──────────────────────────────────────────────────────────────
-
-    private static Action<IContainer> SectionTitle(string title) =>
-        c => c.Background(GrayBg).Border(1).BorderColor(BorderColor)
-              .Padding(8).AlignCenter()
-              .Text(title).Bold().FontSize(10);
-
-    private static void FormField(IContainer container, string label, string value)
-    {
-        container.Column(col =>
-        {
-            col.Item().Text(label).Bold().FontSize(8).FontColor(LabelColor);
-            col.Item().PaddingTop(4).BorderBottom(1).BorderColor(BorderColor).PaddingBottom(5)
-               .Text(value);
-        });
-    }
-
-    private static void SignatureBox(IContainer container, string role, string name, string date)
-    {
-        container.Column(col =>
-        {
-            col.Item().Height(50);
-            col.Item().LineHorizontal(1).LineColor(BorderColor);
-            col.Item().PaddingTop(8).AlignCenter().Text(role).Bold().FontSize(9);
-            if (!string.IsNullOrEmpty(name))
-                col.Item().AlignCenter().Text(name).FontSize(8).FontColor(LabelColor);
-            col.Item().AlignCenter().Text($"Fecha: {date}").FontSize(8);
-        });
     }
 }

@@ -29,7 +29,8 @@ public class UserService(
     IUserRepository userRepository,
     LoggerWrapper loggerWrapper,
     IReadOnlyUnitOfWork readOnlyUnitOfWork,
-    ISendMailServices sendMail) : IUserService
+    ISendMailServices sendMail,
+    IFirmaService firmaService) : IUserService
 {
     private readonly ILogger<UserService> _logger = loggerWrapper.CreateLogger<UserService>();
     private readonly IMapper _mapper = mapper;
@@ -37,6 +38,7 @@ public class UserService(
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IReadOnlyUnitOfWork _readOnlyUnitOfWork = readOnlyUnitOfWork;
     private readonly ISendMailServices _sendMail = sendMail;
+    private readonly IFirmaService _firmaService = firmaService;
 
     /// <summary>
     /// Adds a new user to the system.
@@ -71,6 +73,17 @@ public class UserService(
             string clave = DateUtilities.GenerateSecureRandomPassword(10);
             userCreate.PasswordHash = clave;
             userCreate.PasswordHash = CheckIfNewPassword(userCreate.PasswordHash!, string.Empty);
+
+            if (userDto.Firma != null)
+            {
+                var firmaResult = await _firmaService.ValidateAndSaveAsync(userDto.Firma, ciNormalized);
+                if (!firmaResult.IsSuccess)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    return Result.Fail<string>(firmaResult.Error!, ErrorTypeEnum.Validation);
+                }
+                userCreate.UrlFirma = firmaResult.Value!;
+            }
 
             await _userRepository.AddAsync(userCreate);
             var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
@@ -140,6 +153,7 @@ public class UserService(
             if (deletedSuccessfullyMarked && saveChangesSuccess)
             {
                 await _unitOfWork.CommitTransactionAsync();
+                _firmaService.DeleteFirma(userToDelete.UrlFirma);
                 return Result.Success(true);
             }
             else
@@ -236,6 +250,17 @@ public class UserService(
 
             entity.IdUserRol = dto.IdUserRol ?? entity.IdUserRol;
             entity.IsActive = dto.Enabled ?? entity.IsActive;
+
+            if (dto.Firma != null)
+            {
+                var firmaResult = await _firmaService.ValidateAndSaveAsync(dto.Firma, dto.Ci);
+                if (!firmaResult.IsSuccess)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    return Result.Fail<bool>(firmaResult.Error!, ErrorTypeEnum.Validation);
+                }
+                entity.UrlFirma = firmaResult.Value!;
+            }
 
             var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
 

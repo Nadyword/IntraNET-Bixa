@@ -13,5 +13,6 @@ public class UserIdDTO
     public string? Name { get; set; }
     public string? Phone { get; set; }
     public string? Ci { get; set; }
+    public string? UrlFirma { get; set; }
     public virtual UserRolDTO.UserRolDTO? UserRol { get; set; }
 }

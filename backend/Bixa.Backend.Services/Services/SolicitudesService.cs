@@ -2,6 +2,7 @@
 using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.DataAccess.Entities.Solicitudes;
 using Bixa.Backend.DataAccess.Interfaces.Repositories;
+using Bixa.Backend.DataAccess.Interfaces.Repositories.Profit;
 using Bixa.Backend.DataAccess.Models;
 using Bixa.Backend.Models.DTOs.ReportesModelDTO;
 using Bixa.Backend.Models.DTOs.SolicitudesModelDTO;
@@ -11,8 +12,9 @@ using Bixa.Backend.Services.Interfaces;
 
 namespace Bixa.Backend.Services.Services;
 
-public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IMapper mapper, IUnitOfWork unitOfWork, ITramitesService tramitesService, IAprobacionesService aprobacionesService) : ISolicitudesService
+public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IMapper mapper, IUnitOfWork unitOfWork, ITramitesService tramitesService, IAprobacionesService aprobacionesService, IGrupoFaProfitRepository grupoFaProfitRepository) : ISolicitudesService
 {
+    private readonly IGrupoFaProfitRepository _grupoFaProfitRepository = grupoFaProfitRepository;
     private readonly ISolicitudesRepository _solicitudesRepository = solicitudesRepository;
     private readonly IAprobacionesService _aprobacionesService = aprobacionesService;
     private readonly ITramitesService _tramitesService = tramitesService;
@@ -146,6 +148,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         var aprobaciones = await _aprobacionesService.GetAprobacionesByTramiteId(tramiteId);
         var solicitudVacaciones = await _solicitudesRepository.GetSolicitudVacacionesByTramiteId(tramiteId);
         var user = await _solicitudesRepository.GetUserByCi(tramite.UserCi);
+        var deparmento = await _grupoFaProfitRepository.GetFullInfoByCiAsync(tramite.UserCi);
         if (tramite == null)
         {
             return Result.Fail<TramiteReportModel>($"No se encontró el trámite con ID {tramiteId}");
@@ -155,7 +158,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         result.TipoTramite = "Solicitud de vacaciones";
         result.EmpleadoCi = tramite.UserCi;
         result.EmpleadoNombre = user?.FirstName + " " + user?.LastName;
-        result.EmpleadoCargo = "pendiente";
+        result.EmpleadoCargo = deparmento.Value[0].Ocupacion;
         result.FechaIngreso = DateTime.Now;
         result.FechaSolicitud = tramite.FechaSolicitud;
         result.FechaResolucion = DateTime.Now;

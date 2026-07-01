@@ -18,6 +18,12 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Para FormData (subida de archivos), el navegador debe fijar el
+    // Content-Type con el boundary; el default 'application/json' de la
+    // instancia lo pisaría y rompería el multipart.
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   },
   (error) => Promise.reject(error)

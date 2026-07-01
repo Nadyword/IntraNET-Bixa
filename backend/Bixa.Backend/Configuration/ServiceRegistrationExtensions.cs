@@ -58,6 +58,7 @@ public static class ServiceRegistrationExtensions
         services.AddScoped<ISolicitudesRepository, SolicitudesRepository>();
         services.AddScoped<ITramitesRepository, TramitesRepository>();
         services.AddScoped<IAprobacionesRepository, AprobacionesRepository>();
+        services.AddScoped<IGrupoFaProfitRepository, GrupoFaProfitRepository>();
     }
 
     /// <summary>
@@ -72,6 +73,12 @@ public static class ServiceRegistrationExtensions
             var env = sp.GetRequiredService<IWebHostEnvironment>();
             var path = Path.Combine(env.WebRootPath ?? "wwwroot", "report-assets");
             return new ReportService(path);
+        });
+        services.AddScoped<IFirmaService>(sp =>
+        {
+            var env = sp.GetRequiredService<IWebHostEnvironment>();
+            var path = Path.Combine(env.WebRootPath ?? "wwwroot", "Firmas");
+            return new FirmaService(path);
         });
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IUserRolService, RolService>();
