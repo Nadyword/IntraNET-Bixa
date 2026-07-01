@@ -177,4 +177,49 @@ public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
 
         return File(bytes, "application/pdf", "reporte_vacaciones.pdf");
     }
+
+    /// <summary>
+    /// Genera un PDF de prueba usando la plantilla genérica con datos de ejemplo.
+    /// </summary>
+    [HttpPut("Reporte/Archivar/{tramiteId}")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ArchivarSolicitud(int tramiteId)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
+        if (authResult != null) return authResult;
+
+        var result = await _solicitudesService.ArchivarTramite(tramiteId);
+        return HandleServiceResult(result);
+    }
+
+    /// <summary>
+    /// Genera un PDF de prueba usando la plantilla genérica con datos de ejemplo.
+    /// </summary>
+    [HttpPut("Reporte/Aprobar/{tramiteId}")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> AprobarSolicitud(int tramiteId)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
+        if (authResult != null) return authResult;
+
+        var result = await _solicitudesService.AprobarTramite(tramiteId);
+        return HandleServiceResult(result);
+    }
+
+    /// <summary>
+    /// Genera un PDF de prueba usando la plantilla genérica con datos de ejemplo.
+    /// </summary>
+    [HttpPut("Reporte/Rechazar/{tramiteId}")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> RechazarSolicitud(int tramiteId, string razon)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
+        if (authResult != null) return authResult;
+
+        var result = await _solicitudesService.RechazarTramite(tramiteId, razon);
+        return HandleServiceResult(result);
+    }
 }

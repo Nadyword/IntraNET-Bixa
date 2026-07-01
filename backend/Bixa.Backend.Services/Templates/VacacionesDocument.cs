@@ -101,12 +101,8 @@ public class VacacionesDocument(TramiteReportModel model) : IDocument
                 row.RelativeItem(1).Element(c => FormField(c, "FECHA DE INGRESO", model.FechaIngreso?.ToString("dd/MM/yyyy") ?? "—"));
             });
 
-            // Fila 2: Días solicitados | Días pendientes
-            col.Item().Row(row =>
-            {
-                row.RelativeItem().PaddingRight(20).Element(c => FormField(c, "TOTAL DÍAS SOLICITADOS:", model.Vacaciones?.DiasTotales.ToString() ?? "—"));
-                row.RelativeItem().Element(c => FormField(c, "TOTAL DÍAS PENDIENTES:", model.Vacaciones?.DiasPendientes.ToString() ?? "—"));
-            });
+            // Fila 2: Días solicitados
+            col.Item().Element(c => FormField(c, "TOTAL DÍAS SOLICITADOS:", model.Vacaciones?.DiasTotales.ToString() ?? "—"));
 
             // Fila 3: Desde | Hasta
             col.Item().Row(row =>

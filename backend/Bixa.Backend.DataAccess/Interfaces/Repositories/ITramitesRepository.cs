@@ -29,4 +29,11 @@ public interface ITramitesRepository
     /// <param name="tramiteId">El ID del trámite.</param>
     /// <returns>El trámite correspondiente al ID proporcionado.</returns>
     Task<Tramite> GetTramiteById(int tramiteId);
+
+    /// <summary>
+    /// Archiva un trámite específico por su ID, cambiando su estado a archivado.
+    /// </summary>
+    /// <param name="tramiteId">El ID del trámite a archivar.</param>
+    /// <returns></returns>
+    Task<bool> ArchivarTramite(int tramiteId);
 }

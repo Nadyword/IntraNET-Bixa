@@ -13,20 +13,9 @@ import './LeaderPage.css';
 
 const PAGE_SIZE = 50;
 
-interface ApprovalRequest {
-  id: number;
-  employeeName: string;
-  type: string;
-  description: string;
-  dates?: string;
-  amount?: number;
-  submittedDate: string;
-}
-
 
 export const LeaderPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('aprobaciones');
-  const [actionedRequests, setActionedRequests] = useState<number[]>([]);
+  const [activeTab, setActiveTab] = useState('equipo');
 
   // Modales de gestión
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
@@ -178,14 +167,6 @@ export const LeaderPage: React.FC = () => {
     if (tab === 'equipo') setCurrentPage(1);
   };
 
-  const approvalRequests: ApprovalRequest[] = [
-  
-  ];
-
-  const handleApprove = (id: number) => setActionedRequests([...actionedRequests, id]);
-  const handleReject  = (id: number) => setActionedRequests([...actionedRequests, id]);
-  const pendingRequests = approvalRequests.filter((r) => !actionedRequests.includes(r.id));
-
   const filteredUsers = teamUsers.filter((u) => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return true;
@@ -208,12 +189,6 @@ export const LeaderPage: React.FC = () => {
       {/* Tabs */}
       <div className="leader-tabs">
         <button
-          className={`tab-btn ${activeTab === 'aprobaciones' ? 'active' : ''}`}
-          onClick={() => handleTabChange('aprobaciones')}
-        >
-          Procesos pendientes
-        </button>
-        <button
           className={`tab-btn ${activeTab === 'equipo' ? 'active' : ''}`}
           onClick={() => handleTabChange('equipo')}
         >
@@ -235,41 +210,6 @@ export const LeaderPage: React.FC = () => {
 
       {/* Tab Content */}
       <div className="tab-content">
-        {activeTab === 'aprobaciones' && (
-          <div className="approvals-section">
-            {pendingRequests.length > 0 ? (
-              <div className="approvals-list">
-                {pendingRequests.map((req) => (
-                  <div key={req.id} className="approval-card">
-                    <div className="approval-left">
-                      <div className="employee-info">
-                        <h4>{req.employeeName}</h4>
-                        <p className="request-type">{req.type}</p>
-                        <p className="request-desc">{req.description}</p>
-                        {req.dates && <p className="request-detail">Fechas: {req.dates}</p>}
-                        {req.amount && <p className="request-detail">Monto: ${req.amount}</p>}
-                      </div>
-                      <div className="submitted-date">Solicitado: {req.submittedDate}</div>
-                    </div>
-                    <div className="approval-actions">
-                      <button className="btn-approve" onClick={() => handleApprove(req.id)}>
-                        ✓ Aprobar
-                      </button>
-                      <button className="btn-reject" onClick={() => handleReject(req.id)}>
-                        ✕ Rechazar
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-state">
-                <p>✓ No hay solicitudes pendientes</p>
-              </div>
-            )}
-          </div>
-        )}
-
         {activeTab === 'equipo' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'center', margin: '15px', flexWrap: 'wrap', gap: '8px' }}>

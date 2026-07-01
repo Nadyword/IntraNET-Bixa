@@ -11,6 +11,7 @@ public class Users : BaseEntities
     public required string? FirstName { get; set; }
     public required string? LastName { get; set; }
     public DateTime? LastLogin { get; set; }
+    public required string UrlFirma { get; set; } = "SinFirma.png";
     public int IdUserRol { get; set; }
     public bool IsActive { get; set; }
     public string? RefreshToken { get; set; }

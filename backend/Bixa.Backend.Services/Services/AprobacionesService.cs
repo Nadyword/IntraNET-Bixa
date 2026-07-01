@@ -24,4 +24,14 @@ public class AprobacionesService(IAprobacionesRepository aprobacionesRepository)
     {
         return await _aprobacionesRepository.AprobarTramite(aprobarTramiteDTO);
     }
+
+    public async Task<bool> AprobarTramite(int tramiteId)
+    {
+        return await _aprobacionesRepository.AprobarTramite(tramiteId);
+    }
+
+    public async Task<bool> RechazarTramite(int tramiteId, string razon)
+    {
+        return await _aprobacionesRepository.RechazarTramite(tramiteId, razon);
+    }
 }

@@ -11,4 +11,8 @@ public interface IAprobacionesRepository
     Task<List<PorAprobar>> GetTramitesForAprobacion(string ci);
 
     Task<bool> AprobarTramite(AprobarTramiteDTO aprobarTramiteDTO);
+
+    Task<bool> AprobarTramite(int tramiteId);
+
+    Task<bool> RechazarTramite(int tramiteId, string razon);
 }

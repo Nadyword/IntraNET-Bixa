@@ -4,7 +4,7 @@
   margin: 0 auto;
 }
 
-/* Header */
+/* ── Header ─────────────────────────────────────────────── */
 .tramites-header {
   margin-bottom: 32px;
   animation: fadeIn 0.6s ease-out;
@@ -47,26 +47,26 @@
 
 .tramites-nueva-btn:hover {
   background: var(--red-dark, #b71c1c);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(217, 26, 26, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(217, 26, 26, 0.35);
 }
 
-/* Filter Section */
+/* ── Filter Section ─────────────────────────────────────── */
 .filter-section {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 32px;
   overflow-x: auto;
   padding-bottom: 8px;
 }
 
 .filter-btn {
-  padding: 10px 16px;
+  padding: 8px 16px;
   border: 2px solid var(--gray-200);
   border-radius: 20px;
   background: white;
   color: var(--gray-500);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition);
@@ -84,7 +84,34 @@
   color: white;
 }
 
-/* Tramites List */
+/* ── Section labels ─────────────────────────────────────── */
+.tramites-section-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--black);
+  margin: 0 0 20px;
+}
+
+.tramites-section-label::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 22px;
+  background: var(--red);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.tramites-section-divider {
+  height: 1px;
+  background: var(--gray-200);
+  margin: 40px 0 32px;
+}
+
+/* ── Tramite Cards (En Tránsito) ─────────────────────────── */
 .tramites-list {
   display: flex;
   flex-direction: column;
@@ -94,58 +121,96 @@
 .tramite-card {
   background: white;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  padding: 22px 28px;
   display: grid;
-  grid-template-columns: 1fr 1.5fr 1fr;
-  gap: 24px;
+  grid-template-columns: 280px 1fr;
+  gap: 32px;
   align-items: center;
-  transition: all var(--transition);
-  border-left: 4px solid transparent;
+  transition: all 0.25s ease;
+  border-left: 5px solid transparent;
 }
 
 .tramite-card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateX(4px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
 }
 
+/* Left: info */
 .tramite-left {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tramite-type {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.tramite-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tramite-icon {
+  font-size: 24px;
+  line-height: 1;
 }
 
 .tramite-type h3 {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 18px;
   color: var(--black);
-  margin: 0 0 4px 0;
+  margin: 0 0 4px;
 }
 
 .tramite-type p {
   color: var(--gray-500);
-  font-size: 14px;
+  font-size: 13px;
   margin: 0;
+}
+
+.tramite-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .tramite-date {
   font-size: 12px;
   color: var(--gray-500);
-  margin-top: 12px;
 }
 
 .tramite-date span {
   font-weight: 600;
 }
 
-/* Status Flow */
+/* Center: tracker */
 .tramite-tracker {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+}
+
+.tramite-progress-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
 }
 
 .status-flow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
 }
 
@@ -153,22 +218,23 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .flow-circle {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--gray-100);
   border: 2px solid var(--gray-300);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--gray-500);
-  transition: all var(--transition);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gray-400);
+  transition: all 0.3s ease;
 }
 
 .flow-step.completed .flow-circle {
@@ -177,17 +243,32 @@
   color: white;
 }
 
-.flow-step.rejected .flow-circle {
-  background: #c62828;
-  border-color: #c62828;
-  color: white;
+.flow-step.current .flow-circle {
+  background: white;
+  border-color: currentColor;
+  color: inherit;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.flow-step.current {
+  color: var(--red);
+}
+
+.flow-step.completed .flow-label {
+  color: #27ae60;
+}
+
+.flow-step.current .flow-label {
+  color: var(--red);
+  font-weight: 700;
 }
 
 .flow-label {
-  font-size: 10px;
-  color: var(--gray-500);
+  font-size: 9.5px;
+  color: var(--gray-400);
   text-align: center;
   white-space: nowrap;
+  transition: color 0.3s ease;
 }
 
 .flow-line {
@@ -195,21 +276,153 @@
   height: 2px;
   background: var(--gray-200);
   margin: 0 -2px;
+  margin-top: 13px;
+  transition: background 0.3s ease;
+  align-self: flex-start;
 }
 
-.tramite-status {
-  margin-top: 4px;
+.flow-line.completed {
+  background: #27ae60;
 }
 
+/* Status badge */
 .status-badge {
-  padding: 6px 12px;
+  padding: 5px 12px;
   border-radius: 16px;
   font-size: 12px;
   font-weight: 600;
   display: inline-block;
+  white-space: nowrap;
 }
 
-/* Tramite Right */
+/* ── Historial ──────────────────────────────────────────── */
+.historial-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.historial-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 18px 24px;
+  transition: all 0.25s ease;
+  border-left: 5px solid transparent;
+}
+
+.historial-card:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.09);
+  transform: translateY(-1px);
+}
+
+.historial-card-left {
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.historial-tipo-icon {
+  font-size: 24px;
+}
+
+.historial-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.historial-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.historial-tipo {
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--black);
+}
+
+.historial-detalle {
+  font-size: 13px;
+  color: var(--gray-600);
+  margin: 0 0 6px;
+}
+
+.historial-comentario {
+  font-size: 13px;
+  color: #c62828;
+  font-style: italic;
+  margin: 4px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historial-card-right {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: right;
+}
+
+.historial-fecha-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.historial-fecha-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--gray-400);
+}
+
+.historial-fecha {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-600);
+}
+
+/* ── Feedback ───────────────────────────────────────────── */
+.tramites-feedback {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--gray-500);
+  font-size: 16px;
+}
+
+.tramites-feedback--error {
+  color: #c62828;
+}
+
+.no-results {
+  text-align: center;
+  padding: 40px 24px;
+  color: var(--gray-400);
+  background: var(--gray-50, #f9f9f9);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--gray-200);
+}
+
+.no-results p {
+  font-size: 15px;
+  margin: 0;
+}
+
+/* ── Tramite Right (reserved) ───────────────────────────── */
 .tramite-right {
   display: flex;
   flex-direction: column;
@@ -218,21 +431,6 @@
   justify-content: center;
 }
 
-/* Tramite icon next to title */
-.tramite-type {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.tramite-icon {
-  font-size: 28px;
-  line-height: 1;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-/* Ver Aprobaciones button */
 .ver-aprobaciones-btn {
   padding: 10px 18px;
   background: transparent;
@@ -252,20 +450,7 @@
   color: white;
 }
 
-/* Feedback states */
-.tramites-feedback {
-  text-align: center;
-  padding: 48px 24px;
-  color: var(--gray-500);
-  font-size: 16px;
-}
-
-.tramites-feedback--error {
-  color: #c62828;
-}
-
 /* ── Modal base ─────────────────────────────────────────── */
-
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -334,7 +519,6 @@
 }
 
 /* ── Aprobaciones Modal ─────────────────────────────────── */
-
 .aprobaciones-modal {
   max-width: 500px;
   width: 100%;
@@ -342,6 +526,11 @@
 
 .modal-header--info {
   background: linear-gradient(135deg, #1976d2, #1565c0);
+}
+
+.modal-header--info h2,
+.modal-header--info .close-btn {
+  color: white;
 }
 
 .aprobaciones-status {
@@ -444,163 +633,17 @@
   flex-shrink: 0;
 }
 
-/* No Results */
-.no-results {
-  text-align: center;
-  padding: 48px 24px;
-  color: var(--gray-500);
-}
-
-.no-results p {
-  font-size: 16px;
-  margin: 0;
-}
-
-/* Section labels and divider */
-.tramites-section-label {
-  font-family: var(--font-display);
-  font-size: 22px;
-  color: var(--black);
-  margin: 0 0 20px;
-}
-
-.tramites-section-divider {
-  height: 1px;
-  background: var(--gray-200);
-  margin: 40px 0 32px;
-}
-
-/* Historial cards */
-.historial-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.historial-card {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  background: white;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  padding: 20px 24px;
-  transition: all var(--transition);
-}
-
-.historial-card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateX(4px);
-}
-
-.historial-card-left {
-  flex-shrink: 0;
-  width: 52px;
-  height: 52px;
-  background: var(--gray-50);
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.historial-tipo-icon {
-  font-size: 26px;
-}
-
-.historial-card-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.historial-card-top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
-}
-
-.historial-tipo {
-  font-family: var(--font-display);
-  font-size: 18px;
-  color: var(--black);
-}
-
-.historial-detalle {
-  font-size: 14px;
-  color: var(--gray-600);
-  margin: 0 0 6px;
-}
-
-.historial-comentario {
-  font-size: 13px;
-  color: var(--gray-400);
-  font-style: italic;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.historial-card-right {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  text-align: right;
-}
-
-.historial-fecha-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.historial-fecha-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--gray-400);
-}
-
-.historial-fecha {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--gray-600);
-}
-
-/* Animations */
+/* ── Animations ─────────────────────────────────────────── */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 1100px) {
   .tramite-card {
     grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .tramite-right {
-    align-items: flex-start;
-  }
-
-  .status-flow {
-    font-size: 12px;
-  }
-
-  .flow-circle {
-    width: 28px;
-    height: 28px;
-    font-size: 11px;
+    gap: 20px;
   }
 }
 
@@ -628,19 +671,20 @@
   }
 
   .filter-btn {
-    padding: 8px 12px;
+    padding: 7px 12px;
     font-size: 12px;
   }
 
   .tramite-card {
     padding: 16px;
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 16px;
   }
 
   .status-flow {
     gap: 2px;
     overflow-x: auto;
+    padding-bottom: 4px;
   }
 
   .flow-circle {
@@ -651,13 +695,13 @@
   }
 
   .flow-label {
-    font-size: 9px;
+    font-size: 8.5px;
   }
 
   .historial-card {
     flex-wrap: wrap;
     gap: 12px;
-    padding: 16px;
+    padding: 14px 16px;
   }
 
   .historial-card-right {

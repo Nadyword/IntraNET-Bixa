@@ -32,12 +32,23 @@ public class TramitesRepository(AppDbContext dbContext) : ITramitesRepository
         return await _context.Tramites
             .Include(t => t.TipoTramite)
             .Include(t => t.SolicitudVacaciones)
-            .Where(t => t.Estado == EstadoTramiteEnum.Aprobado)
+            .Include(t => t.User)
+            .Where(t => t.Estado >= EstadoTramiteEnum.Firmado)
             .ToListAsync();
     }
 
     public async Task<Tramite> GetTramiteById(int tramiteId)
     {
         return await _context.Tramites.FirstOrDefaultAsync(t => t.Id == tramiteId) ?? throw new KeyNotFoundException($"Tramite with Id {tramiteId} not found.");
+    }
+
+    public async Task<bool> ArchivarTramite(int tramiteId)
+    {
+        Tramite tramite = _context.Tramites.FirstOrDefault(t => t.Id == tramiteId) ?? throw new KeyNotFoundException($"Tramite with Id {tramiteId} not found.");
+
+        tramite.Estado = EstadoTramiteEnum.Tramitando;
+        _context.Tramites.Update(tramite);
+
+        return await _context.SaveChangesAsync() > 0;
     }
 }

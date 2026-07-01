@@ -45,11 +45,11 @@ public class SolicitudesRepository(AppDbContext dbContext, ProfitDbContext profi
 
     public async Task<SolicitudVacaciones> GetSolicitudVacacionesByTramiteId(int tramiteId)
     {
-        return await _context.SolicitudesVacaciones.FirstOrDefaultAsync(s => s.TramiteId == tramiteId);
+        return await _context.SolicitudesVacaciones.FirstOrDefaultAsync(s => s.TramiteId == tramiteId) ?? throw new ArgumentNullException(nameof(tramiteId));
     }
 
     public async Task<Users> GetUserByCi(string ci)
     {
-        return await _context.Users.FirstOrDefaultAsync(u => u.Ci == ci);
+        return await _context.Users.FirstOrDefaultAsync(u => u.Ci == ci) ?? throw new ArgumentNullException(nameof(ci));
     }
 }

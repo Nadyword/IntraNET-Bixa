@@ -16,12 +16,9 @@ public enum EstadoTramiteEnum
     [Description("Aprobado")]
     Aprobado = 4,
 
-    [Description("Archivado")]
-    Archivado = 5,
-
-    [Description("Finalizado")]
-    Finalizado = 6,
+    [Description("Tramitando")]
+    Tramitando = 5,
 
     [Description("Rechazado")]
-    Rechazado = 7,
+    Rechazado = 6,
 }

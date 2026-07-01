@@ -67,4 +67,26 @@ public interface ISolicitudesService
     /// <param name="tramiteId">El ID del trámite para obtener la información del reporte de vacaciones.</param>
     /// <returns>Un objeto TramiteReportModel con la información del reporte de vacaciones.</returns>
     Task<Result<TramiteReportModel>> GetInfoReporteVacaciones(int tramiteId);
+
+    /// <summary>
+    /// Archiva un trámite específico, identificado por su ID.
+    /// </summary>
+    /// <param name="tramiteId">El ID del trámite para archivar.</param>
+    /// <returns>Un resultado indicando si la operación fue exitosa o no.</returns>
+    Task<Result<bool>> ArchivarTramite(int tramiteId);
+
+    /// <summary>
+    /// Aprueba un trámite específico, identificado por su ID.
+    /// </summary>
+    /// <param name="tramiteId"></param>
+    /// <returns>Un resultado indicando si la operación fue exitosa o no.</returns>
+    Task<Result<bool>> AprobarTramite(int tramiteId);
+
+    /// <summary>
+    /// Rechaza un trámite específico, identificado por su ID.
+    /// </summary>
+    /// <param name="tramiteId">El ID del trámite para rechazar.</param>
+    /// <param name="razon">La razón por la cual se rechaza el trámite.</param>
+    /// <returns>Un resultado indicando si la operación fue exitosa o no.</returns>
+    Task<Result<bool>> RechazarTramite(int tramiteId, string razon);
 }

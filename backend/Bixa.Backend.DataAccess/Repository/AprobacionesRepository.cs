@@ -31,6 +31,13 @@ public class AprobacionesRepository(AppDbContext dbContext) : IAprobacionesRepos
             .ToListAsync();
     }
 
+    public async Task<bool> AprobarTramite(int tramiteId)
+    {
+        return await _context.Tramites
+            .Where(t => t.Id == tramiteId)
+            .ExecuteUpdateAsync(t => t.SetProperty(t => t.Estado, EstadoTramiteEnum.Aprobado)) > 0;
+    }
+
     public async Task<bool> AprobarTramite(AprobarTramiteDTO aprobarTramiteDTO)
     {
         var tramite = await _context.Tramites.FirstOrDefaultAsync(t => t.Id == aprobarTramiteDTO.TramiteId);
@@ -53,6 +60,21 @@ public class AprobacionesRepository(AppDbContext dbContext) : IAprobacionesRepos
         }
 
         return await FirmaAprobacion(registro, aprobacion, aprobarTramiteDTO, tramite);
+    }
+
+    public async Task<bool> RechazarTramite(int tramiteId, string razon)
+    {
+        var tramite = await _context.Tramites.FirstOrDefaultAsync(t => t.Id == tramiteId);
+        if (tramite == null)
+        {
+            return false;
+        }
+        var aprobacion = await _context.Aprobaciones.Where(a => a.TramiteId == tramiteId).ExecuteDeleteAsync();
+        tramite.Estado = EstadoTramiteEnum.Rechazado;
+        tramite.MotivoRechazo = razon;
+        _context.Update(tramite);
+        await _context.SaveChangesAsync();
+        return true;
     }
 
     private async Task<bool> FirmaRechazo(Tramite tramite, AprobarTramiteDTO aprobarTramiteDTO)

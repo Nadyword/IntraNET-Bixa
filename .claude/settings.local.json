@@ -18,7 +18,8 @@
       "Bash(Remove-Item \"C:\\\\Users\\\\samue\\\\Documents\\\\Proyectos\\\\IntraNET Bixa\\\\backend\\\\Bixa.Backend.DataAccess\\\\Entities\\\\Aprovaciones.cs\")",
       "Bash(Remove-Item \"C:\\\\Users\\\\samue\\\\Documents\\\\Proyectos\\\\IntraNET Bixa\\\\backend\\\\Bixa.Backend.DataAccess\\\\Entities\\\\TypeOfRequest.cs\")",
       "Bash(Remove-Item \"C:\\\\Users\\\\samue\\\\Documents\\\\Proyectos\\\\IntraNET Bixa\\\\backend\\\\Bixa.Backend.DataAccess\\\\Entities\\\\DbProfit\\\\Solicitudes\\\\SoliVacaciones.cs\")",
-      "Bash(Remove-Item \"C:\\\\Users\\\\samue\\\\Documents\\\\Proyectos\\\\IntraNET Bixa\\\\backend\\\\Bixa.Backend.Models\\\\Enums\\\\TypeOfRequestEnum.cs\")"
+      "Bash(Remove-Item \"C:\\\\Users\\\\samue\\\\Documents\\\\Proyectos\\\\IntraNET Bixa\\\\backend\\\\Bixa.Backend.Models\\\\Enums\\\\TypeOfRequestEnum.cs\")",
+      "Bash(npx eslint *)"
     ]
   }
 }

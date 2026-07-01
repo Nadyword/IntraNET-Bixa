@@ -91,6 +91,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasDefaultValue(false);
 
         modelBuilder.Entity<Users>()
+            .Property(u => u.UrlFirma)
+            .IsRequired(false)
+            .HasMaxLength(ModelLengths.FilePath);
+
+        modelBuilder.Entity<Users>()
             .Property(u => u.RefreshToken);
 
         modelBuilder.Entity<Users>()
@@ -118,7 +123,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 UpdatedAt = new DateTime(2025, 1, 1),
                 ModifiedByCi = null,
                 RefreshToken = null,
-                RefreshTokenDate = null
+                RefreshTokenDate = null,
+                UrlFirma = ""
             },
             new ()
             {
@@ -133,7 +139,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 UpdatedAt = new DateTime(2025, 1, 1),
                 ModifiedByCi = null,
                 RefreshToken = null,
-                RefreshTokenDate = null
+                RefreshTokenDate = null,
+                UrlFirma = "SinFirma.png"
             },
             new ()
             {
@@ -148,7 +155,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 UpdatedAt = new DateTime(2025, 1, 1),
                 ModifiedByCi = null,
                 RefreshToken = null,
-                RefreshTokenDate = null
+                RefreshTokenDate = null,
+                UrlFirma = "SinFirma.png"
             },
             new ()
             {
@@ -163,7 +171,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 UpdatedAt = new DateTime(2025, 1, 1),
                 ModifiedByCi = null,
                 RefreshToken = null,
-                RefreshTokenDate = null
+                RefreshTokenDate = null,
+                UrlFirma = "SinFirma.png"
             }
         };
         modelBuilder.Entity<Users>().HasData(usuarios);

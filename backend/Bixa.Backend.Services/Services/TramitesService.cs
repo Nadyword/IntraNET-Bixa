@@ -27,4 +27,9 @@ public class TramitesService(ITramitesRepository tramitesRepository) : ITramites
     {
         return await _tramitesRepository.GetTramiteById(tramiteId);
     }
+
+    public async Task<bool> ArchivarTramite(int tramiteId)
+    {
+        return await _tramitesRepository.ArchivarTramite(tramiteId);
+    }
 }

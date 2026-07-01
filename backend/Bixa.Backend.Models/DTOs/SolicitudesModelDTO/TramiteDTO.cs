@@ -8,6 +8,7 @@ public class TramiteDTO
     public int TipoTramiteId { get; set; }
     public string TipoTramiteNombre { get; set; } = string.Empty;
     public required string UserCi { get; set; }
+    public string? UserNombre { get; set; }
     public DateTime FechaSolicitud { get; set; }
     public DateTime UpdatedAt { get; set; }
     public EstadoTramiteEnum Estado { get; set; }

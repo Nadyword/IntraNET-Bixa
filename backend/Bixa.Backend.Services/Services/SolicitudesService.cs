@@ -11,14 +11,13 @@ using Bixa.Backend.Services.Interfaces;
 
 namespace Bixa.Backend.Services.Services;
 
-public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IMapper mapper, IUnitOfWork unitOfWork, ITramitesService tramitesService, IAprobacionesService aprobacionesService, IReportService reportService) : ISolicitudesService
+public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IMapper mapper, IUnitOfWork unitOfWork, ITramitesService tramitesService, IAprobacionesService aprobacionesService) : ISolicitudesService
 {
     private readonly ISolicitudesRepository _solicitudesRepository = solicitudesRepository;
-    private readonly ITramitesService _tramitesService = tramitesService;
     private readonly IAprobacionesService _aprobacionesService = aprobacionesService;
-    private readonly IMapper _mapper = mapper;
-    private readonly IReportService _reportService = reportService;
+    private readonly ITramitesService _tramitesService = tramitesService;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IMapper _mapper = mapper;
 
     public async Task<List<AprobadorPermisoInfo>> GetAprovadoresPermisosByCi(string ci)
     {
@@ -123,6 +122,16 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         return Result.Success(result);
     }
 
+    public async Task<Result<bool>> AprobarTramite(int tramiteId)
+    {
+        var result = await _aprobacionesService.AprobarTramite(tramiteId);
+        if (!result)
+        {
+            return Result.Fail<bool>($"Error al aprobar el trámite con ID {tramiteId}");
+        }
+        return Result.Success<bool>(true);
+    }
+
     public async Task<Result<List<TramiteDTO>>> GetAprobados()
     {
         var tramites = await _tramitesService.GetAprobados();
@@ -132,7 +141,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
 
     public async Task<Result<TramiteReportModel>> GetInfoReporteVacaciones(int tramiteId)
     {
-        TramiteReportModel result = new TramiteReportModel();
+        TramiteReportModel result = new();
         var tramite = await _tramitesService.GetTramiteById(tramiteId);
         var aprobaciones = await _aprobacionesService.GetAprobacionesByTramiteId(tramiteId);
         var solicitudVacaciones = await _solicitudesRepository.GetSolicitudVacacionesByTramiteId(tramiteId);
@@ -163,12 +172,24 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             result.Aprobaciones.Add(new AprobacionReportModel
             {
                 AprobadorCi = aprobacion.AprobadorCi,
-                AprobadorNombre = aprobacion.Nombre,
+                AprobadorNombre = aprobacion.Nombre ?? "Sin datos",
                 Accion = aprobacion.Estado.ToString(),
                 Fecha = aprobacion.UpdatedAt
             });
         }
 
+        return Result.Success(result);
+    }
+
+    public async Task<Result<bool>> ArchivarTramite(int tramiteId)
+    {
+        var result = await _tramitesService.ArchivarTramite(tramiteId);
+        return Result.Success(result);
+    }
+
+    public async Task<Result<bool>> RechazarTramite(int tramiteId, string razon)
+    {
+        var result = await _aprobacionesService.RechazarTramite(tramiteId, razon);
         return Result.Success(result);
     }
 }

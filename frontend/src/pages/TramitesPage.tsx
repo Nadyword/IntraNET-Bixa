@@ -21,7 +21,7 @@ interface TramiteAPI {
   userCi: string;
   fechaSolicitud: string;
   updatedAt: string;
-  estado: number; // 1=Creado 2=Revision 3=Aprobado 4=Archivado 5=Finalizado 6=Rechazado
+  estado: number; // 1=Creado 2=EnRevision 3=Firmado 4=Aprobado 5=Archivado 6=Finalizado 7=Rechazado
   motivoRechazo?: string;
   vacaciones?: VacacionesDetalle;
 }
@@ -45,7 +45,7 @@ interface ApiResponse<T> {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const ESTADOS_HISTORIAL = new Set([3, 5, 6]);
+const ESTADOS_HISTORIAL = new Set([6, 7]);
 
 const TIPO_TRAMITE_ICONS: Record<number, string> = {
   1: '💰',
@@ -58,10 +58,11 @@ const TIPO_TRAMITE_ICONS: Record<number, string> = {
 const ESTADO_CONFIG: Record<number, { label: string; color: string }> = {
   1: { label: 'Creado',      color: '#f57c00' },
   2: { label: 'En Revisión', color: '#9c27b0' },
-  3: { label: 'Aprobado',    color: '#27ae60' },
-  4: { label: 'Archivado',   color: '#1976d2' },
-  5: { label: 'Finalizado',  color: '#27ae60' },
-  6: { label: 'Rechazado',   color: '#c62828' },
+  3: { label: 'Firmado',     color: '#1976d2' },
+  4: { label: 'Aprobado',    color: '#27ae60' },
+  5: { label: 'Tramitando',  color: '#0288d1' },
+  6: { label: 'Finalizado',  color: '#27ae60' },
+  7: { label: 'Rechazado',   color: '#c62828' },
 };
 
 const APROBACION_CONFIG: Record<number, { label: string; color: string }> = {
@@ -70,7 +71,14 @@ const APROBACION_CONFIG: Record<number, { label: string; color: string }> = {
   3: { label: 'Rechazado',  color: '#c62828' },
 };
 
-const FLOW_STEPS = ['Creado', 'En Revisión'] as const;
+const FLOW_STEPS = [
+  { label: 'Creado',      estado: 1 },
+  { label: 'En Revisión', estado: 2 },
+  { label: 'Firmado',     estado: 3 },
+  { label: 'Aprobado',    estado: 4 },
+  { label: 'Tramitando',  estado: 5 },
+  { label: 'Finalizado',  estado: 6 },
+] as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -87,10 +95,16 @@ function getTramiteDetalle(tramite: TramiteAPI): string {
   return '';
 }
 
-function getFlowStepClass(estado: number, stepIndex: number): string {
-  if (stepIndex === 0) return estado >= 1 ? 'completed' : '';
-  if (stepIndex === 1) return estado >= 2 ? 'completed' : '';
+function getFlowStepClass(tramiteEstado: number, stepEstado: number): string {
+  if (tramiteEstado > stepEstado) return 'completed';
+  if (tramiteEstado === stepEstado) return 'current';
   return '';
+}
+
+// El backend nunca asigna estado 6 (Finalizado): el flujo real termina en
+// estado 5 (Tramitando/Archivado). Para el usuario, ese es el estado final.
+function getDisplayEstado(estado: number): number {
+  return estado === 5 ? 6 : estado;
 }
 
 // ─── API ──────────────────────────────────────────────────────────────────────
@@ -197,19 +211,19 @@ export const TramitesPage: React.FC = () => {
     enabled: !!user?.ci,
   });
 
-  const tramitesEnTransito = allTramites.filter(t => !ESTADOS_HISTORIAL.has(t.estado));
-  const tramitesHistorial  = allTramites.filter(t =>  ESTADOS_HISTORIAL.has(t.estado));
+  const tramitesEnTransito = allTramites.filter(t => !ESTADOS_HISTORIAL.has(getDisplayEstado(t.estado)));
+  const tramitesHistorial  = allTramites.filter(t =>  ESTADOS_HISTORIAL.has(getDisplayEstado(t.estado)));
 
   const filteredTransito = filterEstado === 'todos'
     ? tramitesEnTransito
-    : tramitesEnTransito.filter(t => t.estado === filterEstado);
+    : tramitesEnTransito.filter(t => getDisplayEstado(t.estado) === filterEstado);
 
   const filteredHistorial = filterEstado === 'todos'
     ? tramitesHistorial
-    : tramitesHistorial.filter(t => t.estado === filterEstado);
+    : tramitesHistorial.filter(t => getDisplayEstado(t.estado) === filterEstado);
 
-  const estadosConItems = ([1, 2, 3, 4, 5, 6] as number[]).filter(e =>
-    allTramites.some(t => t.estado === e)
+  const estadosConItems = ([1, 2, 3, 4, 6, 7] as number[]).filter(e =>
+    allTramites.some(t => getDisplayEstado(t.estado) === e)
   );
 
   const selectedTramite = allTramites.find(t => t.id === selectedTramiteId);
@@ -242,7 +256,7 @@ export const TramitesPage: React.FC = () => {
               Todos ({allTramites.length})
             </button>
             {estadosConItems.map(e => {
-              const count = allTramites.filter(t => t.estado === e).length;
+              const count = allTramites.filter(t => getDisplayEstado(t.estado) === e).length;
               const cfg = ESTADO_CONFIG[e];
               return (
                 <button
@@ -267,55 +281,64 @@ export const TramitesPage: React.FC = () => {
                 const icon   = TIPO_TRAMITE_ICONS[tramite.tipoTramiteId] ?? '📄';
                 const detalle = getTramiteDetalle(tramite);
 
+                const currentStepIndex = FLOW_STEPS.findIndex(s => s.estado === tramite.estado);
+                const stepLabel = currentStepIndex >= 0
+                  ? `Paso ${currentStepIndex + 1} de ${FLOW_STEPS.length}`
+                  : '';
+
                 return (
-                  <div key={tramite.id} className="tramite-card">
+                  <div
+                    key={tramite.id}
+                    className="tramite-card"
+                    style={{ borderLeftColor: cfg.color }}
+                  >
                     {/* Izquierda: info del trámite */}
                     <div className="tramite-left">
                       <div className="tramite-type">
-                        <span className="tramite-icon">{icon}</span>
+                        <div className="tramite-icon-wrap" style={{ background: `${cfg.color}18` }}>
+                          <span className="tramite-icon">{icon}</span>
+                        </div>
                         <div>
                           <h3>{tramite.tipoTramiteNombre}</h3>
                           {detalle && <p>{detalle}</p>}
                         </div>
                       </div>
-                      <div className="tramite-date">
-                        <span>Iniciado:</span> {formatDate(tramite.fechaSolicitud)}
-                      </div>
-                    </div>
-
-                    {/* Centro: tracker de estados */}
-                    <div className="tramite-tracker">
-                      <div className="status-flow">
-                        {FLOW_STEPS.map((label, i) => (
-                          <React.Fragment key={label}>
-                            <div className={`flow-step ${getFlowStepClass(tramite.estado, i)}`}>
-                              <div className="flow-circle">{i + 1}</div>
-                              <span className="flow-label">{label}</span>
-                            </div>
-                            {i < FLOW_STEPS.length - 1 && <div className="flow-line" />}
-                          </React.Fragment>
-                        ))}
-                      </div>
-                      <div className="tramite-status">
+                      <div className="tramite-meta">
+                        <div className="tramite-date">
+                          <span>Iniciado:</span> {formatDate(tramite.fechaSolicitud)}
+                        </div>
                         <span
                           className="status-badge"
-                          style={{ backgroundColor: `${cfg.color}20`, color: cfg.color }}
+                          style={{ backgroundColor: `${cfg.color}18`, color: cfg.color }}
                         >
                           {cfg.label}
                         </span>
                       </div>
                     </div>
 
-                    {/* Derecha: botón ver aprobaciones */}
-                    {/* <div className="tramite-right">
-                      <button
-                        className="ver-aprobaciones-btn"
-                        onClick={() => setSelectedTramiteId(tramite.id)}
-                      >
-                        Ver Aprobaciones
-                      </button>
-                    </div> */}
-               
+                    {/* Tracker de estados */}
+                    <div className="tramite-tracker">
+                      {stepLabel && (
+                        <div className="tramite-progress-label" style={{ color: cfg.color }}>
+                          {stepLabel}
+                        </div>
+                      )}
+                      <div className="status-flow">
+                        {FLOW_STEPS.map((step, i) => (
+                          <React.Fragment key={step.label}>
+                            <div className={`flow-step ${getFlowStepClass(tramite.estado, step.estado)}`}>
+                              <div className="flow-circle">
+                                {tramite.estado > step.estado ? '✓' : i + 1}
+                              </div>
+                              <span className="flow-label">{step.label}</span>
+                            </div>
+                            {i < FLOW_STEPS.length - 1 && (
+                              <div className={`flow-line${tramite.estado > FLOW_STEPS[i].estado ? ' completed' : ''}`} />
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 );
               })
@@ -333,13 +356,13 @@ export const TramitesPage: React.FC = () => {
           <div className="historial-list">
             {filteredHistorial.length > 0 ? (
               filteredHistorial.map(tramite => {
-                const cfg    = ESTADO_CONFIG[tramite.estado] ?? ESTADO_CONFIG[5];
+                const cfg    = ESTADO_CONFIG[getDisplayEstado(tramite.estado)] ?? ESTADO_CONFIG[6];
                 const icon   = TIPO_TRAMITE_ICONS[tramite.tipoTramiteId] ?? '📄';
                 const detalle = getTramiteDetalle(tramite);
 
                 return (
-                  <div key={tramite.id} className="historial-card">
-                    <div className="historial-card-left">
+                  <div key={tramite.id} className="historial-card" style={{ borderLeftColor: cfg.color }}>
+                    <div className="historial-card-left" style={{ background: `${cfg.color}15` }}>
                       <span className="historial-tipo-icon">{icon}</span>
                     </div>
 
