@@ -24,6 +24,19 @@ const TIPOS: TipoConfig[] = [
   { id: 'prestaciones', label: 'Préstamo Prestaciones',   icon: '💰', enumId: 3 },
 ];
 
+const MOTIVOS_DIA_ESPECIAL: string[] = [
+  'Cédula de identidad',
+  'Libreta militar',
+  'Certificado de salud',
+  'Licencia de conducir',
+  'Pasaporte',
+  'Citaciones judiciales, policiales o civiles',
+  'Inscripción escolar hijos/trabajador',
+  'Carta de soltería',
+  'Constancia de concubinato',
+  'Constancia de residencia',
+];
+
 interface FormVacaciones {
   fechaInicio: string;
   fechaFin: string;
@@ -258,13 +271,16 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose }) => {
                 </div>
                 <div className="ns-field">
                   <label>Motivo <span className="ns-required">*</span></label>
-                  <textarea
-                    rows={4}
-                    placeholder="Describe el motivo del día especial..."
+                  <select
                     value={diaEspecial.motivo}
                     onChange={(e) => setDiaEspecial((d) => ({ ...d, motivo: e.target.value }))}
                     className={errors.motivo ? 'input-error' : ''}
-                  />
+                  >
+                    <option value="">Selecciona un motivo...</option>
+                    {MOTIVOS_DIA_ESPECIAL.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
                   {errors.motivo && <span className="ns-error">{errors.motivo}</span>}
                 </div>
               </>

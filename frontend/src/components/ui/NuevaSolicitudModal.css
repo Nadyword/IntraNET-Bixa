@@ -148,7 +148,8 @@
 }
 
 .ns-field input,
-.ns-field textarea {
+.ns-field textarea,
+.ns-field select {
   width: 100%;
   padding: 10px 14px;
   border: 1.5px solid var(--gray-200);
@@ -164,14 +165,16 @@
 }
 
 .ns-field input:focus,
-.ns-field textarea:focus {
+.ns-field textarea:focus,
+.ns-field select:focus {
   border-color: var(--red);
   background: white;
   box-shadow: 0 0 0 3px rgba(217, 26, 26, 0.1);
 }
 
 .ns-field input.input-error,
-.ns-field textarea.input-error {
+.ns-field textarea.input-error,
+.ns-field select.input-error {
   border-color: #e53935;
 }
 
