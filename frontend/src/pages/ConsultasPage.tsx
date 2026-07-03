@@ -157,19 +157,19 @@ export const ConsultasPage: React.FC = () => {
 
         <div className="stat-card">
           <div className="stat-icon green">💰</div>
-          <div className="stat-info"><h3 style={{ fontSize: '22px' }}>*En desarrollo*</h3><p>Prestaciones acumuladas</p><div className="stat-sub">Corte: 31/05/2025</div></div>
+          <div className="stat-info"><h3 style={{ fontSize: '22px' }}>*En desarrollo*</h3><p>Prestaciones acumuladas</p></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon red">🏥</div>
-          <div className="stat-info"><h3 style={{ fontSize: '22px' }}>*En desarrollo*</h3><p>Descuento HC mensual</p><div className="stat-sub">Titular + Cónyuge + 1 Hijo</div></div>
+          <div className="stat-info"><h3 style={{ fontSize: '22px' }}>*En desarrollo*</h3><p>Descuento HC mensual</p></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon red">📄</div>
-          <div className="stat-info"><h3 style={{ fontSize: '22px' }}>*En desarrollo*</h3><p>ARC — Retención de ISLR:</p><div className="stat-sub">Titular + Cónyuge + 1 Hijo</div></div>
+          <div className="stat-info"><h3 style={{ fontSize: '22px' }}>*En desarrollo*</h3><p>ARC — Retención de ISLR:</p></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon red">📈</div>
-          <div className="stat-info"><h3 style={{ fontSize: '22px' }}>*En desarrollo*</h3><p>Acumulado utilidades</p><div className="stat-sub">Titular + Cónyuge + 1 Hijo</div></div>
+          <div className="stat-info"><h3 style={{ fontSize: '22px' }}>*En desarrollo*</h3><p>Utilidades</p></div>
         </div>
       </div>
 

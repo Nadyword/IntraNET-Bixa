@@ -12,8 +12,23 @@ using Bixa.Backend.Services.Interfaces;
 
 namespace Bixa.Backend.Services.Services;
 
-public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IMapper mapper, IUnitOfWork unitOfWork, ITramitesService tramitesService, IAprobacionesService aprobacionesService, IGrupoFaProfitRepository grupoFaProfitRepository) : ISolicitudesService
+public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IMapper mapper, IUnitOfWork unitOfWork, ITramitesService tramitesService, IAprobacionesService aprobacionesService, IGrupoFaProfitRepository grupoFaProfitRepository, ISnEmpleProfitRepository snEmpleProfitRepository) : ISolicitudesService
 {
+    private static readonly string[] MotivosDiaEspecialValidos =
+    [
+        "Cédula de identidad",
+        "Libreta militar",
+        "Certificado de salud",
+        "Licencia de conducir",
+        "Pasaporte",
+        "Citaciones judiciales, policiales o civiles",
+        "Inscripción escolar hijos/trabajador",
+        "Carta de soltería",
+        "Constancia de concubinato",
+        "Constancia de residencia",
+    ];
+
+    private readonly ISnEmpleProfitRepository _snEmpleProfitRepository = snEmpleProfitRepository;
     private readonly IGrupoFaProfitRepository _grupoFaProfitRepository = grupoFaProfitRepository;
     private readonly ISolicitudesRepository _solicitudesRepository = solicitudesRepository;
     private readonly IAprobacionesService _aprobacionesService = aprobacionesService;
@@ -77,6 +92,72 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             {
                 await _unitOfWork.RollbackTransactionAsync();
                 return Result.Fail<bool>("Error al guardar la solicitud de vacaciones");
+            }
+
+            await _unitOfWork.CommitTransactionAsync();
+            return Result.Success(true);
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            return Result.Fail<bool>($"Error en el proceso: {ex.Message}");
+        }
+    }
+
+    public async Task<Result<bool>> AddSolicitudDiasEspeciales(SolicDiaEspecialDTO solicitud)
+    {
+        if (solicitud.Fecha.Date < DateTime.Now.Date)
+        {
+            return Result.Fail<bool>("Fecha inválida: la fecha no puede ser en el pasado.");
+        }
+
+        if (!MotivosDiaEspecialValidos.Contains(solicitud.Motivo))
+        {
+            return Result.Fail<bool>("Motivo inválido: selecciona una de las opciones permitidas.");
+        }
+
+        solicitud.Ci = UtilityService.NormalizeCiFormat(solicitud.Ci);
+        await _unitOfWork.BeginTransactionAsync();
+        var tramite = _mapper.Map<Tramite>(solicitud);
+
+        try
+        {
+            int tramiteId = await _solicitudesRepository.AddNewTramite(tramite);
+
+            if (tramiteId < 1)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return Result.Fail<bool>("Error al guardar el trámite");
+            }
+
+            List<AprobadorPermisoInfo> aprobadores = await GetAprovadoresPermisosByCi(solicitud.Ci);
+
+            foreach (AprobadorPermisoInfo aprobador in aprobadores)
+            {
+                int result = await _solicitudesRepository.AddAprobaciones(new Aprobacion
+                {
+                    TramiteId = tramiteId,
+                    Nombre = aprobador.Nombre,
+                    AprobadorCi = aprobador.Ci,
+                    Orden = aprobadores.IndexOf(aprobador) + 1,
+                    Estado = EstadoAprobacionEnum.Pendiente
+                });
+
+                if (result < 1)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    return Result.Fail<bool>($"Error al guardar la aprobación para el aprobador {aprobador.Nombre} ({aprobador.Ci})");
+                }
+            }
+
+            SolicitudDiasEspeciales sDiaEspecial = _mapper.Map<SolicitudDiasEspeciales>(solicitud);
+            sDiaEspecial.TramiteId = tramiteId;
+
+            bool solicitudResult = await _solicitudesRepository.AddSolicitudDiasEspeciales(sDiaEspecial);
+            if (!solicitudResult)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return Result.Fail<bool>("Error al guardar la solicitud de día especial");
             }
 
             await _unitOfWork.CommitTransactionAsync();
@@ -168,6 +249,47 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             Hasta = solicitudVacaciones.Hasta,
             DiasTotales = solicitudVacaciones.DiasTotales,
             Observaciones = solicitudVacaciones.Observaciones
+        };
+
+        foreach (var aprobacion in aprobaciones)
+        {
+            result.Aprobaciones.Add(new AprobacionReportModel
+            {
+                AprobadorCi = aprobacion.AprobadorCi,
+                AprobadorNombre = aprobacion.Nombre ?? "Sin datos",
+                Accion = aprobacion.Estado.ToString(),
+                Fecha = aprobacion.UpdatedAt
+            });
+        }
+
+        return Result.Success(result);
+    }
+
+    public async Task<Result<TramiteReportModel>> GetInfoReporteDiaEspecial(int tramiteId)
+    {
+        TramiteReportModel result = new();
+        var tramite = await _tramitesService.GetTramiteById(tramiteId);
+        var aprobaciones = await _aprobacionesService.GetAprobacionesByTramiteId(tramiteId);
+        var solicitudDiaEspecial = await _solicitudesRepository.GetSolicitudDiasEspecialesByTramiteId(tramiteId);
+        var user = await _solicitudesRepository.GetUserByCi(tramite.UserCi);
+        var empleadoInfo = await _snEmpleProfitRepository.GetFullInfoByCiAsync(tramite.UserCi);
+        if (tramite == null)
+        {
+            return Result.Fail<TramiteReportModel>($"No se encontró el trámite con ID {tramiteId}");
+        }
+
+        result.TramiteId = tramite.Id;
+        result.TipoTramite = "Solicitud de día especial";
+        result.EmpleadoCi = tramite.UserCi;
+        result.EmpleadoNombre = user?.FirstName + " " + user?.LastName;
+        result.EmpleadoCargo = empleadoInfo.IsSuccess ? empleadoInfo.Value.DesCargo : null;
+        result.EmpleadoDepartamento = empleadoInfo.IsSuccess ? empleadoInfo.Value.DesDepart : null;
+        result.FechaSolicitud = tramite.FechaSolicitud;
+        result.FechaResolucion = DateTime.Now;
+        result.DiaEspecial = new()
+        {
+            Fecha = solicitudDiaEspecial.Fecha,
+            Motivo = solicitudDiaEspecial.Motivo
         };
 
         foreach (var aprobacion in aprobaciones)

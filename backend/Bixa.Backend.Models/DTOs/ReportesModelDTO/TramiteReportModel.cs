@@ -7,13 +7,21 @@ public class TramiteReportModel
     public string EmpleadoCi { get; set; } = string.Empty;
     public string EmpleadoNombre { get; set; } = string.Empty;
     public string? EmpleadoCargo { get; set; }
+    public string? EmpleadoDepartamento { get; set; }
     public DateTime? FechaIngreso { get; set; }
     public DateTime FechaSolicitud { get; set; }
     public DateTime FechaResolucion { get; set; }
     public string EstadoFinal { get; set; } = string.Empty;
     public VacacionesReportModel? Vacaciones { get; set; }
+    public DiaEspecialReportModel? DiaEspecial { get; set; }
     public List<AprobacionReportModel> Aprobaciones { get; set; } = [];
     public byte[]? LogoEmpresa { get; set; }
+}
+
+public class DiaEspecialReportModel
+{
+    public DateTime Fecha { get; set; }
+    public string Motivo { get; set; } = string.Empty;
 }
 
 public class VacacionesReportModel

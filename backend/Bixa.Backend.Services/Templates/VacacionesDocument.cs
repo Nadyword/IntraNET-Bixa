@@ -103,7 +103,7 @@ public class VacacionesDocument(TramiteReportModel model) : IDocument
             row.RelativeItem(1).Padding(10).Column(col =>
             {
                 col.Item().BorderBottom(1).BorderColor(GrayBg).PaddingBottom(4)
-                   .Text(t => { t.Span("Código: ").Bold().FontSize(8); t.Span("5-SDV-RH-001").FontSize(8); });
+                   .Text(t => { t.Span("Código: ").Bold().FontSize(8); t.Span("5-SDV-TH-001").FontSize(8); });
                 col.Item().PaddingTop(4).BorderBottom(1).BorderColor(GrayBg).PaddingBottom(4)
                    .Text(t => { t.Span("Revisión: ").Bold().FontSize(8); t.Span("00").FontSize(8); });
                 col.Item().PaddingTop(4)

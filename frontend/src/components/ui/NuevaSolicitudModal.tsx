@@ -5,6 +5,7 @@ import { useAuthStore } from '../../store/authStore';
 
 interface Props {
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 type TipoTramite = 'vacaciones' | 'diaEspecial' | 'utilidades' | 'sociales' | 'prestaciones';
@@ -78,7 +79,7 @@ function calcularDias(inicio: string, fin: string): number {
   return count;
 }
 
-export const NuevaSolicitudModal: React.FC<Props> = ({ onClose }) => {
+export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => {
   const user = useAuthStore((s) => s.user);
   const [tipo, setTipo] = useState<TipoTramite | null>(null);
   const [enviado, setEnviado] = useState(false);
@@ -138,6 +139,27 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose }) => {
         };
         await api.post('/solicitudes/Vacaciones', payload);
         setEnviado(true);
+        onSuccess?.();
+      } catch (err: any) {
+        const msg = err?.response?.data?.message ?? 'Error al enviar la solicitud. Intenta de nuevo.';
+        setSubmitError(msg);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    if (tipo === 'diaEspecial') {
+      setIsLoading(true);
+      try {
+        const payload = {
+          ci: user?.ci ?? '',
+          fecha: diaEspecial.fecha,
+          motivo: diaEspecial.motivo,
+        };
+        await api.post('/solicitudes/DiaEspecial', payload);
+        setEnviado(true);
+        onSuccess?.();
       } catch (err: any) {
         const msg = err?.response?.data?.message ?? 'Error al enviar la solicitud. Intenta de nuevo.';
         setSubmitError(msg);

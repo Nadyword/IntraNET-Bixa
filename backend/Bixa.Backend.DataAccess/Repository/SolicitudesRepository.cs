@@ -48,6 +48,18 @@ public class SolicitudesRepository(AppDbContext dbContext, ProfitDbContext profi
         return await _context.SolicitudesVacaciones.FirstOrDefaultAsync(s => s.TramiteId == tramiteId) ?? throw new ArgumentNullException(nameof(tramiteId));
     }
 
+    public async Task<bool> AddSolicitudDiasEspeciales(SolicitudDiasEspeciales solicitud)
+    {
+        var result = await _context.SolicitudesDiasEspeciales.AddAsync(solicitud);
+        await _context.SaveChangesAsync();
+        return result != null;
+    }
+
+    public async Task<SolicitudDiasEspeciales> GetSolicitudDiasEspecialesByTramiteId(int tramiteId)
+    {
+        return await _context.SolicitudesDiasEspeciales.FirstOrDefaultAsync(s => s.TramiteId == tramiteId) ?? throw new ArgumentNullException(nameof(tramiteId));
+    }
+
     public async Task<Users> GetUserByCi(string ci)
     {
         return await _context.Users.FirstOrDefaultAsync(u => u.Ci == ci) ?? throw new ArgumentNullException(nameof(ci));

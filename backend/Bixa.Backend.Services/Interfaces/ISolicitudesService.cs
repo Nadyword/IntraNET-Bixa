@@ -22,6 +22,13 @@ public interface ISolicitudesService
     Task<Result<bool>> AddSolicitudVacaciones(SolicVacacionesDTO solicitud);
 
     /// <summary>
+    /// Agrega una nueva solicitud de día especial.
+    /// </summary>
+    /// <param name="solicitud">El DTO que contiene la información de la solicitud de día especial.</param>
+    /// <returns>Un resultado indicando si la operación fue exitosa o no.</returns>
+    Task<Result<bool>> AddSolicitudDiasEspeciales(SolicDiaEspecialDTO solicitud);
+
+    /// <summary>
     /// Obtiene todos los trámites de un usuario específico, identificados por su CI.
     /// </summary>
     /// <param name="ci">El CI del usuario para obtener sus trámites.</param>
@@ -67,6 +74,13 @@ public interface ISolicitudesService
     /// <param name="tramiteId">El ID del trámite para obtener la información del reporte de vacaciones.</param>
     /// <returns>Un objeto TramiteReportModel con la información del reporte de vacaciones.</returns>
     Task<Result<TramiteReportModel>> GetInfoReporteVacaciones(int tramiteId);
+
+    /// <summary>
+    /// Obtiene la información del reporte de día especial para un trámite específico, identificado por su ID.
+    /// </summary>
+    /// <param name="tramiteId">El ID del trámite para obtener la información del reporte de día especial.</param>
+    /// <returns>Un objeto TramiteReportModel con la información del reporte de día especial.</returns>
+    Task<Result<TramiteReportModel>> GetInfoReporteDiaEspecial(int tramiteId);
 
     /// <summary>
     /// Archiva un trámite específico, identificado por su ID.

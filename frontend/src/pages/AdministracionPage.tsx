@@ -13,6 +13,11 @@ interface VacacionesDetalle {
   observaciones?: string;
 }
 
+interface DiaEspecialDetalle {
+  fecha: string;
+  motivo: string;
+}
+
 interface TramiteDTO {
   id: number;
   tipoTramiteId: number;
@@ -24,6 +29,7 @@ interface TramiteDTO {
   estado: number;
   motivoRechazo?: string;
   vacaciones?: VacacionesDetalle;
+  diaEspecial?: DiaEspecialDetalle;
 }
 
 interface ApiResponse<T> {
@@ -113,10 +119,12 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
   const icon   = TIPO_TRAMITE_ICON[tramite.tipoTramiteId] ?? '📄';
   const estado = ESTADO_LABEL[tramite.estado] ?? { label: String(tramite.estado), className: '' };
 
+  const reporteEndpoint = tramite.diaEspecial ? 'DiaEspecial' : 'Vacaciones';
+
   const handlePlanilla = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/solicitudes/Reporte/Vacaciones/${tramite.id}`, {
+      const response = await api.get(`/solicitudes/Reporte/${reporteEndpoint}/${tramite.id}`, {
         responseType: 'blob',
       });
       const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
@@ -169,7 +177,7 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
             <>
               <button
                 className="adm-btn adm-btn-reporte"
-                disabled={loading || !tramite.vacaciones}
+                disabled={loading || (!tramite.vacaciones && !tramite.diaEspecial)}
                 onClick={handlePlanilla}
               >
                 {loading ? '⏳ Generando...' : '📄 Planilla'}
@@ -251,6 +259,22 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
                 </div>
               )}
 
+              {tramite.diaEspecial && (
+                <div className="detalle-section">
+                  <h3 className="detalle-section-title">Detalle de día especial</h3>
+                  <div className="detalle-grid">
+                    <div className="detalle-field">
+                      <span className="detalle-label">Fecha</span>
+                      <span className="detalle-value">{formatDate(tramite.diaEspecial.fecha)}</span>
+                    </div>
+                    <div className="detalle-field detalle-field--full">
+                      <span className="detalle-label">Motivo</span>
+                      <span className="detalle-value">{tramite.diaEspecial.motivo}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {tramite.motivoRechazo && (
                 <div className="detalle-section detalle-section--rechazo">
                   <h3 className="detalle-section-title detalle-section-title--rechazo">Motivo de rechazo</h3>
@@ -318,11 +342,11 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
         <div className="pdf-preview-overlay" onClick={handleClosePreview}>
           <div className="pdf-preview-modal" onClick={e => e.stopPropagation()}>
             <div className="pdf-preview-header">
-              <span>Planilla de vacaciones · Trámite #{tramite.id}</span>
+              <span>Planilla de {reporteEndpoint === 'DiaEspecial' ? 'día especial' : 'vacaciones'} · Trámite #{tramite.id}</span>
               <div className="pdf-preview-actions">
                 <a
                   href={previewUrl}
-                  download={`planilla_vacaciones_${tramite.id}.pdf`}
+                  download={`planilla_${reporteEndpoint.toLowerCase()}_${tramite.id}.pdf`}
                   className="pdf-download-btn"
                 >
                   ⬇ Descargar
@@ -333,7 +357,7 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
             <iframe
               src={previewUrl}
               className="pdf-preview-iframe"
-              title={`Planilla vacaciones ${tramite.id}`}
+              title={`Planilla ${reporteEndpoint} ${tramite.id}`}
             />
           </div>
         </div>,

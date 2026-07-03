@@ -17,4 +17,6 @@ public class Tramite : BaseEntities
     public virtual Users? User { get; set; }
     public virtual ICollection<Aprobacion> Aprobaciones { get; set; } = [];
     public virtual SolicitudVacaciones? SolicitudVacaciones { get; set; }
+
+    public virtual SolicitudDiasEspeciales? SolicitudDiasEspeciales { get; set; }
 }

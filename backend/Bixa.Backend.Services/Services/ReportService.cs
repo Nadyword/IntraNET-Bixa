@@ -25,9 +25,10 @@ public class ReportService(string reportAssetsPath) : IReportService
 
         return plantilla switch
         {
-            "Generic"    => new GenericTramiteDocument(model).GeneratePdf(),
-            "Vacaciones" => new VacacionesDocument(model).GeneratePdf(),
-            _            => new GenericTramiteDocument(model).GeneratePdf(),
+            "Generic"     => new GenericTramiteDocument(model).GeneratePdf(),
+            "Vacaciones"  => new VacacionesDocument(model).GeneratePdf(),
+            "DiaEspecial" => new DiaEspecialDocument(model).GeneratePdf(),
+            _             => new GenericTramiteDocument(model).GeneratePdf(),
         };
     }
 

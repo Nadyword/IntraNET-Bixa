@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { NuevaSolicitudModal } from '../components/ui/NuevaSolicitudModal';
 import { useAuthStore } from '../store/authStore';
 import api from '../lib/api';
@@ -21,7 +21,7 @@ interface TramiteAPI {
   userCi: string;
   fechaSolicitud: string;
   updatedAt: string;
-  estado: number; // 1=Creado 2=EnRevision 3=Firmado 4=Aprobado 5=Archivado 6=Finalizado 7=Rechazado
+  estado: number; // 1=Creado 2=EnRevision 3=Firmado 4=Aprobado 5=Tramitando(Aprobado final) 6=Rechazado
   motivoRechazo?: string;
   vacaciones?: VacacionesDetalle;
 }
@@ -45,7 +45,7 @@ interface ApiResponse<T> {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const ESTADOS_HISTORIAL = new Set([6, 7]);
+const ESTADOS_HISTORIAL = new Set([5, 6]);
 
 const TIPO_TRAMITE_ICONS: Record<number, string> = {
   1: '💰',
@@ -60,9 +60,8 @@ const ESTADO_CONFIG: Record<number, { label: string; color: string }> = {
   2: { label: 'En Revisión', color: '#9c27b0' },
   3: { label: 'Firmado',     color: '#1976d2' },
   4: { label: 'Aprobado',    color: '#27ae60' },
-  5: { label: 'Tramitando',  color: '#0288d1' },
-  6: { label: 'Finalizado',  color: '#27ae60' },
-  7: { label: 'Rechazado',   color: '#c62828' },
+  5: { label: 'Aprobado',    color: '#27ae60' },
+  6: { label: 'Rechazado',   color: '#c62828' },
 };
 
 const APROBACION_CONFIG: Record<number, { label: string; color: string }> = {
@@ -77,7 +76,6 @@ const FLOW_STEPS = [
   { label: 'Firmado',     estado: 3 },
   { label: 'Aprobado',    estado: 4 },
   { label: 'Tramitando',  estado: 5 },
-  { label: 'Finalizado',  estado: 6 },
 ] as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -96,15 +94,15 @@ function getTramiteDetalle(tramite: TramiteAPI): string {
 }
 
 function getFlowStepClass(tramiteEstado: number, stepEstado: number): string {
-  if (tramiteEstado > stepEstado) return 'completed';
-  if (tramiteEstado === stepEstado) return 'current';
+  if (tramiteEstado >= stepEstado) return 'completed';
+  if (tramiteEstado === 4 && stepEstado === 5) return 'pending';
   return '';
 }
 
-// El backend nunca asigna estado 6 (Finalizado): el flujo real termina en
-// estado 5 (Tramitando/Archivado). Para el usuario, ese es el estado final.
-function getDisplayEstado(estado: number): number {
-  return estado === 5 ? 6 : estado;
+function getFlowLineClass(tramiteEstado: number, fromEstado: number, toEstado: number): string {
+  if (tramiteEstado > fromEstado) return 'completed';
+  if (tramiteEstado === 4 && fromEstado === 4 && toEstado === 5) return 'pending';
+  return '';
 }
 
 // ─── API ──────────────────────────────────────────────────────────────────────
@@ -204,6 +202,7 @@ export const TramitesPage: React.FC = () => {
   const [selectedTramiteId, setSelectedTramiteId] = useState<number | null>(null);
 
   const user = useAuthStore(state => state.user);
+  const queryClient = useQueryClient();
 
   const { data: allTramites = [], isLoading, isError } = useQuery({
     queryKey: ['tramites', user?.ci],
@@ -211,19 +210,20 @@ export const TramitesPage: React.FC = () => {
     enabled: !!user?.ci,
   });
 
-  const tramitesEnTransito = allTramites.filter(t => !ESTADOS_HISTORIAL.has(getDisplayEstado(t.estado)));
-  const tramitesHistorial  = allTramites.filter(t =>  ESTADOS_HISTORIAL.has(getDisplayEstado(t.estado)));
+  const tramitesEnTransito = allTramites.filter(t => !ESTADOS_HISTORIAL.has(t.estado));
+  const tramitesHistorial  = allTramites.filter(t =>  ESTADOS_HISTORIAL.has(t.estado));
 
   const filteredTransito = filterEstado === 'todos'
     ? tramitesEnTransito
-    : tramitesEnTransito.filter(t => getDisplayEstado(t.estado) === filterEstado);
+    : tramitesEnTransito.filter(t => t.estado === filterEstado);
 
-  const filteredHistorial = filterEstado === 'todos'
+  const filteredHistorial = (filterEstado === 'todos'
     ? tramitesHistorial
-    : tramitesHistorial.filter(t => getDisplayEstado(t.estado) === filterEstado);
+    : tramitesHistorial.filter(t => t.estado === filterEstado)
+  ).slice().sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
-  const estadosConItems = ([1, 2, 3, 4, 6, 7] as number[]).filter(e =>
-    allTramites.some(t => getDisplayEstado(t.estado) === e)
+  const estadosConItems = ([1, 2, 3, 4, 5, 6] as number[]).filter(e =>
+    allTramites.some(t => t.estado === e)
   );
 
   const selectedTramite = allTramites.find(t => t.id === selectedTramiteId);
@@ -256,7 +256,7 @@ export const TramitesPage: React.FC = () => {
               Todos ({allTramites.length})
             </button>
             {estadosConItems.map(e => {
-              const count = allTramites.filter(t => getDisplayEstado(t.estado) === e).length;
+              const count = allTramites.filter(t => t.estado === e).length;
               const cfg = ESTADO_CONFIG[e];
               return (
                 <button
@@ -333,7 +333,7 @@ export const TramitesPage: React.FC = () => {
                               <span className="flow-label">{step.label}</span>
                             </div>
                             {i < FLOW_STEPS.length - 1 && (
-                              <div className={`flow-line${tramite.estado > FLOW_STEPS[i].estado ? ' completed' : ''}`} />
+                              <div className={`flow-line ${getFlowLineClass(tramite.estado, step.estado, FLOW_STEPS[i + 1].estado)}`} />
                             )}
                           </React.Fragment>
                         ))}
@@ -356,7 +356,7 @@ export const TramitesPage: React.FC = () => {
           <div className="historial-list">
             {filteredHistorial.length > 0 ? (
               filteredHistorial.map(tramite => {
-                const cfg    = ESTADO_CONFIG[getDisplayEstado(tramite.estado)] ?? ESTADO_CONFIG[6];
+                const cfg    = ESTADO_CONFIG[tramite.estado] ?? ESTADO_CONFIG[6];
                 const icon   = TIPO_TRAMITE_ICONS[tramite.tipoTramiteId] ?? '📄';
                 const detalle = getTramiteDetalle(tramite);
 
@@ -413,7 +413,12 @@ export const TramitesPage: React.FC = () => {
         />
       )}
 
-      {modalOpen && <NuevaSolicitudModal onClose={() => setModalOpen(false)} />}
+      {modalOpen && (
+        <NuevaSolicitudModal
+          onClose={() => setModalOpen(false)}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['tramites', user?.ci] })}
+        />
+      )}
     </div>
   );
 };

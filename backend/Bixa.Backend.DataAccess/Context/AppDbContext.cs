@@ -11,6 +11,7 @@ namespace Bixa.Backend.DataAccess.Context;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
+    public virtual DbSet<SolicitudDiasEspeciales> SolicitudesDiasEspeciales { get; set; }
     public virtual DbSet<SolicitudVacaciones> SolicitudesVacaciones { get; set; }
     public virtual DbSet<SolicitudesChats> SolicitudesChats { get; set; }
     public virtual DbSet<SoporteChat> SoporteChats { get; set; }
@@ -373,6 +374,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .OnDelete(DeleteBehavior.Cascade);
 
         #endregion SolicitudVacaciones Entity Configuration
+
+        #region SolicitudDiasEspeciales Entity Configuration
+
+        modelBuilder.Entity<SolicitudDiasEspeciales>().HasKey(sde => sde.Id);
+        modelBuilder.Entity<SolicitudDiasEspeciales>().Property(sde => sde.Id).ValueGeneratedOnAdd();
+        modelBuilder.Entity<SolicitudDiasEspeciales>().Property(sde => sde.TramiteId).IsRequired();
+        modelBuilder.Entity<SolicitudDiasEspeciales>().Property(sde => sde.Fecha).IsRequired();
+        modelBuilder.Entity<SolicitudDiasEspeciales>().Property(sde => sde.Motivo).IsRequired().HasMaxLength(ModelLengths.Description);
+
+        modelBuilder.Entity<SolicitudDiasEspeciales>()
+            .HasOne(sde => sde.Tramite)
+            .WithOne(t => t.SolicitudDiasEspeciales)
+            .HasForeignKey<SolicitudDiasEspeciales>(sde => sde.TramiteId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
+        #endregion SolicitudDiasEspeciales Entity Configuration
 
         #region FAQs Entity Configuration
 

@@ -243,24 +243,18 @@
   color: white;
 }
 
-.flow-step.current .flow-circle {
-  background: white;
-  border-color: currentColor;
-  color: inherit;
-  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 20%, transparent);
-}
-
-.flow-step.current {
-  color: var(--red);
-}
-
 .flow-step.completed .flow-label {
   color: #27ae60;
 }
 
-.flow-step.current .flow-label {
-  color: var(--red);
-  font-weight: 700;
+.flow-step.pending .flow-circle {
+  background: #0288d1;
+  border-color: #0288d1;
+  color: white;
+}
+
+.flow-step.pending .flow-label {
+  color: #0288d1;
 }
 
 .flow-label {
@@ -283,6 +277,10 @@
 
 .flow-line.completed {
   background: #27ae60;
+}
+
+.flow-line.pending {
+  background: #0288d1;
 }
 
 /* Status badge */

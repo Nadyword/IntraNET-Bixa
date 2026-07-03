@@ -51,6 +51,22 @@ public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
         return HandleServiceResult(result);
     }
 
+    /// <summary>
+    /// Registra una nueva solicitud de día especial en el sistema.
+    /// </summary>
+    /// <param name="solicitud">El objeto SolicDiaEspecialDTO que contiene la información de la solicitud.</param>
+    /// <returns>Guarda una nueva solicitud de día especial en el sistema.</returns>
+    [HttpPost("DiaEspecial")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SolicDiaEspecial([FromBody] SolicDiaEspecialDTO solicitud)
+    {
+        var result = await _solicitudesService.AddSolicitudDiasEspeciales(solicitud);
+        return HandleServiceResult(result);
+    }
+
     ///// <summary>
     ///// Obtiene todos los tramites de un usuario específico, identificados por su CI.
     ///// </summary>
@@ -176,6 +192,29 @@ public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
         var bytes = _reportService.GenerateTramiteReport(modelo, "Vacaciones");
 
         return File(bytes, "application/pdf", "reporte_vacaciones.pdf");
+    }
+
+    /// <summary>
+    /// Genera el PDF del reporte de una solicitud de día especial.
+    /// </summary>
+    [HttpGet("Reporte/DiaEspecial/{tramiteId}")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetReporteDiaEspecial(int tramiteId)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador, UserRolEnum.Supervisor);
+        if (authResult != null) return authResult;
+
+        var result = await _solicitudesService.GetInfoReporteDiaEspecial(tramiteId);
+        if (!result.IsSuccess)
+        {
+            return HandleServiceResult(Result.Fail<TramiteReportModel>(result.Error));
+        }
+
+        TramiteReportModel modelo = result.Value;
+        var bytes = _reportService.GenerateTramiteReport(modelo, "DiaEspecial");
+
+        return File(bytes, "application/pdf", "reporte_dia_especial.pdf");
     }
 
     /// <summary>

@@ -78,6 +78,9 @@ public class GenericTramiteDocument(TramiteReportModel model) : IDocument
             if (model.Vacaciones is not null)
                 col.Item().Element(ComposeDetalleVacaciones);
 
+            if (model.DiaEspecial is not null)
+                col.Item().Element(ComposeDetalleDiaEspecial);
+
             if (model.Aprobaciones.Count > 0)
                 col.Item().Element(ComposeCadenaAprobacion);
         });
@@ -133,6 +136,24 @@ public class GenericTramiteDocument(TramiteReportModel model) : IDocument
                 DataRow(table, "Hasta", vac.Hasta.ToString("dd/MM/yyyy"));
                 DataRow(table, "Días Totales", vac.DiasTotales.ToString());
                 DataRow(table, "Observaciones", vac.Observaciones ?? "—");
+            });
+        });
+    }
+
+    private void ComposeDetalleDiaEspecial(IContainer container)
+    {
+        var dia = model.DiaEspecial!;
+
+        container.Column(col =>
+        {
+            col.Item().Element(SectionTitle("Detalle de Día Especial"));
+
+            col.Item().Background(_lightGray).Padding(12).Table(table =>
+            {
+                table.ColumnsDefinition(c => { c.RelativeColumn(); c.RelativeColumn(); });
+
+                DataRow(table, "Fecha", dia.Fecha.ToString("dd/MM/yyyy"));
+                DataRow(table, "Motivo", dia.Motivo);
             });
         });
     }

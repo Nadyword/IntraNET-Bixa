@@ -42,6 +42,20 @@ public interface ISolicitudesRepository
     Task<SolicitudVacaciones> GetSolicitudVacacionesByTramiteId(int tramiteId);
 
     /// <summary>
+    /// Agrega una nueva solicitud de día especial a la base de datos.
+    /// </summary>
+    /// <param name="solicitud"></param>
+    /// <returns></returns>
+    Task<bool> AddSolicitudDiasEspeciales(SolicitudDiasEspeciales solicitud);
+
+    /// <summary>
+    ///  Obtiene una solicitud de día especial por el ID del trámite.
+    /// </summary>
+    /// <param name="tramiteId"></param>
+    /// <returns></returns>
+    Task<SolicitudDiasEspeciales> GetSolicitudDiasEspecialesByTramiteId(int tramiteId);
+
+    /// <summary>
     /// Obtiene un usuario por su cédula de identidad (CI).
     /// </summary>
     /// <param name="ci"></param>

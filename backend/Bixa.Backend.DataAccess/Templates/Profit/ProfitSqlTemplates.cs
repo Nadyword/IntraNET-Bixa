@@ -1,3 +1,5 @@
+using static System.Runtime.InteropServices.JavaScript.JSType;
+
 namespace Bixa.Backend.DataAccess.Templates.Profit;
 
 internal static class ProfitSqlTemplates
@@ -146,5 +148,9 @@ internal static class ProfitSqlTemplates
         INNER JOIN Tramites t ON a.TramiteId = t.Id
         INNER JOIN Users u ON t.UserCi = u.Ci
         WHERE AprobadorCi = '@ci'
+    """;
+
+    internal const string GetFechasFeriadas = """
+        SELECT fecha FROM snren_cf WHERE feriado = 1 AND descanso = 1 AND fecha >= '@DESDE' AND fecha <= '@HASTA'
     """;
 }
