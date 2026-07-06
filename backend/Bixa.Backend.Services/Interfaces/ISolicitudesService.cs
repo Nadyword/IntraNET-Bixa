@@ -103,4 +103,12 @@ public interface ISolicitudesService
     /// <param name="razon">La razón por la cual se rechaza el trámite.</param>
     /// <returns>Un resultado indicando si la operación fue exitosa o no.</returns>
     Task<Result<bool>> RechazarTramite(int tramiteId, string razon);
+
+    /// <summary>
+    /// Calcula la cantidad de días hábiles dentro de un rango de fechas, excluyendo fines de semana y feriados.
+    /// </summary>
+    /// <param name="desde">Fecha de inicio del rango (inclusive).</param>
+    /// <param name="hasta">Fecha de fin del rango (inclusive).</param>
+    /// <returns>Un resultado con la cantidad de días hábiles del rango.</returns>
+    Task<Result<int>> GetDiasHabiles(DateTime desde, DateTime hasta);
 }

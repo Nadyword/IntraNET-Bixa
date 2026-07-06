@@ -12,6 +12,7 @@ public class ProfitDbContext(DbContextOptions<ProfitDbContext> options) : DbCont
 
     public virtual DbSet<DiaEspaciales> DiaEspaciales { get; set; }
     public virtual DbSet<AprobadorPermisoInfo> AprobadorPermisoInfo { get; set; }
+    public virtual DbSet<FechaFeriada> FechasFeriadas { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -27,5 +28,6 @@ public class ProfitDbContext(DbContextOptions<ProfitDbContext> options) : DbCont
         modelBuilder.Entity<Vacaciones>().HasNoKey();
         modelBuilder.Entity<DiaEspaciales>().HasNoKey();
         modelBuilder.Entity<AprobadorPermisoInfo>().HasNoKey();
+        modelBuilder.Entity<FechaFeriada>().HasNoKey();
     }
 }

@@ -1,7 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './NuevaSolicitudModal.css';
 import api from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  statusCode: number;
+}
 
 interface Props {
   onClose: () => void;
@@ -21,7 +28,7 @@ const TIPOS: TipoConfig[] = [
   { id: 'vacaciones',   label: 'Vacaciones',             icon: '✈️', enumId: 4 },
   { id: 'diaEspecial',  label: 'Día Especial',            icon: '📝', enumId: 5 },
   { id: 'utilidades',   label: 'Anticipo de Utilidades',  icon: '💳', enumId: 1 },
-  { id: 'sociales',     label: 'Prestaciones Sociales',   icon: '📋', enumId: 2 },
+  { id: 'sociales',     label: 'Constancia de Trabajo',   icon: '📋', enumId: 2 },
   { id: 'prestaciones', label: 'Préstamo Prestaciones',   icon: '💰', enumId: 3 },
 ];
 
@@ -64,20 +71,12 @@ function fechaLocalHoy(): string {
   ].join('-');
 }
 
-function calcularDias(inicio: string, fin: string): number {
-  if (!inicio || !fin) return 0;
-  const d1 = new Date(inicio + 'T00:00:00');
-  const d2 = new Date(fin + 'T00:00:00');
-  if (d2 < d1) return 0;
-  let count = 0;
-  const current = new Date(d1);
-  while (current <= d2) {
-    const day = current.getDay();
-    if (day !== 0 && day !== 6) count++;
-    current.setDate(current.getDate() + 1);
-  }
-  return count;
-}
+const fetchDiasHabiles = async (desde: string, hasta: string): Promise<number> => {
+  const res = await api.get<ApiResponse<number>>('/solicitudes/DiasHabiles', {
+    params: { desde, hasta },
+  });
+  return res.data.data;
+};
 
 export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => {
   const user = useAuthStore((s) => s.user);
@@ -93,6 +92,65 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
   const [diaEspecial, setDiaEspecial] = useState<FormDiaEspecial>({ fecha: '', motivo: '' });
   const [monto, setMonto] = useState<FormMonto>({ monto: '', observaciones: '' });
 
+  const [diasLoading, setDiasLoading] = useState(false);
+  const [diasError, setDiasError] = useState<string | null>(null);
+
+  const rangoInvalido = Boolean(
+    vacaciones.fechaInicio && vacaciones.fechaFin && vacaciones.fechaFin < vacaciones.fechaInicio
+  );
+
+  useEffect(() => {
+    if (tipo !== 'vacaciones' || !vacaciones.fechaInicio || !vacaciones.fechaFin) return;
+    if (rangoInvalido) return;
+
+    let cancelado = false;
+    setDiasLoading(true);
+    setDiasError(null);
+
+    fetchDiasHabiles(vacaciones.fechaInicio, vacaciones.fechaFin)
+      .then((dias) => {
+        if (cancelado) return;
+        setVacaciones((v) => ({ ...v, diasTotales: dias }));
+      })
+      .catch(() => {
+        if (cancelado) return;
+        setDiasError('No se pudo calcular los días hábiles. Intenta de nuevo.');
+      })
+      .finally(() => {
+        if (!cancelado) setDiasLoading(false);
+      });
+
+    return () => { cancelado = true; };
+  }, [tipo, vacaciones.fechaInicio, vacaciones.fechaFin, rangoInvalido]);
+
+  const [diaEspecialChecking, setDiaEspecialChecking] = useState(false);
+  const [diaEspecialFechaError, setDiaEspecialFechaError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (tipo !== 'diaEspecial' || !diaEspecial.fecha) return;
+
+    let cancelado = false;
+    setDiaEspecialChecking(true);
+    setDiaEspecialFechaError(null);
+
+    fetchDiasHabiles(diaEspecial.fecha, diaEspecial.fecha)
+      .then((dias) => {
+        if (cancelado) return;
+        if (dias === 0) {
+          setDiaEspecialFechaError('La fecha seleccionada es un feriado o día de descanso. Elige otra fecha.');
+        }
+      })
+      .catch(() => {
+        if (cancelado) return;
+        setDiaEspecialFechaError('No se pudo validar la fecha. Intenta de nuevo.');
+      })
+      .finally(() => {
+        if (!cancelado) setDiaEspecialChecking(false);
+      });
+
+    return () => { cancelado = true; };
+  }, [tipo, diaEspecial.fecha]);
+
   const handleSelectTipo = (t: TipoTramite) => {
     setTipo(t);
     setErrors({});
@@ -107,10 +165,14 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       else if (vacaciones.fechaInicio < hoy) errs.fechaInicio = 'La fecha de inicio no puede ser anterior a hoy';
       if (!vacaciones.fechaFin) errs.fechaFin = 'Requerido';
       if (vacaciones.fechaInicio && vacaciones.fechaFin && vacaciones.fechaFin < vacaciones.fechaInicio)
-        errs.fechaFin = 'La fecha de fin debe ser posterior al inicio';
+        errs.fechaFin = 'La fecha de inicio no puede ser posterior a la fecha de fin';
+      else if (diasLoading) errs.fechaFin = 'Espera a que se calculen los días hábiles';
+      else if (diasError) errs.fechaFin = diasError;
     }
     if (tipo === 'diaEspecial') {
       if (!diaEspecial.fecha) errs.fecha = 'Requerido';
+      else if (diaEspecialChecking) errs.fecha = 'Espera a que se valide la fecha';
+      else if (diaEspecialFechaError) errs.fecha = diaEspecialFechaError;
       if (!diaEspecial.motivo.trim()) errs.motivo = 'Requerido';
     }
     if (tipo === 'utilidades' || tipo === 'sociales' || tipo === 'prestaciones') {
@@ -134,7 +196,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
           ci: user?.ci ?? '',
           fechaInicio: vacaciones.fechaInicio,
           fechaFin: vacaciones.fechaFin,
-          diasTotales: calcularDias(vacaciones.fechaInicio, vacaciones.fechaFin),
+          diasTotales: vacaciones.diasTotales,
           observaciones: vacaciones.observaciones || null,
         };
         await api.post('/solicitudes/Vacaciones', payload);
@@ -172,10 +234,6 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     // Resto de tipos — pendientes de conectar
     setEnviado(true);
   };
-
-  const dias = vacaciones.fechaInicio && vacaciones.fechaFin
-    ? calcularDias(vacaciones.fechaInicio, vacaciones.fechaFin)
-    : 0;
 
   if (enviado) {
     const tipoConfig = TIPOS.find((t) => t.id === tipo)!;
@@ -229,13 +287,10 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                       type="date"
                       value={vacaciones.fechaInicio}
                       min={fechaLocalHoy()}
+                      max={vacaciones.fechaFin || undefined}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setVacaciones((v) => ({
-                          ...v,
-                          fechaInicio: val,
-                          diasTotales: calcularDias(val, v.fechaFin),
-                        }));
+                        setVacaciones((v) => ({ ...v, fechaInicio: val }));
                       }}
                       className={errors.fechaInicio ? 'input-error' : ''}
                     />
@@ -249,11 +304,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                       min={vacaciones.fechaInicio || undefined}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setVacaciones((v) => ({
-                          ...v,
-                          fechaFin: val,
-                          diasTotales: calcularDias(v.fechaInicio, val),
-                        }));
+                        setVacaciones((v) => ({ ...v, fechaFin: val }));
                       }}
                       className={errors.fechaFin ? 'input-error' : ''}
                     />
@@ -261,9 +312,21 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                   </div>
                 </div>
 
-                {vacaciones.fechaInicio && vacaciones.fechaFin && (
+                {rangoInvalido && (
+                  <p className="ns-error ns-submit-error">
+                    ⚠ La fecha de inicio no puede ser posterior a la fecha de fin.
+                  </p>
+                )}
+
+                {vacaciones.fechaInicio && vacaciones.fechaFin && !rangoInvalido && (
                   <div className="ns-dias-badge">
-                    📅 Días de disfrute: <strong>{dias}</strong>
+                    {diasLoading ? (
+                      'Calculando días hábiles...'
+                    ) : diasError ? (
+                      <span className="ns-error">{diasError}</span>
+                    ) : (
+                      <>📅 Días de disfrute: <strong>{vacaciones.diasTotales}</strong></>
+                    )}
                   </div>
                 )}
 
@@ -287,9 +350,21 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                     type="date"
                     value={diaEspecial.fecha}
                     onChange={(e) => setDiaEspecial((d) => ({ ...d, fecha: e.target.value }))}
-                    className={errors.fecha ? 'input-error' : ''}
+                    className={errors.fecha || diaEspecialFechaError ? 'input-error' : ''}
                   />
-                  {errors.fecha && <span className="ns-error">{errors.fecha}</span>}
+                  {errors.fecha ? (
+                    <span className="ns-error">{errors.fecha}</span>
+                  ) : diaEspecial.fecha && (
+                    <div className="ns-dias-badge">
+                      {diaEspecialChecking ? (
+                        'Validando fecha...'
+                      ) : diaEspecialFechaError ? (
+                        <span className="ns-error">{diaEspecialFechaError}</span>
+                      ) : (
+                        '✓ Fecha hábil'
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="ns-field">
                   <label>Motivo <span className="ns-required">*</span></label>
@@ -344,7 +419,15 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
               <button type="button" className="ns-btn-secondary" onClick={onClose} disabled={isLoading}>
                 Cancelar
               </button>
-              <button type="submit" className="ns-btn-primary" disabled={isLoading}>
+              <button
+                type="submit"
+                className="ns-btn-primary"
+                disabled={
+                  isLoading ||
+                  (tipo === 'vacaciones' && (diasLoading || rangoInvalido)) ||
+                  (tipo === 'diaEspecial' && diaEspecialChecking)
+                }
+              >
                 {isLoading ? 'Enviando...' : 'Enviar solicitud'}
               </button>
             </div>

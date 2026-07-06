@@ -127,6 +127,7 @@ public static class ServiceRegistrationExtensions
     private static void AddProfitRepositories(IServiceCollection services)
     {
         services.AddScoped<ISnEmpleProfitRepository, SnEmpleProfitRepository>();
+        services.AddScoped<IFechasFeriadasProfitRepository, FechasFeriadasProfitRepository>();
         services.AddScoped<IReadOnlyUnitOfWork, ReadOnlyUnitOfWork>();
     }
 

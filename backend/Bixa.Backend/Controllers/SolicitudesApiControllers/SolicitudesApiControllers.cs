@@ -36,6 +36,23 @@ public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
     private readonly IReportService _reportService = reportService;
 
     /// <summary>
+    /// Calcula la cantidad de días hábiles dentro de un rango de fechas, excluyendo fines de semana y feriados.
+    /// </summary>
+    /// <param name="desde">Fecha de inicio del rango (inclusive).</param>
+    /// <param name="hasta">Fecha de fin del rango (inclusive).</param>
+    /// <returns>La cantidad de días hábiles del rango.</returns>
+    [HttpGet("DiasHabiles")]
+    [ProducesResponseType(typeof(ApiResponse<int>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetDiasHabiles([FromQuery] DateTime desde, [FromQuery] DateTime hasta)
+    {
+        var result = await _solicitudesService.GetDiasHabiles(desde, hasta);
+        return HandleServiceResult(result);
+    }
+
+    /// <summary>
     /// Registra una nueva solicitud de vacaciones en el sistema.
     /// </summary>
     /// <param name="solicitud">El objeto SolicVacacionesDTO que contiene la información de la solicitud.</param>

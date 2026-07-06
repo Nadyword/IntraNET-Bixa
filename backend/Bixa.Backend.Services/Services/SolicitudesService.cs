@@ -12,7 +12,7 @@ using Bixa.Backend.Services.Interfaces;
 
 namespace Bixa.Backend.Services.Services;
 
-public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IMapper mapper, IUnitOfWork unitOfWork, ITramitesService tramitesService, IAprobacionesService aprobacionesService, IGrupoFaProfitRepository grupoFaProfitRepository, ISnEmpleProfitRepository snEmpleProfitRepository) : ISolicitudesService
+public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IMapper mapper, IUnitOfWork unitOfWork, ITramitesService tramitesService, IAprobacionesService aprobacionesService, IGrupoFaProfitRepository grupoFaProfitRepository, ISnEmpleProfitRepository snEmpleProfitRepository, IFechasFeriadasProfitRepository fechasFeriadasProfitRepository) : ISolicitudesService
 {
     private static readonly string[] MotivosDiaEspecialValidos =
     [
@@ -30,6 +30,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
 
     private readonly ISnEmpleProfitRepository _snEmpleProfitRepository = snEmpleProfitRepository;
     private readonly IGrupoFaProfitRepository _grupoFaProfitRepository = grupoFaProfitRepository;
+    private readonly IFechasFeriadasProfitRepository _fechasFeriadasProfitRepository = fechasFeriadasProfitRepository;
     private readonly ISolicitudesRepository _solicitudesRepository = solicitudesRepository;
     private readonly IAprobacionesService _aprobacionesService = aprobacionesService;
     private readonly ITramitesService _tramitesService = tramitesService;
@@ -316,5 +317,27 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
     {
         var result = await _aprobacionesService.RechazarTramite(tramiteId, razon);
         return Result.Success(result);
+    }
+
+    public async Task<Result<int>> GetDiasHabiles(DateTime desde, DateTime hasta)
+    {
+        if (hasta.Date < desde.Date)
+        {
+            return Result.Fail<int>("La fecha de fin debe ser mayor o igual a la fecha de inicio.");
+        }
+
+        var feriados = (await _fechasFeriadasProfitRepository.GetFechasFeriadasAsync(desde, hasta)).ToHashSet();
+
+        int dias = 0;
+        for (var fecha = desde.Date; fecha <= hasta.Date; fecha = fecha.AddDays(1))
+        {
+            bool esFinDeSemana = fecha.DayOfWeek == DayOfWeek.Saturday || fecha.DayOfWeek == DayOfWeek.Sunday;
+            if (!esFinDeSemana && !feriados.Contains(fecha))
+            {
+                dias++;
+            }
+        }
+
+        return Result.Success(dias);
     }
 }

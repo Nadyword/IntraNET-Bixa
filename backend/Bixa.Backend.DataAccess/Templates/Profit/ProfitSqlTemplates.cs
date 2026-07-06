@@ -151,6 +151,6 @@ internal static class ProfitSqlTemplates
     """;
 
     internal const string GetFechasFeriadas = """
-        SELECT fecha FROM snren_cf WHERE feriado = 1 AND descanso = 1 AND fecha >= '@DESDE' AND fecha <= '@HASTA'
+        SELECT fecha FROM snren_cf WHERE (feriado = 1 OR descanso = 1) AND (fecha >= @Desde AND fecha <= @Hasta)
     """;
 }
