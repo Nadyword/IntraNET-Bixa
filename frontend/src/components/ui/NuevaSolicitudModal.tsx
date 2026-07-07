@@ -15,21 +15,40 @@ interface Props {
   onSuccess?: () => void;
 }
 
-type TipoTramite = 'vacaciones' | 'diaEspecial' | 'utilidades' | 'sociales' | 'prestaciones';
+type TipoTramite = 'vacaciones' | 'diaEspecial' | 'utilidades' | 'prestamoPrestaciones';
 
 interface TipoConfig {
   id: TipoTramite;
   label: string;
   icon: string;
-  enumId: number;
+  enumId?: number;
 }
 
 const TIPOS: TipoConfig[] = [
-  { id: 'vacaciones',   label: 'Vacaciones',             icon: '✈️', enumId: 4 },
-  { id: 'diaEspecial',  label: 'Día Especial',            icon: '📝', enumId: 5 },
-  { id: 'utilidades',   label: 'Anticipo de Utilidades',  icon: '💳', enumId: 1 },
-  { id: 'sociales',     label: 'Constancia de Trabajo',   icon: '📋', enumId: 2 },
-  { id: 'prestaciones', label: 'Préstamo Prestaciones',   icon: '💰', enumId: 3 },
+  { id: 'vacaciones',           label: 'Vacaciones',                      icon: '✈️', enumId: 4 },
+  { id: 'diaEspecial',          label: 'Día Especial',                    icon: '📝', enumId: 5 },
+  { id: 'utilidades',           label: 'Anticipo de Utilidades',          icon: '💳', enumId: 1 },
+  { id: 'prestamoPrestaciones', label: 'Préstamo Prestaciones Sociales',  icon: '💰' },
+];
+
+type SubTipoPrestamo = 'prestamo' | 'sociales';
+
+interface SubTipoConfig {
+  id: SubTipoPrestamo;
+  label: string;
+  enumId: number;
+}
+
+const SUBTIPOS_PRESTAMO: SubTipoConfig[] = [
+  { id: 'prestamo', label: 'Préstamo sobre Prestaciones Sociales', enumId: 3 },
+  { id: 'sociales', label: 'Solicitud de Prestaciones Sociales',   enumId: 2 },
+];
+
+const DESTINOS_PRESTAMO: string[] = [
+  'Construcción, Adquisición o Mejora de Vivienda',
+  'Liberación de Hipoteca',
+  'Pensiones Escolares (Art. 142 de la LOTTT, Parágrafo Segundo)',
+  'Gastos por Atención Médica y Hospitalaria',
 ];
 
 const MOTIVOS_DIA_ESPECIAL: string[] = [
@@ -91,6 +110,8 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
   });
   const [diaEspecial, setDiaEspecial] = useState<FormDiaEspecial>({ fecha: '', motivo: '' });
   const [monto, setMonto] = useState<FormMonto>({ monto: '', observaciones: '' });
+  const [subTipoPrestamo, setSubTipoPrestamo] = useState<SubTipoPrestamo | ''>('');
+  const [destinoPrestamo, setDestinoPrestamo] = useState('');
 
   const [diasLoading, setDiasLoading] = useState(false);
   const [diasError, setDiasError] = useState<string | null>(null);
@@ -175,8 +196,12 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       else if (diaEspecialFechaError) errs.fecha = diaEspecialFechaError;
       if (!diaEspecial.motivo.trim()) errs.motivo = 'Requerido';
     }
-    if (tipo === 'utilidades' || tipo === 'sociales' || tipo === 'prestaciones') {
+    if (tipo === 'utilidades' || tipo === 'prestamoPrestaciones') {
       if (!monto.monto || Number(monto.monto) <= 0) errs.monto = 'Ingresa un monto válido';
+    }
+    if (tipo === 'prestamoPrestaciones') {
+      if (!subTipoPrestamo) errs.subTipo = 'Requerido';
+      if (!destinoPrestamo) errs.destino = 'Requerido';
     }
 
     setErrors(errs);
@@ -237,13 +262,16 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
 
   if (enviado) {
     const tipoConfig = TIPOS.find((t) => t.id === tipo)!;
+    const tipoLabel = tipo === 'prestamoPrestaciones'
+      ? SUBTIPOS_PRESTAMO.find((s) => s.id === subTipoPrestamo)?.label ?? tipoConfig.label
+      : tipoConfig.label;
     return (
       <div className="ns-overlay" onClick={onClose}>
         <div className="ns-modal" onClick={(e) => e.stopPropagation()}>
           <div className="ns-success">
             <div className="ns-success-icon">✓</div>
             <h3>Solicitud enviada</h3>
-            <p>Tu solicitud de <strong>{tipoConfig.label}</strong> fue registrada y está pendiente de revisión.</p>
+            <p>Tu solicitud de <strong>{tipoLabel}</strong> fue registrada y está pendiente de revisión.</p>
             <button className="ns-btn-primary" onClick={onClose}>Entendido</button>
           </div>
         </div>
@@ -383,10 +411,70 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
               </>
             )}
 
-            {(tipo === 'utilidades' || tipo === 'sociales' || tipo === 'prestaciones') && (
+            {tipo === 'utilidades' && (
               <>
                 <div className="ns-field">
-                  <label>Monto solicitado (USD) <span className="ns-required">*</span></label>
+                  <label>Monto solicitado<span className="ns-required">*</span></label>
+                  <div className="ns-monto-wrapper">
+                    <span className="ns-monto-prefix">$</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={monto.monto}
+                      onChange={(e) => setMonto((m) => ({ ...m, monto: e.target.value }))}
+                      className={errors.monto ? 'input-error' : ''}
+                    />
+                  </div>
+                  {errors.monto && <span className="ns-error">{errors.monto}</span>}
+                </div>
+                <div className="ns-field">
+                  <label>Observaciones</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Información adicional (opcional)"
+                    value={monto.observaciones}
+                    onChange={(e) => setMonto((m) => ({ ...m, observaciones: e.target.value }))}
+                  />
+                </div>
+              </>
+            )}
+
+            {tipo === 'prestamoPrestaciones' && (
+              <>
+                <div className="ns-field">
+                  <label>Tipo de solicitud <span className="ns-required">*</span></label>
+                  <select
+                    value={subTipoPrestamo}
+                    onChange={(e) => setSubTipoPrestamo(e.target.value as SubTipoPrestamo)}
+                    className={errors.subTipo ? 'input-error' : ''}
+                  >
+                    <option value="">Selecciona el tipo de solicitud...</option>
+                    {SUBTIPOS_PRESTAMO.map((s) => (
+                      <option key={s.id} value={s.id}>{s.label}</option>
+                    ))}
+                  </select>
+                  {errors.subTipo && <span className="ns-error">{errors.subTipo}</span>}
+                </div>
+
+                <div className="ns-field">
+                  <label>Cantidad que será destinada para <span className="ns-required">*</span></label>
+                  <select
+                    value={destinoPrestamo}
+                    onChange={(e) => setDestinoPrestamo(e.target.value)}
+                    className={errors.destino ? 'input-error' : ''}
+                  >
+                    <option value="">Selecciona el destino...</option>
+                    {DESTINOS_PRESTAMO.map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                  {errors.destino && <span className="ns-error">{errors.destino}</span>}
+                </div>
+
+                <div className="ns-field">
+                  <label>Monto solicitado<span className="ns-required">*</span></label>
                   <div className="ns-monto-wrapper">
                     <span className="ns-monto-prefix">$</span>
                     <input
