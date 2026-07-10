@@ -12,6 +12,7 @@ namespace Bixa.Backend.DataAccess.Context;
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public virtual DbSet<SolicitudDiasEspeciales> SolicitudesDiasEspeciales { get; set; }
+    public virtual DbSet<SolicitudUtilidades> SolicitudesUtilidades { get; set; }
     public virtual DbSet<SolicitudVacaciones> SolicitudesVacaciones { get; set; }
     public virtual DbSet<SolicitudesChats> SolicitudesChats { get; set; }
     public virtual DbSet<SoporteChat> SoporteChats { get; set; }
@@ -391,6 +392,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .OnDelete(DeleteBehavior.Cascade);
 
         #endregion SolicitudDiasEspeciales Entity Configuration
+
+        #region SolicitudUtilidades Entity Configuration
+
+        modelBuilder.Entity<SolicitudUtilidades>().HasKey(su => su.Id);
+        modelBuilder.Entity<SolicitudUtilidades>().Property(su => su.Id).ValueGeneratedOnAdd();
+        modelBuilder.Entity<SolicitudUtilidades>().Property(su => su.TramiteId).IsRequired();
+        modelBuilder.Entity<SolicitudUtilidades>().Property(su => su.Monto).IsRequired().HasColumnType("decimal(18,2)");
+        modelBuilder.Entity<SolicitudUtilidades>().Property(su => su.Motivo).IsRequired().HasMaxLength(ModelLengths.Description);
+
+        modelBuilder.Entity<SolicitudUtilidades>()
+            .HasOne(su => su.Tramite)
+            .WithOne(t => t.SolicitudUtilidades)
+            .HasForeignKey<SolicitudUtilidades>(su => su.TramiteId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
+        #endregion SolicitudUtilidades Entity Configuration
 
         #region FAQs Entity Configuration
 

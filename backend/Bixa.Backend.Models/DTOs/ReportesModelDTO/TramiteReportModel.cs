@@ -14,14 +14,25 @@ public class TramiteReportModel
     public string EstadoFinal { get; set; } = string.Empty;
     public VacacionesReportModel? Vacaciones { get; set; }
     public DiaEspecialReportModel? DiaEspecial { get; set; }
+    public UtilidadesReportModel? Utilidades { get; set; }
     public List<AprobacionReportModel> Aprobaciones { get; set; } = [];
     public byte[]? LogoEmpresa { get; set; }
+    public string? EmpleadoUrlFirma { get; set; }
+    public byte[]? EmpleadoFirmaImagen { get; set; }
 }
 
 public class DiaEspecialReportModel
 {
     public DateTime Fecha { get; set; }
     public string Motivo { get; set; } = string.Empty;
+}
+
+public class UtilidadesReportModel
+{
+    public decimal Monto { get; set; }
+    public string Motivo { get; set; } = string.Empty;
+    // TODO: reemplazar por la consulta dinámica del monto disponible de utilidades cuando exista.
+    public decimal TotalUtilidadesDisponible { get; set; }
 }
 
 public class VacacionesReportModel
@@ -40,4 +51,6 @@ public class AprobacionReportModel
     public string Accion { get; set; } = string.Empty;
     public DateTime Fecha { get; set; }
     public string? Motivo { get; set; }
+    public string? UrlFirma { get; set; }
+    public byte[]? FirmaImagen { get; set; }
 }

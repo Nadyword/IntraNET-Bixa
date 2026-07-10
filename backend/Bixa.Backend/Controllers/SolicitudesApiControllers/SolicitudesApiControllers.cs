@@ -84,6 +84,22 @@ public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
         return HandleServiceResult(result);
     }
 
+    /// <summary>
+    /// Registra una nueva solicitud de anticipo de utilidades en el sistema.
+    /// </summary>
+    /// <param name="solicitud">El objeto SolicUtilidadesDTO que contiene la información de la solicitud.</param>
+    /// <returns>Guarda una nueva solicitud de anticipo de utilidades en el sistema.</returns>
+    [HttpPost("Utilidades")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SolicUtilidades([FromBody] SolicUtilidadesDTO solicitud)
+    {
+        var result = await _solicitudesService.AddSolicitudUtilidades(solicitud);
+        return HandleServiceResult(result);
+    }
+
     ///// <summary>
     ///// Obtiene todos los tramites de un usuario específico, identificados por su CI.
     ///// </summary>
@@ -232,6 +248,29 @@ public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
         var bytes = _reportService.GenerateTramiteReport(modelo, "DiaEspecial");
 
         return File(bytes, "application/pdf", "reporte_dia_especial.pdf");
+    }
+
+    /// <summary>
+    /// Genera el PDF del reporte de una solicitud de anticipo de utilidades.
+    /// </summary>
+    [HttpGet("Reporte/Utilidades/{tramiteId}")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetReporteUtilidades(int tramiteId)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador, UserRolEnum.Supervisor);
+        if (authResult != null) return authResult;
+
+        var result = await _solicitudesService.GetInfoReporteUtilidades(tramiteId);
+        if (!result.IsSuccess)
+        {
+            return HandleServiceResult(Result.Fail<TramiteReportModel>(result.Error));
+        }
+
+        TramiteReportModel modelo = result.Value;
+        var bytes = _reportService.GenerateTramiteReport(modelo, "Utilidades");
+
+        return File(bytes, "application/pdf", "reporte_utilidades.pdf");
     }
 
     /// <summary>

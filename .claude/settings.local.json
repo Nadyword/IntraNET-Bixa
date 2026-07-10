@@ -48,7 +48,10 @@
       "Bash(node debug-headers.js)",
       "Bash(echo \"EXIT:$?\")",
       "Read(//tmp/**)",
-      "Bash(taskkill *)"
+      "Bash(taskkill *)",
+      "Bash(ls -la wwwroot/)",
+      "Bash(ls -la wwwroot/Firmas/)",
+      "Bash(ls -la wwwroot/report-assets/)"
     ]
   }
 }

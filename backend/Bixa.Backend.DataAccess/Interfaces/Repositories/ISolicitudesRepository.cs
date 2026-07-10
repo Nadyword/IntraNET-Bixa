@@ -56,6 +56,20 @@ public interface ISolicitudesRepository
     Task<SolicitudDiasEspeciales> GetSolicitudDiasEspecialesByTramiteId(int tramiteId);
 
     /// <summary>
+    /// Agrega una nueva solicitud de anticipo de utilidades a la base de datos.
+    /// </summary>
+    /// <param name="solicitud"></param>
+    /// <returns></returns>
+    Task<bool> AddSolicitudUtilidades(SolicitudUtilidades solicitud);
+
+    /// <summary>
+    ///  Obtiene una solicitud de anticipo de utilidades por el ID del trámite.
+    /// </summary>
+    /// <param name="tramiteId"></param>
+    /// <returns></returns>
+    Task<SolicitudUtilidades> GetSolicitudUtilidadesByTramiteId(int tramiteId);
+
+    /// <summary>
     /// Obtiene un usuario por su cédula de identidad (CI).
     /// </summary>
     /// <param name="ci"></param>

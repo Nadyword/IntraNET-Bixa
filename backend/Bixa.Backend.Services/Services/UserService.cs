@@ -262,18 +262,9 @@ public class UserService(
                 entity.UrlFirma = firmaResult.Value!;
             }
 
-            var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
-
-            if (saveChangesSuccess)
-            {
-                await _unitOfWork.CommitTransactionAsync();
-                return Result.Success(true);
-            }
-            else
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>("Error al intentar actualizar el usuario (no se guardaron cambios)", ErrorTypeEnum.General);
-            }
+            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+            return Result.Success(true);
         }
         catch (Exception ex)
         {

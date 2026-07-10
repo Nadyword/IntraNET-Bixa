@@ -10,7 +10,7 @@ public class UserEditDTO
     public required string Ci { get; set; }
 
     /// <summary>
-    /// Foto de firma opcional (PNG 225x225) para reemplazar la actual.
+    /// Foto de firma opcional (PNG con proporción 2:1) para reemplazar la actual.
     /// </summary>
     public IFormFile? Firma { get; set; }
 }

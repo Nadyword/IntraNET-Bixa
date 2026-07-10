@@ -8,7 +8,7 @@ namespace Bixa.Backend.Services.Services;
 public class FirmaService(string firmasPath) : IFirmaService
 {
     public const string SinFirma = "SinFirma.png";
-    private const int RequiredSize = 225;
+    private const int RequiredRatio = 2;
 
     private static readonly byte[] PngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
 
@@ -29,8 +29,8 @@ public class FirmaService(string firmasPath) : IFirmaService
         if (!TryReadPngDimensions(bytes, out var width, out var height))
             return Result.Fail<string>("El archivo no es un PNG válido.", ErrorTypeEnum.Validation);
 
-        if (width != RequiredSize || height != RequiredSize)
-            return Result.Fail<string>($"La imagen debe medir exactamente {RequiredSize}x{RequiredSize} píxeles (recibido {width}x{height}).", ErrorTypeEnum.Validation);
+        if (width != height * RequiredRatio)
+            return Result.Fail<string>($"La imagen debe tener una proporción de 2:1 (ancho el doble del alto). Recibido {width}x{height}.", ErrorTypeEnum.Validation);
 
         Directory.CreateDirectory(_firmasPath);
         var fileName = BuildFileName(ci);

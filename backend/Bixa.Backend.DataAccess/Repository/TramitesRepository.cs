@@ -16,6 +16,7 @@ public class TramitesRepository(AppDbContext dbContext) : ITramitesRepository
             .Include(t => t.TipoTramite)
             .Include(t => t.SolicitudVacaciones)
             .Include(t => t.SolicitudDiasEspeciales)
+            .Include(t => t.SolicitudUtilidades)
             .Where(t => t.UserCi == ci)
             .ToListAsync();
     }
@@ -26,6 +27,7 @@ public class TramitesRepository(AppDbContext dbContext) : ITramitesRepository
             .Include(t => t.TipoTramite)
             .Include(t => t.SolicitudVacaciones)
             .Include(t => t.SolicitudDiasEspeciales)
+            .Include(t => t.SolicitudUtilidades)
             .ToListAsync();
     }
 
@@ -35,6 +37,7 @@ public class TramitesRepository(AppDbContext dbContext) : ITramitesRepository
             .Include(t => t.TipoTramite)
             .Include(t => t.SolicitudVacaciones)
             .Include(t => t.SolicitudDiasEspeciales)
+            .Include(t => t.SolicitudUtilidades)
             .Include(t => t.User)
             .Where(t => t.Estado >= EstadoTramiteEnum.Firmado)
             .ToListAsync();

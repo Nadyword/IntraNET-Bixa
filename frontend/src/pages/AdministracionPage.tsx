@@ -18,6 +18,11 @@ interface DiaEspecialDetalle {
   motivo: string;
 }
 
+interface UtilidadesDetalle {
+  monto: number;
+  motivo: string;
+}
+
 interface TramiteDTO {
   id: number;
   tipoTramiteId: number;
@@ -30,6 +35,7 @@ interface TramiteDTO {
   motivoRechazo?: string;
   vacaciones?: VacacionesDetalle;
   diaEspecial?: DiaEspecialDetalle;
+  utilidades?: UtilidadesDetalle;
 }
 
 interface ApiResponse<T> {
@@ -119,7 +125,9 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
   const icon   = TIPO_TRAMITE_ICON[tramite.tipoTramiteId] ?? '📄';
   const estado = ESTADO_LABEL[tramite.estado] ?? { label: String(tramite.estado), className: '' };
 
-  const reporteEndpoint = tramite.diaEspecial ? 'DiaEspecial' : 'Vacaciones';
+  const reporteEndpoint = tramite.diaEspecial ? 'DiaEspecial' : tramite.utilidades ? 'Utilidades' : 'Vacaciones';
+  const tieneReporte = Boolean(tramite.vacaciones || tramite.diaEspecial || tramite.utilidades);
+  const reporteLabel = tramite.diaEspecial ? 'día especial' : tramite.utilidades ? 'anticipo de utilidades' : 'vacaciones';
 
   const handlePlanilla = async () => {
     setLoading(true);
@@ -177,7 +185,7 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
             <>
               <button
                 className="adm-btn adm-btn-reporte"
-                disabled={loading || (!tramite.vacaciones && !tramite.diaEspecial)}
+                disabled={loading || !tieneReporte}
                 onClick={handlePlanilla}
               >
                 {loading ? '⏳ Generando...' : '📄 Planilla'}
@@ -275,6 +283,24 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
                 </div>
               )}
 
+              {tramite.utilidades && (
+                <div className="detalle-section">
+                  <h3 className="detalle-section-title">Detalle de anticipo de utilidades</h3>
+                  <div className="detalle-grid">
+                    <div className="detalle-field">
+                      <span className="detalle-label">Monto solicitado</span>
+                      <span className="detalle-value detalle-value--highlight">
+                        ${tramite.utilidades.monto.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="detalle-field detalle-field--full">
+                      <span className="detalle-label">Motivo</span>
+                      <span className="detalle-value">{tramite.utilidades.motivo}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {tramite.motivoRechazo && (
                 <div className="detalle-section detalle-section--rechazo">
                   <h3 className="detalle-section-title detalle-section-title--rechazo">Motivo de rechazo</h3>
@@ -342,7 +368,7 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
         <div className="pdf-preview-overlay" onClick={handleClosePreview}>
           <div className="pdf-preview-modal" onClick={e => e.stopPropagation()}>
             <div className="pdf-preview-header">
-              <span>Planilla de {reporteEndpoint === 'DiaEspecial' ? 'día especial' : 'vacaciones'} · Trámite #{tramite.id}</span>
+              <span>Planilla de {reporteLabel} · Trámite #{tramite.id}</span>
               <div className="pdf-preview-actions">
                 <a
                   href={previewUrl}

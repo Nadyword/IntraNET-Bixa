@@ -43,6 +43,22 @@ public class DiaEspecialDocument(TramiteReportModel model) : IDocument
         });
     }
 
+    private static void SignatureBox(IContainer container, string role, string name, string date, byte[]? firma)
+    {
+        container.Column(col =>
+        {
+            if (firma is { Length: > 0 })
+                col.Item().Height(50).AlignCenter().Image(firma).FitHeight();
+            else
+                col.Item().Height(50);
+            col.Item().LineHorizontal(1).LineColor(BorderColor);
+            col.Item().PaddingTop(8).AlignCenter().Text(role).Bold().FontSize(9);
+            if (!string.IsNullOrEmpty(name))
+                col.Item().AlignCenter().Text(name).FontSize(8).FontColor(LabelColor);
+            col.Item().AlignCenter().Text($"Fecha: {date}").FontSize(8);
+        });
+    }
+
     private void ComposeContent(IContainer container)
     {
         container.Column(col =>
@@ -50,6 +66,7 @@ public class DiaEspecialDocument(TramiteReportModel model) : IDocument
             col.Item().Element(ComposeHeader);
             col.Item().PaddingTop(18).Element(ComposeDatosSolicitante);
             col.Item().PaddingTop(20).Element(ComposeDetalleSolicitud);
+            col.Item().PaddingTop(25).Element(ComposeFirmas);
         });
     }
 
@@ -136,6 +153,28 @@ public class DiaEspecialDocument(TramiteReportModel model) : IDocument
             {
                 t.Span("DILIGENCIA A REALIZAR: ").Bold();
                 t.Span(model.DiaEspecial?.Motivo ?? "—");
+            });
+        });
+    }
+
+    // ─── Firmas ───────────────────────────────────────────────────────────────
+
+    private void ComposeFirmas(IContainer container)
+    {
+        container.Column(col =>
+        {
+            col.Item().Element(SectionTitle("FIRMAS"));
+            col.Item().PaddingTop(20).Row(row =>
+            {
+                row.RelativeItem().PaddingRight(20)
+                   .Element(c => SignatureBox(c, "SOLICITANTE", model.EmpleadoNombre, model.FechaSolicitud.ToString("dd/MM/yyyy"), model.EmpleadoFirmaImagen));
+
+                foreach (var (aprobacion, index) in model.Aprobaciones.Select((a, i) => (a, i)))
+                {
+                    var item = row.RelativeItem();
+                    if (index < model.Aprobaciones.Count - 1) item = item.PaddingRight(20);
+                    item.Element(c => SignatureBox(c, aprobacion.AprobadorNombre, string.Empty, aprobacion.Fecha.ToString("dd/MM/yyyy"), aprobacion.FirmaImagen));
+                }
             });
         });
     }

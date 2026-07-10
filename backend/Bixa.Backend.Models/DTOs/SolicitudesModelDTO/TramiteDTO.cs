@@ -15,6 +15,7 @@ public class TramiteDTO
     public string? MotivoRechazo { get; set; }
     public VacacionesDetalleDTO? Vacaciones { get; set; }
     public DiaEspecialDetalleDTO? DiaEspecial { get; set; }
+    public UtilidadesDetalleDTO? Utilidades { get; set; }
 }
 
 public class VacacionesDetalleDTO
@@ -28,5 +29,11 @@ public class VacacionesDetalleDTO
 public class DiaEspecialDetalleDTO
 {
     public DateTime Fecha { get; set; }
+    public required string Motivo { get; set; }
+}
+
+public class UtilidadesDetalleDTO
+{
+    public decimal Monto { get; set; }
     public required string Motivo { get; set; }
 }

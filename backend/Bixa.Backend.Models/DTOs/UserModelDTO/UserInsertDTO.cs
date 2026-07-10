@@ -11,7 +11,7 @@ public class UserInsertDTO
     public required string Ci { get; set; }
 
     /// <summary>
-    /// Foto de firma opcional (PNG 225x225). Si no se envía, se usa SinFirma.png.
+    /// Foto de firma opcional (PNG con proporción 2:1). Si no se envía, se usa SinFirma.png.
     /// </summary>
     public IFormFile? Firma { get; set; }
 }

@@ -136,7 +136,7 @@ export const CreateUserModal: React.FC<Props> = ({ onClose }) => {
               accept="image/png"
               onChange={handleFirmaChange}
             />
-            <p className="modal-hint">PNG de 225x225 píxeles. Si no se sube ninguna, se usa la firma por defecto.</p>
+            <p className="modal-hint">PNG con proporción 2:1 (ej. 450x225). Si no se sube ninguna, se usa la firma por defecto.</p>
             {firmaError && <p className="modal-error">{firmaError}</p>}
           </div>
 

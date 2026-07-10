@@ -173,6 +173,7 @@ public class GenericTramiteDocument(TramiteReportModel model) : IDocument
                     c.RelativeColumn(1);
                     c.RelativeColumn(1);
                     c.RelativeColumn(2);
+                    c.RelativeColumn(1);
                 });
 
                 // Encabezado de tabla
@@ -184,6 +185,7 @@ public class GenericTramiteDocument(TramiteReportModel model) : IDocument
                     h.Cell().Background(_accentColor).Padding(6).Text("Acción").Style(headerStyle);
                     h.Cell().Background(_accentColor).Padding(6).Text("Fecha").Style(headerStyle);
                     h.Cell().Background(_accentColor).Padding(6).Text("Motivo").Style(headerStyle);
+                    h.Cell().Background(_accentColor).Padding(6).Text("Firma").Style(headerStyle);
                 });
 
                 foreach (var (aprobacion, index) in model.Aprobaciones.Select((a, i) => (a, i)))
@@ -196,6 +198,12 @@ public class GenericTramiteDocument(TramiteReportModel model) : IDocument
                          .FontColor(aprobacion.Accion == "Rechazó" ? "#C43625" : "#1E8449");
                     table.Cell().Background(bg).Padding(6).Text(aprobacion.Fecha.ToString("dd/MM/yyyy"));
                     table.Cell().Background(bg).Padding(6).Text(aprobacion.Motivo ?? "—").FontColor(_textGray);
+
+                    var firmaCell = table.Cell().Background(bg).Padding(6);
+                    if (aprobacion.FirmaImagen is { Length: > 0 })
+                        firmaCell.Height(30).Image(aprobacion.FirmaImagen).FitHeight();
+                    else
+                        firmaCell.Text("—").FontColor(_textGray);
                 }
             });
         });

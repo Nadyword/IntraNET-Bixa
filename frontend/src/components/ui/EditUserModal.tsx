@@ -139,7 +139,7 @@ export const EditUserModal: React.FC<Props> = ({ onClose }) => {
               accept="image/png"
               onChange={handleFirmaChange}
             />
-            <p className="modal-hint">PNG de 225x225 píxeles. Déjalo vacío para no reemplazar la foto actual.</p>
+            <p className="modal-hint">PNG con proporción 2:1 (ej. 450x225). Déjalo vacío para no reemplazar la foto actual.</p>
             {firmaError && <p className="modal-error">{firmaError}</p>}
           </div>
 

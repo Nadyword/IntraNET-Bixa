@@ -5,7 +5,7 @@ using QuestPDF.Infrastructure;
 
 namespace Bixa.Backend.Services.Templates;
 
-public class VacacionesDocument(TramiteReportModel model) : IDocument
+public class UtilidadesDocument(TramiteReportModel model) : IDocument
 {
     private const string BorderColor = "#333333";
     private const string GrayBg = "#EEEEEE";
@@ -32,6 +32,7 @@ public class VacacionesDocument(TramiteReportModel model) : IDocument
               .Text(title).Bold().FontSize(10);
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
+
     private static void FormField(IContainer container, string label, string value)
     {
         container.Column(col =>
@@ -67,15 +68,15 @@ public class VacacionesDocument(TramiteReportModel model) : IDocument
             col.Item().PaddingTop(10).Row(row =>
             {
                 row.RelativeItem();
-                row.AutoItem().Text("FECHA:").Bold().FontSize(9).FontColor(LabelColor);
+                row.AutoItem().Text("FECHA DE LA SOLICITUD:").Bold().FontSize(9).FontColor(LabelColor);
                 row.ConstantItem(8);
                 row.ConstantItem(150).BorderBottom(1).BorderColor(BorderColor).PaddingBottom(3)
                    .Text(model.FechaSolicitud.ToString("dd/MM/yyyy"));
             });
 
             col.Item().PaddingTop(18).Element(ComposeDatosSolicitante);
+            col.Item().PaddingTop(20).Element(ComposeDetalleSolicitud);
             col.Item().PaddingTop(25).Element(ComposeFirmas);
-            col.Item().PaddingTop(50).Element(ComposeFooter);
         });
     }
 
@@ -99,16 +100,16 @@ public class VacacionesDocument(TramiteReportModel model) : IDocument
             {
                 col.Item().AlignCenter().Text("REGISTRO").Bold().FontSize(12);
                 col.Item().Height(10);
-                col.Item().AlignCenter().Text("SOLICITUD DE VACACIONES").Bold().FontSize(12);
+                col.Item().AlignCenter().Text("SOLICITUD DE ANTICIPO DE UTILIDADES").Bold().FontSize(12);
             });
 
             // Metadatos
             row.RelativeItem(1).Padding(10).Column(col =>
             {
                 col.Item().BorderBottom(1).BorderColor(GrayBg).PaddingBottom(4)
-                   .Text(t => { t.Span("Código: ").Bold().FontSize(8); t.Span("5-SDV-TH-001").FontSize(8); });
+                   .Text(t => { t.Span("Código: ").Bold().FontSize(8); t.Span("5-SAU-TH-001").FontSize(8); });
                 col.Item().PaddingTop(4).BorderBottom(1).BorderColor(GrayBg).PaddingBottom(4)
-                   .Text(t => { t.Span("Revisión: ").Bold().FontSize(8); t.Span("00").FontSize(8); });
+                   .Text(t => { t.Span("Revisión: ").Bold().FontSize(8); t.Span("01").FontSize(8); });
                 col.Item().PaddingTop(4)
                    .Text(t => { t.Span("Página: ").Bold().FontSize(8); t.Span("1/1").FontSize(8); });
             });
@@ -121,39 +122,48 @@ public class VacacionesDocument(TramiteReportModel model) : IDocument
     {
         container.Column(col =>
         {
-            col.Item().Element(SectionTitle("DATOS DEL SOLICITANTE"));
+            col.Item().Element(SectionTitle("DATOS DEL TRABAJADOR"));
             col.Spacing(15);
 
-            // Fila 1: Nombre y Apellidos (80%) | C.I. (20%)
             col.Item().Row(row =>
             {
-                row.RelativeItem(80).PaddingRight(15).Element(c => FormField(c, "NOMBRE Y APELLIDOS", model.EmpleadoNombre));
-                row.RelativeItem(20).Element(c => FormField(c, "C.I.", model.EmpleadoCi));
+                row.RelativeItem(2).PaddingRight(15).Element(c => FormField(c, "NOMBRE DEL TRABAJADOR", model.EmpleadoNombre));
+                row.RelativeItem(1).Element(c => FormField(c, "CÉDULA", model.EmpleadoCi));
             });
 
-            // Fila 1b: Cargo (80%) | Fecha de Ingreso (20%)
             col.Item().Row(row =>
             {
-                row.RelativeItem(80).PaddingRight(15).Element(c => FormField(c, "CARGO", model.EmpleadoCargo ?? "—"));
-                row.RelativeItem(20).Element(c => FormField(c, "FECHA DE INGRESO", model.FechaIngreso?.ToString("dd/MM/yyyy") ?? "—"));
+                row.RelativeItem(1).PaddingRight(15).Element(c => FormField(c, "DEPARTAMENTO", model.EmpleadoDepartamento ?? "—"));
+                row.RelativeItem(1).PaddingRight(15).Element(c => FormField(c, "CARGO", model.EmpleadoCargo ?? "—"));
+                row.RelativeItem(1).Element(c => FormField(c, "FECHA DE INGRESO", model.FechaIngreso?.ToString("dd/MM/yyyy") ?? "—"));
+            });
+        });
+    }
+
+    // ─── Detalle de la solicitud ──────────────────────────────────────────────
+
+    private void ComposeDetalleSolicitud(IContainer container)
+    {
+        container.Border(1).BorderColor(BorderColor).Padding(15).Column(col =>
+        {
+            col.Spacing(10);
+
+            col.Item().Text(t =>
+            {
+                t.Span("CANTIDAD SOLICITADA: ").Bold();
+                t.Span(model.Utilidades?.Monto.ToString("N2") ?? "—");
             });
 
-            // Fila 2: Días solicitados
-            col.Item().Element(c => FormField(c, "TOTAL DÍAS SOLICITADOS:", model.Vacaciones?.DiasTotales.ToString() ?? "—"));
-
-            // Fila 3: Desde | Hasta
-            col.Item().Row(row =>
+            col.Item().Text(t =>
             {
-                row.RelativeItem().PaddingRight(20).Element(c => FormField(c, "DESDE:", model.Vacaciones?.Desde.ToString("dd/MM/yyyy") ?? "—"));
-                row.RelativeItem().Element(c => FormField(c, "HASTA:", model.Vacaciones?.Hasta.ToString("dd/MM/yyyy") ?? "—"));
+                t.Span("MOTIVO DE LA SOLICITUD: ").Bold();
+                t.Span(model.Utilidades?.Motivo ?? "—");
             });
 
-            // Observaciones
-            col.Item().Column(inner =>
+            col.Item().Text(t =>
             {
-                inner.Item().Text("OBSERVACIONES:").Bold().FontSize(8).FontColor(LabelColor);
-                inner.Item().PaddingTop(5).Border(1).BorderColor(BorderColor).Padding(8).MinHeight(70)
-                     .Text(model.Vacaciones?.Observaciones ?? "");
+                t.Span("TOTAL UTILIDADES A LA FECHA: ").Bold();
+                t.Span(model.Utilidades?.TotalUtilidadesDisponible.ToString("N2") ?? "—");
             });
         });
     }
@@ -162,27 +172,25 @@ public class VacacionesDocument(TramiteReportModel model) : IDocument
 
     private void ComposeFirmas(IContainer container)
     {
+        string supNombre = model.Aprobaciones.Count > 0 ? model.Aprobaciones[0].AprobadorNombre : "";
+        string supFecha = model.Aprobaciones.Count > 0 ? model.Aprobaciones[0].Fecha.ToString("dd/MM/yyyy") : "___/___/___";
+        byte[]? supFirma = model.Aprobaciones.Count > 0 ? model.Aprobaciones[0].FirmaImagen : null;
+        string rrhNombre = model.Aprobaciones.Count > 1 ? model.Aprobaciones[^1].AprobadorNombre : "";
+        string rrhFecha = model.Aprobaciones.Count > 1 ? model.Aprobaciones[^1].Fecha.ToString("dd/MM/yyyy") : "___/___/___";
+        byte[]? rrhFirma = model.Aprobaciones.Count > 1 ? model.Aprobaciones[^1].FirmaImagen : null;
+
         container.Column(col =>
         {
             col.Item().Element(SectionTitle("FIRMAS"));
             col.Item().PaddingTop(20).Row(row =>
             {
                 row.RelativeItem().PaddingRight(20)
-                   .Element(c => SignatureBox(c, "SOLICITANTE", model.EmpleadoNombre, model.FechaSolicitud.ToString("dd/MM/yyyy"), model.EmpleadoFirmaImagen));
-
-                foreach (var (aprobacion, index) in model.Aprobaciones.Select((a, i) => (a, i)))
-                {
-                    var item = row.RelativeItem();
-                    if (index < model.Aprobaciones.Count - 1) item = item.PaddingRight(20);
-                    item.Element(c => SignatureBox(c, aprobacion.AprobadorNombre, string.Empty, aprobacion.Fecha.ToString("dd/MM/yyyy"), aprobacion.FirmaImagen));
-                }
+                   .Element(c => SignatureBox(c, "TRABAJADOR", model.EmpleadoNombre, model.FechaSolicitud.ToString("dd/MM/yyyy"), model.EmpleadoFirmaImagen));
+                row.RelativeItem().PaddingRight(20)
+                   .Element(c => SignatureBox(c, "SUPERVISOR", supNombre, supFecha, supFirma));
+                row.RelativeItem()
+                   .Element(c => SignatureBox(c, "RRHH", rrhNombre, rrhFecha, rrhFirma));
             });
         });
-    }
-
-    // ─── Pie de página ────────────────────────────────────────────────────────
-
-    private void ComposeFooter(IContainer container)
-    {
     }
 }

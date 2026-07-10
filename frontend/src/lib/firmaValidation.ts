@@ -1,7 +1,7 @@
-const REQUIRED_SIZE = 225;
+const REQUIRED_RATIO = 2;
 
 /**
- * Valida en el cliente que el archivo sea un PNG de 225x225 píxeles.
+ * Valida en el cliente que el archivo sea un PNG con proporción ancho:alto de 2:1.
  * Retorna un mensaje de error, o null si el archivo es válido.
  * La validación definitiva ocurre igualmente en el backend.
  */
@@ -19,8 +19,8 @@ export async function validateFirmaFile(file: File): Promise<string | null> {
       img.src = url;
     });
 
-    if (width !== REQUIRED_SIZE || height !== REQUIRED_SIZE) {
-      return `La imagen debe medir exactamente ${REQUIRED_SIZE}x${REQUIRED_SIZE} píxeles (seleccionaste ${width}x${height}).`;
+    if (width !== height * REQUIRED_RATIO) {
+      return `La imagen debe tener una proporción de 2:1 (ancho el doble del alto). Seleccionaste ${width}x${height}.`;
     }
     return null;
   } catch {

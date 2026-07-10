@@ -6,9 +6,10 @@ using QuestPDF.Fluent;
 
 namespace Bixa.Backend.Services.Services;
 
-public class ReportService(string reportAssetsPath) : IReportService
+public class ReportService(string reportAssetsPath, string firmasPath) : IReportService
 {
     private readonly string _assetsPath = reportAssetsPath;
+    private readonly string _firmasPath = firmasPath;
 
     // ─── Generación ───────────────────────────────────────────────────────────
 
@@ -23,16 +24,21 @@ public class ReportService(string reportAssetsPath) : IReportService
                 model.LogoEmpresa = File.ReadAllBytes(logoPath);
         }
 
+        model.EmpleadoFirmaImagen = LoadFirmaImage(model.EmpleadoUrlFirma);
+        foreach (var aprobacion in model.Aprobaciones)
+        {
+            aprobacion.FirmaImagen = LoadFirmaImage(UtilityService.NormalizeCiFormat(aprobacion.AprobadorCi) + ".png");
+        }
+
         return plantilla switch
         {
-            "Generic"     => new GenericTramiteDocument(model).GeneratePdf(),
-            "Vacaciones"  => new VacacionesDocument(model).GeneratePdf(),
+            "Generic" => new GenericTramiteDocument(model).GeneratePdf(),
+            "Vacaciones" => new VacacionesDocument(model).GeneratePdf(),
             "DiaEspecial" => new DiaEspecialDocument(model).GeneratePdf(),
-            _             => new GenericTramiteDocument(model).GeneratePdf(),
+            "Utilidades" => new UtilidadesDocument(model).GeneratePdf(),
+            _ => new GenericTramiteDocument(model).GeneratePdf(),
         };
     }
-
-    // ─── Gestión de imágenes ──────────────────────────────────────────────────
 
     public async Task<string> SaveReportImageAsync(Stream imageStream, string fileName)
     {
@@ -50,6 +56,7 @@ public class ReportService(string reportAssetsPath) : IReportService
         return safeName;
     }
 
+    // ─── Gestión de imágenes ──────────────────────────────────────────────────
     public IEnumerable<string> GetReportImages()
     {
         if (!Directory.Exists(_assetsPath))
@@ -70,5 +77,20 @@ public class ReportService(string reportAssetsPath) : IReportService
 
         if (File.Exists(fullPath))
             File.Delete(fullPath);
+    }
+
+    /// <summary>
+    /// Carga la imagen de firma indicada por nombre de archivo. Si no se especifica,
+    /// no existe en disco, o el archivo no puede leerse, retorna la firma por defecto (SinFirma.png).
+    /// </summary>
+    private byte[]? LoadFirmaImage(string? urlFirma)
+    {
+        var fileName = string.IsNullOrWhiteSpace(urlFirma) ? FirmaService.SinFirma : Path.GetFileName(urlFirma);
+        var fullPath = Path.Combine(_firmasPath, fileName);
+
+        if (!File.Exists(fullPath))
+            fullPath = Path.Combine(_firmasPath, FirmaService.SinFirma);
+
+        return File.Exists(fullPath) ? File.ReadAllBytes(fullPath) : null;
     }
 }

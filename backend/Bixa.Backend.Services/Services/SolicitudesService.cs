@@ -14,8 +14,11 @@ namespace Bixa.Backend.Services.Services;
 
 public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IMapper mapper, IUnitOfWork unitOfWork, ITramitesService tramitesService, IAprobacionesService aprobacionesService, IGrupoFaProfitRepository grupoFaProfitRepository, ISnEmpleProfitRepository snEmpleProfitRepository, IFechasFeriadasProfitRepository fechasFeriadasProfitRepository) : ISolicitudesService
 {
+    // TODO: reemplazar por la consulta dinámica del monto disponible de utilidades cuando exista.
+    private const decimal MontoMaximoUtilidades = 500_000m;
+
     private static readonly string[] MotivosDiaEspecialValidos =
-    [
+        [
         "Cédula de identidad",
         "Libreta militar",
         "Certificado de salud",
@@ -171,6 +174,77 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         }
     }
 
+    public async Task<Result<bool>> AddSolicitudUtilidades(SolicUtilidadesDTO solicitud)
+    {
+        if (solicitud.Monto <= 0)
+        {
+            return Result.Fail<bool>("Monto inválido: ingresa un monto mayor a cero.");
+        }
+
+        if (solicitud.Monto > MontoMaximoUtilidades)
+        {
+            return Result.Fail<bool>($"Monto inválido: el monto solicitado no puede superar {MontoMaximoUtilidades:N2}.");
+        }
+
+        if (string.IsNullOrWhiteSpace(solicitud.Motivo))
+        {
+            return Result.Fail<bool>("Motivo inválido: ingresa el motivo de la solicitud.");
+        }
+
+        solicitud.Ci = UtilityService.NormalizeCiFormat(solicitud.Ci);
+        await _unitOfWork.BeginTransactionAsync();
+        var tramite = _mapper.Map<Tramite>(solicitud);
+
+        try
+        {
+            int tramiteId = await _solicitudesRepository.AddNewTramite(tramite);
+
+            if (tramiteId < 1)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return Result.Fail<bool>("Error al guardar el trámite");
+            }
+
+            List<AprobadorPermisoInfo> aprobadores = await GetAprovadoresPermisosByCi(solicitud.Ci);
+
+            foreach (AprobadorPermisoInfo aprobador in aprobadores)
+            {
+                int result = await _solicitudesRepository.AddAprobaciones(new Aprobacion
+                {
+                    TramiteId = tramiteId,
+                    Nombre = aprobador.Nombre,
+                    AprobadorCi = aprobador.Ci,
+                    Orden = aprobadores.IndexOf(aprobador) + 1,
+                    Estado = EstadoAprobacionEnum.Pendiente
+                });
+
+                if (result < 1)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    return Result.Fail<bool>($"Error al guardar la aprobación para el aprobador {aprobador.Nombre} ({aprobador.Ci})");
+                }
+            }
+
+            SolicitudUtilidades sUtilidades = _mapper.Map<SolicitudUtilidades>(solicitud);
+            sUtilidades.TramiteId = tramiteId;
+
+            bool solicitudResult = await _solicitudesRepository.AddSolicitudUtilidades(sUtilidades);
+            if (!solicitudResult)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return Result.Fail<bool>("Error al guardar la solicitud de anticipo de utilidades");
+            }
+
+            await _unitOfWork.CommitTransactionAsync();
+            return Result.Success(true);
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            return Result.Fail<bool>($"Error en el proceso: {ex.Message}");
+        }
+    }
+
     public async Task<Result<List<TramiteDTO>>> GetTramitesByCi(string ci)
     {
         ci = UtilityService.NormalizeCiFormat(ci);
@@ -244,6 +318,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         result.FechaIngreso = DateTime.Now;
         result.FechaSolicitud = tramite.FechaSolicitud;
         result.FechaResolucion = DateTime.Now;
+        result.EmpleadoUrlFirma = user?.UrlFirma;
         result.Vacaciones = new()
         {
             Desde = solicitudVacaciones.Desde,
@@ -259,7 +334,8 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
                 AprobadorCi = aprobacion.AprobadorCi,
                 AprobadorNombre = aprobacion.Nombre ?? "Sin datos",
                 Accion = aprobacion.Estado.ToString(),
-                Fecha = aprobacion.UpdatedAt
+                Fecha = aprobacion.UpdatedAt,
+                UrlFirma = aprobacion.Aprobador?.UrlFirma
             });
         }
 
@@ -287,6 +363,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         result.EmpleadoDepartamento = empleadoInfo.IsSuccess ? empleadoInfo.Value.DesDepart : null;
         result.FechaSolicitud = tramite.FechaSolicitud;
         result.FechaResolucion = DateTime.Now;
+        result.EmpleadoUrlFirma = user?.UrlFirma;
         result.DiaEspecial = new()
         {
             Fecha = solicitudDiaEspecial.Fecha,
@@ -300,7 +377,53 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
                 AprobadorCi = aprobacion.AprobadorCi,
                 AprobadorNombre = aprobacion.Nombre ?? "Sin datos",
                 Accion = aprobacion.Estado.ToString(),
-                Fecha = aprobacion.UpdatedAt
+                Fecha = aprobacion.UpdatedAt,
+                UrlFirma = aprobacion.Aprobador?.UrlFirma
+            });
+        }
+
+        return Result.Success(result);
+    }
+
+    public async Task<Result<TramiteReportModel>> GetInfoReporteUtilidades(int tramiteId)
+    {
+        TramiteReportModel result = new();
+        var tramite = await _tramitesService.GetTramiteById(tramiteId);
+        var aprobaciones = await _aprobacionesService.GetAprobacionesByTramiteId(tramiteId);
+        var solicitudUtilidades = await _solicitudesRepository.GetSolicitudUtilidadesByTramiteId(tramiteId);
+        var user = await _solicitudesRepository.GetUserByCi(tramite.UserCi);
+        var empleadoInfo = await _snEmpleProfitRepository.GetFullInfoByCiAsync(tramite.UserCi);
+        if (tramite == null)
+        {
+            return Result.Fail<TramiteReportModel>($"No se encontró el trámite con ID {tramiteId}");
+        }
+
+        result.TramiteId = tramite.Id;
+        result.TipoTramite = "Solicitud de anticipo de utilidades";
+        result.EmpleadoCi = tramite.UserCi;
+        result.EmpleadoNombre = user?.FirstName + " " + user?.LastName;
+        result.EmpleadoCargo = empleadoInfo.IsSuccess ? empleadoInfo.Value.DesCargo : null;
+        result.EmpleadoDepartamento = empleadoInfo.IsSuccess ? empleadoInfo.Value.DesDepart : null;
+        result.FechaIngreso = empleadoInfo.IsSuccess ? empleadoInfo.Value.FechaIng : null;
+        result.FechaSolicitud = tramite.FechaSolicitud;
+        result.FechaResolucion = DateTime.Now;
+        result.EmpleadoUrlFirma = user?.UrlFirma;
+        result.Utilidades = new()
+        {
+            Monto = solicitudUtilidades.Monto,
+            Motivo = solicitudUtilidades.Motivo,
+            TotalUtilidadesDisponible = MontoMaximoUtilidades
+        };
+
+        foreach (var aprobacion in aprobaciones)
+        {
+            result.Aprobaciones.Add(new AprobacionReportModel
+            {
+                AprobadorCi = aprobacion.AprobadorCi,
+                AprobadorNombre = aprobacion.Nombre ?? "Sin datos",
+                Accion = aprobacion.Estado.ToString(),
+                Fecha = aprobacion.UpdatedAt,
+                UrlFirma = aprobacion.Aprobador?.UrlFirma
             });
         }
 

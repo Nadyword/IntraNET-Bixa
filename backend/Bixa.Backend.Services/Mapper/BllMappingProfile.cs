@@ -135,10 +135,12 @@ public class BllMappingProfile : Profile
            .ForMember(dest => dest.UserNombre, opt => opt.MapFrom(src => src.User != null ? $"{src.User.FirstName} {src.User.LastName}" : null))
            .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt))
            .ForMember(dest => dest.Vacaciones, opt => opt.MapFrom(src => src.SolicitudVacaciones))
-           .ForMember(dest => dest.DiaEspecial, opt => opt.MapFrom(src => src.SolicitudDiasEspeciales));
+           .ForMember(dest => dest.DiaEspecial, opt => opt.MapFrom(src => src.SolicitudDiasEspeciales))
+           .ForMember(dest => dest.Utilidades, opt => opt.MapFrom(src => src.SolicitudUtilidades));
 
         CreateMap<SolicitudVacaciones, VacacionesDetalleDTO>();
         CreateMap<SolicitudDiasEspeciales, DiaEspecialDetalleDTO>();
+        CreateMap<SolicitudUtilidades, UtilidadesDetalleDTO>();
 
         #endregion Tramites
 
@@ -189,6 +191,21 @@ public class BllMappingProfile : Profile
             .ReverseMap();
 
         #endregion DiaEspecial
+
+        #region Utilidades
+
+        CreateMap<SolicUtilidadesDTO, Tramite>()
+            .ForMember(dest => dest.TipoTramiteId, opt => opt.MapFrom(src => src.TipoTramiteId))
+            .ForMember(dest => dest.UserCi, opt => opt.MapFrom(src => src.Ci))
+            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => src.Estado))
+            .ReverseMap();
+
+        CreateMap<SolicUtilidadesDTO, SolicitudUtilidades>()
+            .ForMember(dest => dest.Monto, opt => opt.MapFrom(src => src.Monto))
+            .ForMember(dest => dest.Motivo, opt => opt.MapFrom(src => src.Motivo))
+            .ReverseMap();
+
+        #endregion Utilidades
 
         #endregion Solicitudes Mappings
     }

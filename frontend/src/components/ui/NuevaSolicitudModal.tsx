@@ -28,7 +28,7 @@ const TIPOS: TipoConfig[] = [
   { id: 'vacaciones',           label: 'Vacaciones',                      icon: '✈️', enumId: 4 },
   { id: 'diaEspecial',          label: 'Día Especial',                    icon: '📝', enumId: 5 },
   { id: 'utilidades',           label: 'Anticipo de Utilidades',          icon: '💳', enumId: 1 },
-  { id: 'prestamoPrestaciones', label: 'Préstamo Prestaciones Sociales',  icon: '💰' },
+  { id: 'prestamoPrestaciones', label: 'Prestaciones Sociales',  icon: '💰' },
 ];
 
 type SubTipoPrestamo = 'prestamo' | 'sociales';
@@ -41,13 +41,13 @@ interface SubTipoConfig {
 
 const SUBTIPOS_PRESTAMO: SubTipoConfig[] = [
   { id: 'prestamo', label: 'Préstamo sobre Prestaciones Sociales', enumId: 3 },
-  { id: 'sociales', label: 'Solicitud de Prestaciones Sociales',   enumId: 2 },
+  { id: 'sociales', label: 'Anticipo de Prestaciones Sociales',   enumId: 2 },
 ];
 
 const DESTINOS_PRESTAMO: string[] = [
   'Construcción, Adquisición o Mejora de Vivienda',
   'Liberación de Hipoteca',
-  'Pensiones Escolares (Art. 142 de la LOTTT, Parágrafo Segundo)',
+  'Pensiones Escolares',
   'Gastos por Atención Médica y Hospitalaria',
 ];
 
@@ -81,6 +81,13 @@ interface FormMonto {
   observaciones: string;
 }
 
+interface FormUtilidades {
+  monto: string;
+  motivo: string;
+}
+
+const MONTO_MAXIMO_UTILIDADES = 500000;
+
 function fechaLocalHoy(): string {
   const d = new Date();
   return [
@@ -110,6 +117,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
   });
   const [diaEspecial, setDiaEspecial] = useState<FormDiaEspecial>({ fecha: '', motivo: '' });
   const [monto, setMonto] = useState<FormMonto>({ monto: '', observaciones: '' });
+  const [utilidades, setUtilidades] = useState<FormUtilidades>({ monto: '', motivo: '' });
   const [subTipoPrestamo, setSubTipoPrestamo] = useState<SubTipoPrestamo | ''>('');
   const [destinoPrestamo, setDestinoPrestamo] = useState('');
 
@@ -196,12 +204,15 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       else if (diaEspecialFechaError) errs.fecha = diaEspecialFechaError;
       if (!diaEspecial.motivo.trim()) errs.motivo = 'Requerido';
     }
-    if (tipo === 'utilidades' || tipo === 'prestamoPrestaciones') {
-      if (!monto.monto || Number(monto.monto) <= 0) errs.monto = 'Ingresa un monto válido';
-    }
     if (tipo === 'prestamoPrestaciones') {
+      if (!monto.monto || Number(monto.monto) <= 0) errs.monto = 'Ingresa un monto válido';
       if (!subTipoPrestamo) errs.subTipo = 'Requerido';
       if (!destinoPrestamo) errs.destino = 'Requerido';
+    }
+    if (tipo === 'utilidades') {
+      if (!utilidades.monto || Number(utilidades.monto) <= 0) errs.monto = 'Ingresa un monto válido';
+      else if (Number(utilidades.monto) > MONTO_MAXIMO_UTILIDADES) errs.monto = `El monto no puede superar $${MONTO_MAXIMO_UTILIDADES.toLocaleString('es-VE')}`;
+      if (!utilidades.motivo.trim()) errs.motivo = 'Requerido';
     }
 
     setErrors(errs);
@@ -245,6 +256,26 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
           motivo: diaEspecial.motivo,
         };
         await api.post('/solicitudes/DiaEspecial', payload);
+        setEnviado(true);
+        onSuccess?.();
+      } catch (err: any) {
+        const msg = err?.response?.data?.message ?? 'Error al enviar la solicitud. Intenta de nuevo.';
+        setSubmitError(msg);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    if (tipo === 'utilidades') {
+      setIsLoading(true);
+      try {
+        const payload = {
+          ci: user?.ci ?? '',
+          monto: Number(utilidades.monto),
+          motivo: utilidades.motivo,
+        };
+        await api.post('/solicitudes/Utilidades', payload);
         setEnviado(true);
         onSuccess?.();
       } catch (err: any) {
@@ -414,29 +445,33 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
             {tipo === 'utilidades' && (
               <>
                 <div className="ns-field">
-                  <label>Monto solicitado<span className="ns-required">*</span></label>
+                  <label>Monto solicitado <span className="ns-required">*</span></label>
                   <div className="ns-monto-wrapper">
-                    <span className="ns-monto-prefix">$</span>
+                    <span className="ns-monto-prefix">Bs</span>
                     <input
                       type="number"
                       min="1"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={monto.monto}
-                      onChange={(e) => setMonto((m) => ({ ...m, monto: e.target.value }))}
+                      max={MONTO_MAXIMO_UTILIDADES}
+                      value={utilidades.monto}
+                      onChange={(e) => setUtilidades((u) => ({ ...u, monto: e.target.value }))}
                       className={errors.monto ? 'input-error' : ''}
                     />
                   </div>
+                  <span className="ns-dias-badge">
+                    Monto máximo disponible (temporal): ${MONTO_MAXIMO_UTILIDADES.toLocaleString('es-VE')}
+                  </span>
                   {errors.monto && <span className="ns-error">{errors.monto}</span>}
                 </div>
                 <div className="ns-field">
-                  <label>Observaciones</label>
+                  <label>Motivo de la solicitud <span className="ns-required">*</span></label>
                   <textarea
                     rows={3}
-                    placeholder="Información adicional (opcional)"
-                    value={monto.observaciones}
-                    onChange={(e) => setMonto((m) => ({ ...m, observaciones: e.target.value }))}
+                    placeholder="Describe el motivo de tu solicitud"
+                    value={utilidades.motivo}
+                    onChange={(e) => setUtilidades((u) => ({ ...u, motivo: e.target.value }))}
+                    className={errors.motivo ? 'input-error' : ''}
                   />
+                  {errors.motivo && <span className="ns-error">{errors.motivo}</span>}
                 </div>
               </>
             )}
@@ -476,12 +511,10 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                 <div className="ns-field">
                   <label>Monto solicitado<span className="ns-required">*</span></label>
                   <div className="ns-monto-wrapper">
-                    <span className="ns-monto-prefix">$</span>
+                    <span className="ns-monto-prefix">Bs</span>
                     <input
                       type="number"
                       min="1"
-                      step="0.01"
-                      placeholder="0.00"
                       value={monto.monto}
                       onChange={(e) => setMonto((m) => ({ ...m, monto: e.target.value }))}
                       className={errors.monto ? 'input-error' : ''}

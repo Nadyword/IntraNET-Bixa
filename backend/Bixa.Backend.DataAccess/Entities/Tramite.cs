@@ -19,4 +19,6 @@ public class Tramite : BaseEntities
     public virtual SolicitudVacaciones? SolicitudVacaciones { get; set; }
 
     public virtual SolicitudDiasEspeciales? SolicitudDiasEspeciales { get; set; }
+
+    public virtual SolicitudUtilidades? SolicitudUtilidades { get; set; }
 }
