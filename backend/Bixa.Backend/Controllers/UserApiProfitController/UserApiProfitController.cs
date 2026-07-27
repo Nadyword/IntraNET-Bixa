@@ -98,4 +98,21 @@ public class UserApiProfitController(
         var result = await _readOnlyUnitOfWork.DiaEspeciales.GetDiaEspecialesByCodEmpAsync(CodEmp);
         return HandleServiceResult(result);
     }
+
+    /// <summary>
+    /// Monto de utilidades disponible por CI
+    /// </summary>
+    /// <param name="ci">La cédula de identidad del empleado para el que se recupera el monto disponible.</param>
+    /// <returns>API response con el monto disponible de utilidades.</returns>
+    [HttpGet("{ci}/Utilidades")]
+    [ProducesResponseType(typeof(ApiResponse<decimal?>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetUtilidadesByCi(string ci)
+    {
+        var normalizedCi = UtilityService.NormalizeCiFormat(ci);
+        var result = await _readOnlyUnitOfWork.Utilidades.GetMontoDisponibleByCiAsync(normalizedCi);
+        return HandleServiceResult(result);
+    }
 }

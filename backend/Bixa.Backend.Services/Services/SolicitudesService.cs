@@ -8,14 +8,14 @@ using Bixa.Backend.Models.DTOs.ReportesModelDTO;
 using Bixa.Backend.Models.DTOs.SolicitudesModelDTO;
 using Bixa.Backend.Models.Enums;
 using Bixa.Backend.Models.Response;
+using Bixa.Backend.Models.Utilities;
 using Bixa.Backend.Services.Interfaces;
 
 namespace Bixa.Backend.Services.Services;
 
-public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IMapper mapper, IUnitOfWork unitOfWork, ITramitesService tramitesService, IAprobacionesService aprobacionesService, IGrupoFaProfitRepository grupoFaProfitRepository, ISnEmpleProfitRepository snEmpleProfitRepository, IFechasFeriadasProfitRepository fechasFeriadasProfitRepository) : ISolicitudesService
+public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IMapper mapper, IUnitOfWork unitOfWork, ITramitesService tramitesService, IAprobacionesService aprobacionesService, IGrupoFaProfitRepository grupoFaProfitRepository, ISnEmpleProfitRepository snEmpleProfitRepository, IFechasFeriadasProfitRepository fechasFeriadasProfitRepository, IUtilidadesProfitRepository utilidadesProfitRepository, INotificationService notificationService, IAdjuntoService adjuntoService, ISendMailServices sendMailServices) : ISolicitudesService
 {
-    // TODO: reemplazar por la consulta dinámica del monto disponible de utilidades cuando exista.
-    private const decimal MontoMaximoUtilidades = 500_000m;
+    private const int CuotasMaximas = 52;
 
     private static readonly string[] MotivosDiaEspecialValidos =
         [
@@ -34,11 +34,15 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
     private readonly ISnEmpleProfitRepository _snEmpleProfitRepository = snEmpleProfitRepository;
     private readonly IGrupoFaProfitRepository _grupoFaProfitRepository = grupoFaProfitRepository;
     private readonly IFechasFeriadasProfitRepository _fechasFeriadasProfitRepository = fechasFeriadasProfitRepository;
+    private readonly IUtilidadesProfitRepository _utilidadesProfitRepository = utilidadesProfitRepository;
     private readonly ISolicitudesRepository _solicitudesRepository = solicitudesRepository;
     private readonly IAprobacionesService _aprobacionesService = aprobacionesService;
     private readonly ITramitesService _tramitesService = tramitesService;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly IMapper _mapper = mapper;
+    private readonly INotificationService _notificationService = notificationService;
+    private readonly IAdjuntoService _adjuntoService = adjuntoService;
+    private readonly ISendMailServices _sendMailServices = sendMailServices;
 
     public async Task<List<AprobadorPermisoInfo>> GetAprovadoresPermisosByCi(string ci)
     {
@@ -99,6 +103,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             }
 
             await _unitOfWork.CommitTransactionAsync();
+            await NotificarPrimerAprobadorAsync(aprobadores);
             return Result.Success(true);
         }
         catch (Exception ex)
@@ -165,6 +170,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             }
 
             await _unitOfWork.CommitTransactionAsync();
+            await NotificarPrimerAprobadorAsync(aprobadores);
             return Result.Success(true);
         }
         catch (Exception ex)
@@ -181,9 +187,14 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             return Result.Fail<bool>("Monto inválido: ingresa un monto mayor a cero.");
         }
 
-        if (solicitud.Monto > MontoMaximoUtilidades)
+        solicitud.Ci = UtilityService.NormalizeCiFormat(solicitud.Ci);
+
+        var montoDisponibleResult = await _utilidadesProfitRepository.GetMontoDisponibleByCiAsync(solicitud.Ci);
+        var montoDisponible = montoDisponibleResult.IsSuccess ? (montoDisponibleResult.Value ?? 0) : 0;
+
+        if (solicitud.Monto > montoDisponible)
         {
-            return Result.Fail<bool>($"Monto inválido: el monto solicitado no puede superar {MontoMaximoUtilidades:N2}.");
+            return Result.Fail<bool>($"Monto inválido: el monto solicitado no puede superar {montoDisponible:N2}.");
         }
 
         if (string.IsNullOrWhiteSpace(solicitud.Motivo))
@@ -191,7 +202,6 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             return Result.Fail<bool>("Motivo inválido: ingresa el motivo de la solicitud.");
         }
 
-        solicitud.Ci = UtilityService.NormalizeCiFormat(solicitud.Ci);
         await _unitOfWork.BeginTransactionAsync();
         var tramite = _mapper.Map<Tramite>(solicitud);
 
@@ -236,6 +246,141 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             }
 
             await _unitOfWork.CommitTransactionAsync();
+            await NotificarPrimerAprobadorAsync(aprobadores);
+            return Result.Success(true);
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            return Result.Fail<bool>($"Error en el proceso: {ex.Message}");
+        }
+    }
+
+    public async Task<Result<bool>> AddSolicitudPrestaciones(SolicPrestacionesDTO solicitud)
+    {
+        if (solicitud.TipoTramiteId != (int)TipoTramiteEnum.Sociales && solicitud.TipoTramiteId != (int)TipoTramiteEnum.Prestaciones)
+        {
+            return Result.Fail<bool>("Tipo de solicitud inválido: selecciona préstamo o anticipo de prestaciones sociales.");
+        }
+
+        if (solicitud.Monto <= 0)
+        {
+            return Result.Fail<bool>("Monto inválido: ingresa un monto mayor a cero.");
+        }
+
+        if (!Enum.IsDefined(solicitud.Destino))
+        {
+            return Result.Fail<bool>("Destino inválido: selecciona una de las opciones permitidas.");
+        }
+
+        bool esPrestamo = solicitud.TipoTramiteId == (int)TipoTramiteEnum.Prestaciones;
+
+        if (esPrestamo && (solicitud.Cuotas is null || solicitud.Cuotas <= 0 || solicitud.Cuotas > CuotasMaximas))
+        {
+            return Result.Fail<bool>($"Cantidad de cuotas inválida: debe estar entre 1 y {CuotasMaximas}.");
+        }
+
+        string? archivoAdjuntoGuardado = null;
+        if (solicitud.Archivo != null)
+        {
+            var archivoResult = await _adjuntoService.ValidateAndSaveAsync(solicitud.Archivo, solicitud.Ci);
+            if (!archivoResult.IsSuccess)
+            {
+                return Result.Fail<bool>(archivoResult.Error);
+            }
+            archivoAdjuntoGuardado = archivoResult.Value;
+        }
+
+        solicitud.Ci = UtilityService.NormalizeCiFormat(solicitud.Ci);
+        await _unitOfWork.BeginTransactionAsync();
+        var tramite = _mapper.Map<Tramite>(solicitud);
+
+        try
+        {
+            int tramiteId = await _solicitudesRepository.AddNewTramite(tramite);
+
+            if (tramiteId < 1)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return Result.Fail<bool>("Error al guardar el trámite");
+            }
+
+            List<AprobadorPermisoInfo> aprobadores = await GetAprovadoresPermisosByCi(solicitud.Ci);
+
+            foreach (AprobadorPermisoInfo aprobador in aprobadores)
+            {
+                int result = await _solicitudesRepository.AddAprobaciones(new Aprobacion
+                {
+                    TramiteId = tramiteId,
+                    Nombre = aprobador.Nombre,
+                    AprobadorCi = aprobador.Ci,
+                    Orden = aprobadores.IndexOf(aprobador) + 1,
+                    Estado = EstadoAprobacionEnum.Pendiente
+                });
+
+                if (result < 1)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    return Result.Fail<bool>($"Error al guardar la aprobación para el aprobador {aprobador.Nombre} ({aprobador.Ci})");
+                }
+            }
+
+            SolicitudPrestaciones sPrestaciones = _mapper.Map<SolicitudPrestaciones>(solicitud);
+            sPrestaciones.TramiteId = tramiteId;
+            sPrestaciones.Cuotas = esPrestamo ? solicitud.Cuotas : null;
+            sPrestaciones.ArchivoAdjunto = archivoAdjuntoGuardado;
+
+            bool solicitudResult = await _solicitudesRepository.AddSolicitudPrestaciones(sPrestaciones);
+            if (!solicitudResult)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return Result.Fail<bool>("Error al guardar la solicitud de prestaciones sociales");
+            }
+
+            await _unitOfWork.CommitTransactionAsync();
+            await NotificarPrimerAprobadorAsync(aprobadores);
+            return Result.Success(true);
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            return Result.Fail<bool>($"Error en el proceso: {ex.Message}");
+        }
+    }
+
+    public async Task<Result<bool>> AddSolicitudConstanciaTrabajo(SolicConstanciaTrabajoDTO solicitud)
+    {
+        if (solicitud.DirigidoAEspecifico && string.IsNullOrWhiteSpace(solicitud.DirigidoA))
+        {
+            return Result.Fail<bool>("Debes especificar a quién va dirigida la constancia.");
+        }
+
+        solicitud.Ci = UtilityService.NormalizeCiFormat(solicitud.Ci);
+        await _unitOfWork.BeginTransactionAsync();
+        var tramite = _mapper.Map<Tramite>(solicitud);
+
+        try
+        {
+            int tramiteId = await _solicitudesRepository.AddNewTramite(tramite);
+
+            if (tramiteId < 1)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return Result.Fail<bool>("Error al guardar el trámite");
+            }
+
+            SolicitudConstanciaTrabajo sConstanciaTrabajo = _mapper.Map<SolicitudConstanciaTrabajo>(solicitud);
+            sConstanciaTrabajo.TramiteId = tramiteId;
+
+            bool solicitudResult = await _solicitudesRepository.AddSolicitudConstanciaTrabajo(sConstanciaTrabajo);
+            if (!solicitudResult)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return Result.Fail<bool>("Error al guardar la solicitud de constancia de trabajo");
+            }
+
+            await _unitOfWork.CommitTransactionAsync();
+            await NotificarAdministradoresAsync();
             return Result.Success(true);
         }
         catch (Exception ex)
@@ -276,7 +421,21 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
 
     public async Task<Result<bool>> AprobarTramite(AprobarTramiteDTO aprobarTramiteDTO)
     {
+        if (aprobarTramiteDTO.Estado == (int)EstadoAprobacionEnum.Rechazado)
+        {
+            var tramite = await _tramitesService.GetTramiteById(aprobarTramiteDTO.TramiteId);
+            if (tramite.TipoTramiteId == (int)TipoTramiteEnum.ConstanciaTrabajo)
+            {
+                return Result.Fail<bool>("No se puede rechazar una solicitud de Constancia de Trabajo.");
+            }
+        }
+
         var result = await _aprobacionesService.AprobarTramite(aprobarTramiteDTO);
+        if (result)
+        {
+            await NotifyCambioEstadoAsync(aprobarTramiteDTO.TramiteId);
+            await NotificarSiguientePasoAsync(aprobarTramiteDTO.TramiteId);
+        }
         return Result.Success(result);
     }
 
@@ -287,6 +446,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         {
             return Result.Fail<bool>($"Error al aprobar el trámite con ID {tramiteId}");
         }
+        await NotifyCambioEstadoAsync(tramiteId);
         return Result.Success<bool>(true);
     }
 
@@ -295,6 +455,18 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         var tramites = await _tramitesService.GetAprobados();
         var tramitesDto = _mapper.Map<List<TramiteDTO>>(tramites);
         return Result.Success(tramitesDto);
+    }
+
+    public async Task<Result<TramiteDTO>> GetTramiteDetalle(int tramiteId)
+    {
+        var tramite = await _tramitesService.GetTramiteDetalladoById(tramiteId);
+        if (tramite == null)
+        {
+            return Result.Fail<TramiteDTO>($"No se encontró el trámite con ID {tramiteId}");
+        }
+
+        var tramiteDto = _mapper.Map<TramiteDTO>(tramite);
+        return Result.Success(tramiteDto);
     }
 
     public async Task<Result<TramiteReportModel>> GetInfoReporteVacaciones(int tramiteId)
@@ -393,6 +565,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         var solicitudUtilidades = await _solicitudesRepository.GetSolicitudUtilidadesByTramiteId(tramiteId);
         var user = await _solicitudesRepository.GetUserByCi(tramite.UserCi);
         var empleadoInfo = await _snEmpleProfitRepository.GetFullInfoByCiAsync(tramite.UserCi);
+        var montoDisponibleResult = await _utilidadesProfitRepository.GetMontoDisponibleByCiAsync(tramite.UserCi);
         if (tramite == null)
         {
             return Result.Fail<TramiteReportModel>($"No se encontró el trámite con ID {tramiteId}");
@@ -412,7 +585,59 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         {
             Monto = solicitudUtilidades.Monto,
             Motivo = solicitudUtilidades.Motivo,
-            TotalUtilidadesDisponible = MontoMaximoUtilidades
+            TotalUtilidadesDisponible = montoDisponibleResult.IsSuccess ? (montoDisponibleResult.Value ?? 0) : 0
+        };
+
+        foreach (var aprobacion in aprobaciones)
+        {
+            result.Aprobaciones.Add(new AprobacionReportModel
+            {
+                AprobadorCi = aprobacion.AprobadorCi,
+                AprobadorNombre = aprobacion.Nombre ?? "Sin datos",
+                Accion = aprobacion.Estado.ToString(),
+                Fecha = aprobacion.UpdatedAt,
+                UrlFirma = aprobacion.Aprobador?.UrlFirma
+            });
+        }
+
+        return Result.Success(result);
+    }
+
+    public async Task<Result<TramiteReportModel>> GetInfoReportePrestaciones(int tramiteId)
+    {
+        TramiteReportModel result = new();
+        var tramite = await _tramitesService.GetTramiteById(tramiteId);
+        var aprobaciones = await _aprobacionesService.GetAprobacionesByTramiteId(tramiteId);
+        var solicitudPrestaciones = await _solicitudesRepository.GetSolicitudPrestacionesByTramiteId(tramiteId);
+        var user = await _solicitudesRepository.GetUserByCi(tramite.UserCi);
+        var empleadoInfo = await _snEmpleProfitRepository.GetFullInfoByCiAsync(tramite.UserCi);
+        if (tramite == null)
+        {
+            return Result.Fail<TramiteReportModel>($"No se encontró el trámite con ID {tramiteId}");
+        }
+
+        result.TramiteId = tramite.Id;
+        result.TipoTramite = solicitudPrestaciones.EsPrestamo
+            ? "Solicitud de préstamo sobre prestaciones sociales"
+            : "Solicitud de anticipo de prestaciones sociales";
+        result.EmpleadoCi = tramite.UserCi;
+        result.EmpleadoNombre = user?.FirstName + " " + user?.LastName;
+        result.EmpleadoCargo = empleadoInfo.IsSuccess ? empleadoInfo.Value.DesCargo : null;
+        result.EmpleadoDepartamento = empleadoInfo.IsSuccess ? empleadoInfo.Value.DesDepart : null;
+        result.FechaIngreso = empleadoInfo.IsSuccess ? empleadoInfo.Value.FechaIng : null;
+        result.FechaSolicitud = tramite.FechaSolicitud;
+        result.FechaResolucion = DateTime.Now;
+        result.EmpleadoUrlFirma = user?.UrlFirma;
+        result.Prestaciones = new()
+        {
+            EsPrestamo = solicitudPrestaciones.EsPrestamo,
+            Monto = solicitudPrestaciones.Monto,
+            Destino = solicitudPrestaciones.Destino.GetDescription(),
+            Observaciones = solicitudPrestaciones.Observaciones,
+            Cuotas = solicitudPrestaciones.Cuotas,
+            MontoCuota = solicitudPrestaciones.Cuotas is > 0
+                ? solicitudPrestaciones.Monto / solicitudPrestaciones.Cuotas.Value
+                : null
         };
 
         foreach (var aprobacion in aprobaciones)
@@ -433,12 +658,26 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
     public async Task<Result<bool>> ArchivarTramite(int tramiteId)
     {
         var result = await _tramitesService.ArchivarTramite(tramiteId);
+        if (result)
+        {
+            await NotifyCambioEstadoAsync(tramiteId);
+        }
         return Result.Success(result);
     }
 
     public async Task<Result<bool>> RechazarTramite(int tramiteId, string razon)
     {
+        var tramite = await _tramitesService.GetTramiteById(tramiteId);
+        if (tramite.TipoTramiteId == (int)TipoTramiteEnum.ConstanciaTrabajo)
+        {
+            return Result.Fail<bool>("No se puede rechazar una solicitud de Constancia de Trabajo.");
+        }
+
         var result = await _aprobacionesService.RechazarTramite(tramiteId, razon);
+        if (result)
+        {
+            await NotifyCambioEstadoAsync(tramiteId);
+        }
         return Result.Success(result);
     }
 
@@ -462,5 +701,100 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         }
 
         return Result.Success(dias);
+    }
+
+    private async Task NotifyCambioEstadoAsync(int tramiteId)
+    {
+        try
+        {
+            var tramite = await _tramitesService.GetTramiteById(tramiteId);
+
+            var (title, message) = tramite.Estado switch
+            {
+                EstadoTramiteEnum.Revision => ("Trámite en revisión", $"Tu trámite #{tramiteId} fue firmado por un aprobador y avanzó a revisión."),
+                EstadoTramiteEnum.Firmado => ("Trámite firmado", $"Tu trámite #{tramiteId} fue firmado por todos los aprobadores y espera aprobación final."),
+                EstadoTramiteEnum.Aprobado => ("Trámite aprobado", $"Tu trámite #{tramiteId} fue aprobado."),
+                EstadoTramiteEnum.Rechazado => ("Trámite rechazado", $"Tu trámite #{tramiteId} fue rechazado." + (string.IsNullOrWhiteSpace(tramite.MotivoRechazo) ? "" : $" Motivo: {tramite.MotivoRechazo}")),
+                EstadoTramiteEnum.Tramitando => ("Trámite finalizado", $"Tu trámite #{tramiteId} fue archivado."),
+                _ => (null, null),
+            };
+
+            if (title != null)
+                await _notificationService.NotifyAsync(tramite.UserCi, "TramiteEstado", title, message!, "Tramite", tramiteId);
+        }
+        catch
+        {
+            // Notificación es un efecto secundario: nunca debe tumbar la operación principal.
+        }
+    }
+
+    private async Task NotificarPrimerAprobadorAsync(List<AprobadorPermisoInfo> aprobadores)
+    {
+        var primero = aprobadores.FirstOrDefault();
+        if (primero == null) return;
+
+        await EnviarCorreoAprobadorAsync(primero.Ci);
+    }
+
+    private async Task NotificarSiguientePasoAsync(int tramiteId)
+    {
+        try
+        {
+            var tramite = await _tramitesService.GetTramiteById(tramiteId);
+
+            if (tramite.Estado == EstadoTramiteEnum.Firmado)
+            {
+                await NotificarAdministradoresAsync();
+            }
+            else if (tramite.Estado == EstadoTramiteEnum.Revision)
+            {
+                var aprobaciones = await _aprobacionesService.GetAprobacionesByTramiteId(tramiteId);
+                var siguiente = aprobaciones.FirstOrDefault(a => a.Orden == 1 && a.Estado == EstadoAprobacionEnum.Pendiente);
+                if (siguiente != null)
+                {
+                    await EnviarCorreoAprobadorAsync(siguiente.AprobadorCi);
+                }
+            }
+        }
+        catch
+        {
+            // Correo es un efecto secundario: nunca debe tumbar la operación principal.
+        }
+    }
+
+    private async Task EnviarCorreoAprobadorAsync(string ci)
+    {
+        try
+        {
+            var correo = await _snEmpleProfitRepository.GetEmailByCiAsync(ci);
+            if (!string.IsNullOrWhiteSpace(correo))
+            {
+                await _sendMailServices.SendMailSolicitudPendienteAprobacion(correo);
+            }
+        }
+        catch
+        {
+            // Correo es un efecto secundario: nunca debe tumbar la operación principal.
+        }
+    }
+
+    private async Task NotificarAdministradoresAsync()
+    {
+        try
+        {
+            var administradores = await _unitOfWork.Users.GetActiveByRoleAsync((int)UserRolEnum.Administrador);
+            foreach (var admin in administradores)
+            {
+                var correo = await _snEmpleProfitRepository.GetEmailByCiAsync(admin.Ci);
+                if (!string.IsNullOrWhiteSpace(correo))
+                {
+                    await _sendMailServices.SendMailSolicitudFirmadaCompleta(correo);
+                }
+            }
+        }
+        catch
+        {
+            // Correo es un efecto secundario: nunca debe tumbar la operación principal.
+        }
     }
 }

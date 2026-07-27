@@ -3,6 +3,7 @@ using Bixa.Backend.DataAccess.Wrappers;
 using Microsoft.AspNetCore.Authorization;
 using Bixa.Backend.Services.Interfaces;
 using Bixa.Backend.Models.Enums;
+using Bixa.Backend.Models.Response;
 using Microsoft.AspNetCore.Mvc;
 using Bixa.Backend.Models;
 using Bixa.Backend.Base;
@@ -105,7 +106,7 @@ public class UserApiController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetUsers(int pageNumber = 1, int pageSize = 10)
     {
-        var authResult = RequireUserRol(UserRolEnum.Administrador);
+        var authResult = RequireUserRol(UserRolEnum.Administrador, UserRolEnum.Supervisor);
         if (authResult != null) return authResult;
 
         var listUser = await _userService.GetAllAsync(pageNumber, pageSize);
@@ -180,5 +181,30 @@ public class UserApiController(
         var resultUser = await _userService.ResendWelcomeEmail(Ci);
 
         return HandleServiceResult(resultUser, $"Si existe un correo asociado, se ha reenviado el correo de bienvenida al usuario con CI {Ci}");
+    }
+
+    /// <summary>
+    /// Envía una solicitud de corrección de datos personales a todos los administradores activos.
+    /// POST /api/users/SolicitarCorreccion
+    /// </summary>
+    /// <param name="dto">El comentario con el detalle de la corrección solicitada.</param>
+    /// <returns>API response indicating the operation result.</returns>
+    [HttpPost("SolicitarCorreccion")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SolicitarCorreccion([FromBody] SolicitarCorreccionDTO dto)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador, UserRolEnum.Supervisor, UserRolEnum.Empleado);
+        if (authResult != null) return authResult;
+
+        var ci = User.FindFirst("ci")?.Value;
+        if (string.IsNullOrEmpty(ci))
+            return HandleServiceResult(Result.Fail<bool>("No se pudo identificar al usuario autenticado.", ErrorTypeEnum.Unauthorized));
+
+        var result = await _userService.SolicitarCorreccion(ci, dto.Comentario);
+        return HandleServiceResult(result, "Solicitud de corrección enviada a los administradores.");
     }
 }

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useUIStore } from '../store/uiStore';
 import { useUserProfileStore } from '../store/userProfileStore';
 import { api } from '../lib/api';
 import './ConsultasPage.css';
@@ -30,7 +29,7 @@ const formatFecha = (fecha: string | null): string => {
 };
 
 export const ConsultasPage: React.FC = () => {
-  const { setActiveSection } = useUIStore();
+
   const { profile } = useUserProfileStore();
 
   // null = aún no consultado, [] = consultado sin registros, [...] = con datos
@@ -43,6 +42,11 @@ export const ConsultasPage: React.FC = () => {
   const [loadingDiasEsp, setLoadingDiasEsp] = useState(false);
   const [modalDiasEsp, setModalDiasEsp] = useState(false);
   const [errorDiasEsp, setErrorDiasEsp] = useState<string | null>(null);
+
+  // null = aún no consultado, undefined = consultado sin registros, number = monto disponible
+  const [montoUtilidades, setMontoUtilidades] = useState<number | null | undefined>(null);
+  const [loadingUtilidades, setLoadingUtilidades] = useState(false);
+  const [errorUtilidades, setErrorUtilidades] = useState<string | null>(null);
 
   const ultimoDisponible = vacaciones !== null && vacaciones.length > 0
     ? vacaciones[vacaciones.length - 1].disponibleAcumulado
@@ -96,6 +100,28 @@ export const ConsultasPage: React.FC = () => {
       }
     } finally {
       setLoadingDiasEsp(false);
+    }
+  };
+
+  const handleConsultarUtilidades = async () => {
+    if (!profile?.ci) return;
+    setLoadingUtilidades(true);
+    setErrorUtilidades(null);
+    try {
+      const { data } = await api.get(`/usersProfit/${profile.ci}/Utilidades`);
+      if (data.success) {
+        setMontoUtilidades(data.data);
+      } else {
+        setErrorUtilidades(data.message || 'No se encontró información');
+      }
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        setMontoUtilidades(undefined);
+      } else {
+        setErrorUtilidades('Error al consultar utilidades');
+      }
+    } finally {
+      setLoadingUtilidades(false);
     }
   };
 
@@ -169,26 +195,29 @@ export const ConsultasPage: React.FC = () => {
         </div>
         <div className="stat-card">
           <div className="stat-icon red">📈</div>
-          <div className="stat-info"><h3 style={{ fontSize: '22px' }}>*En desarrollo*</h3><p>Utilidades</p></div>
-        </div>
-      </div>
-
-      <div className="support-section">
-        <div className="support-box" style={{ marginTop: '30px' }}>
-          <h3>¿No crees que está bien la información mostrada aquí?</h3>
-          <p>
-            Si tienes algún reclamo o duda sobre la información mostrada en esta pantalla, por favor crea un ticket detallando tu inquietud. Un supervisor revisará el caso y enviará la respuesta al correo electrónico asociado a tu cuenta, el cual puedes consultar en el apartado 'Mis datos, Correo personal'.
-          </p>
-          <a
-            href="#"
-            className="support-link"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveSection('soporte');
-            }}
-          >
-            📚 Asistencia/Soporte
-          </a>
+          <div className="stat-info">
+            <h3>
+              {typeof montoUtilidades === 'number'
+                ? `$${montoUtilidades.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                : '—'}
+            </h3>
+            <p>Utilidades disponibles</p>
+            <div className="stat-sub">
+              {montoUtilidades === null
+                ? 'Sin consultar'
+                : montoUtilidades === undefined
+                ? 'Sin registros'
+                : 'Monto disponible'}
+            </div>
+            {errorUtilidades && <div className="stat-error">{errorUtilidades}</div>}
+            <button
+              className="consultar-btn"
+              onClick={handleConsultarUtilidades}
+              disabled={loadingUtilidades}
+            >
+              {loadingUtilidades ? 'Consultando...' : 'Consultar'}
+            </button>
+          </div>
         </div>
       </div>
 

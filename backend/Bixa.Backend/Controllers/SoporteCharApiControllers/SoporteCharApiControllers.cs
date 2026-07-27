@@ -60,7 +60,7 @@ public class SoporteCharApiControllers(ISoporteChatService soporteChatService,
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> AddNewAnswer([FromBody] SoporteChatRDTO soporte)
     {
-        var authResult = RequireUserRol(UserRolEnum.Administrador);
+        var authResult = RequireUserRol(UserRolEnum.Administrador, UserRolEnum.Supervisor);
         if (authResult != null) return authResult;
 
         var result = await _soporteChatService.AddNewAnswerAsync(soporte);
@@ -94,7 +94,7 @@ public class SoporteCharApiControllers(ISoporteChatService soporteChatService,
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetChatRequests()
     {
-        var authResult = RequireUserRol(UserRolEnum.Administrador);
+        var authResult = RequireUserRol(UserRolEnum.Administrador, UserRolEnum.Supervisor);
         if (authResult != null) return authResult;
 
         var result = await _soporteChatService.GetChatRequests();
@@ -112,7 +112,7 @@ public class SoporteCharApiControllers(ISoporteChatService soporteChatService,
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> SetMessageStatus([FromRoute] string Ci)
     {
-        var authResult = RequireUserRol(UserRolEnum.Administrador);
+        var authResult = RequireUserRol(UserRolEnum.Administrador, UserRolEnum.Supervisor);
         if (authResult != null) return authResult;
 
         var result = await _soporteChatService.SetMessageStatus(Ci);

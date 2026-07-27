@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { NuevaSolicitudModal } from '../components/ui/NuevaSolicitudModal';
 import { useAuthStore } from '../store/authStore';
-import api from '../lib/api';
+import api, { API_ORIGIN } from '../lib/api';
 import './TramitesPage.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -12,6 +12,22 @@ interface VacacionesDetalle {
   hasta: string;
   diasTotales: number;
   observaciones?: string;
+}
+
+interface PrestacionesDetalle {
+  esPrestamo: boolean;
+  monto: number;
+  destino: string;
+  observaciones?: string;
+  cuotas?: number;
+  montoCuota?: number;
+  archivoAdjuntoUrl?: string;
+}
+
+interface ConstanciaTrabajoDetalle {
+  conSueldo: boolean;
+  dirigidoAEspecifico: boolean;
+  dirigidoA?: string;
 }
 
 interface TramiteAPI {
@@ -24,6 +40,8 @@ interface TramiteAPI {
   estado: number; // 1=Creado 2=EnRevision 3=Firmado 4=Aprobado 5=Tramitando(Aprobado final) 6=Rechazado
   motivoRechazo?: string;
   vacaciones?: VacacionesDetalle;
+  prestaciones?: PrestacionesDetalle;
+  constanciaTrabajo?: ConstanciaTrabajoDetalle;
 }
 
 interface AprobacionAPI {
@@ -53,6 +71,7 @@ const TIPO_TRAMITE_ICONS: Record<number, string> = {
   3: '🏦',
   4: '✈️',
   5: '📅',
+  6: '📃',
 };
 
 const ESTADO_CONFIG: Record<number, { label: string; color: string }> = {
@@ -90,7 +109,25 @@ function getTramiteDetalle(tramite: TramiteAPI): string {
     const { desde, hasta, diasTotales } = tramite.vacaciones;
     return `Del ${formatDate(desde)} al ${formatDate(hasta)} · ${diasTotales} días`;
   }
+  if (tramite.prestaciones) {
+    const { monto, destino, esPrestamo, cuotas, montoCuota } = tramite.prestaciones;
+    const base = `Bs ${monto.toLocaleString('es-VE')} · ${destino}`;
+    if (esPrestamo && cuotas && montoCuota) {
+      return `${base} · ${cuotas} cuotas de Bs ${montoCuota.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return base;
+  }
+  if (tramite.constanciaTrabajo) {
+    const { conSueldo, dirigidoAEspecifico, dirigidoA } = tramite.constanciaTrabajo;
+    const base = conSueldo ? 'Con sueldo' : 'Sin sueldo';
+    return dirigidoAEspecifico && dirigidoA ? `${base} · Dirigida a: ${dirigidoA}` : base;
+  }
   return '';
+}
+
+function getTramiteArchivoUrl(tramite: TramiteAPI): string | null {
+  const url = tramite.prestaciones?.archivoAdjuntoUrl;
+  return url ? `${API_ORIGIN}${url}` : null;
 }
 
 function getFlowStepClass(tramiteEstado: number, stepEstado: number): string {
@@ -281,6 +318,8 @@ export const TramitesPage: React.FC = () => {
                 const icon   = TIPO_TRAMITE_ICONS[tramite.tipoTramiteId] ?? '📄';
                 const detalle = getTramiteDetalle(tramite);
 
+                const archivoUrl = getTramiteArchivoUrl(tramite);
+
                 const currentStepIndex = FLOW_STEPS.findIndex(s => s.estado === tramite.estado);
                 const stepLabel = currentStepIndex >= 0
                   ? `Paso ${currentStepIndex + 1} de ${FLOW_STEPS.length}`
@@ -301,6 +340,11 @@ export const TramitesPage: React.FC = () => {
                         <div>
                           <h3>{tramite.tipoTramiteNombre}</h3>
                           {detalle && <p>{detalle}</p>}
+                          {archivoUrl && (
+                            <a href={archivoUrl} target="_blank" rel="noopener noreferrer" className="tramite-adjunto-link">
+                              📎 Ver adjunto
+                            </a>
+                          )}
                         </div>
                       </div>
                       <div className="tramite-meta">
@@ -359,6 +403,7 @@ export const TramitesPage: React.FC = () => {
                 const cfg    = ESTADO_CONFIG[tramite.estado] ?? ESTADO_CONFIG[6];
                 const icon   = TIPO_TRAMITE_ICONS[tramite.tipoTramiteId] ?? '📄';
                 const detalle = getTramiteDetalle(tramite);
+                const archivoUrl = getTramiteArchivoUrl(tramite);
 
                 return (
                   <div key={tramite.id} className="historial-card" style={{ borderLeftColor: cfg.color }}>
@@ -377,6 +422,11 @@ export const TramitesPage: React.FC = () => {
                         </span>
                       </div>
                       {detalle && <p className="historial-detalle">{detalle}</p>}
+                      {archivoUrl && (
+                        <a href={archivoUrl} target="_blank" rel="noopener noreferrer" className="tramite-adjunto-link">
+                          📎 Ver adjunto
+                        </a>
+                      )}
                       {tramite.motivoRechazo && (
                         <p className="historial-comentario">"{tramite.motivoRechazo}"</p>
                       )}

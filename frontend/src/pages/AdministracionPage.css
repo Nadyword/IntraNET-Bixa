@@ -552,6 +552,15 @@
   font-size: 17px;
 }
 
+.detalle-adjunto-link {
+  text-decoration: none;
+  color: #1976d2;
+}
+
+.detalle-adjunto-link:hover {
+  text-decoration: underline;
+}
+
 .detalle-rechazo-text {
   font-size: 14px;
   color: #c62828;

@@ -36,6 +36,21 @@ public interface ISolicitudesService
     Task<Result<bool>> AddSolicitudUtilidades(SolicUtilidadesDTO solicitud);
 
     /// <summary>
+    /// Agrega una nueva solicitud de prestaciones sociales (préstamo o anticipo).
+    /// </summary>
+    /// <param name="solicitud">El DTO que contiene la información de la solicitud de prestaciones sociales.</param>
+    /// <returns>Un resultado indicando si la operación fue exitosa o no.</returns>
+    Task<Result<bool>> AddSolicitudPrestaciones(SolicPrestacionesDTO solicitud);
+
+    /// <summary>
+    /// Agrega una nueva solicitud de constancia de trabajo. No requiere firmantes previos: queda lista
+    /// de inmediato para la aprobación final del administrador.
+    /// </summary>
+    /// <param name="solicitud">El DTO que contiene la información de la solicitud de constancia de trabajo.</param>
+    /// <returns>Un resultado indicando si la operación fue exitosa o no.</returns>
+    Task<Result<bool>> AddSolicitudConstanciaTrabajo(SolicConstanciaTrabajoDTO solicitud);
+
+    /// <summary>
     /// Obtiene todos los trámites de un usuario específico, identificados por su CI.
     /// </summary>
     /// <param name="ci">El CI del usuario para obtener sus trámites.</param>
@@ -76,6 +91,13 @@ public interface ISolicitudesService
     Task<Result<List<TramiteDTO>>> GetAprobados();
 
     /// <summary>
+    /// Obtiene el detalle completo de un trámite específico, identificado por su ID.
+    /// </summary>
+    /// <param name="tramiteId">El ID del trámite del cual se desea obtener el detalle.</param>
+    /// <returns>Un DTO con el detalle completo del trámite.</returns>
+    Task<Result<TramiteDTO>> GetTramiteDetalle(int tramiteId);
+
+    /// <summary>
     /// Obtiene la información del reporte de vacaciones para un trámite específico, identificado por su ID.
     /// </summary>
     /// <param name="tramiteId">El ID del trámite para obtener la información del reporte de vacaciones.</param>
@@ -95,6 +117,13 @@ public interface ISolicitudesService
     /// <param name="tramiteId">El ID del trámite para obtener la información del reporte de anticipo de utilidades.</param>
     /// <returns>Un objeto TramiteReportModel con la información del reporte de anticipo de utilidades.</returns>
     Task<Result<TramiteReportModel>> GetInfoReporteUtilidades(int tramiteId);
+
+    /// <summary>
+    /// Obtiene la información del reporte de prestaciones sociales (préstamo o anticipo) para un trámite específico, identificado por su ID.
+    /// </summary>
+    /// <param name="tramiteId">El ID del trámite para obtener la información del reporte de prestaciones sociales.</param>
+    /// <returns>Un objeto TramiteReportModel con la información del reporte de prestaciones sociales.</returns>
+    Task<Result<TramiteReportModel>> GetInfoReportePrestaciones(int tramiteId);
 
     /// <summary>
     /// Archiva un trámite específico, identificado por su ID.

@@ -51,7 +51,15 @@
       "Bash(taskkill *)",
       "Bash(ls -la wwwroot/)",
       "Bash(ls -la wwwroot/Firmas/)",
-      "Bash(ls -la wwwroot/report-assets/)"
+      "Bash(ls -la wwwroot/report-assets/)",
+      "Bash(ls backend *)",
+      "Bash(ls frontend *)",
+      "Bash(cat Aprobacion.cs)",
+      "Bash(cat Tramite.cs)",
+      "Bash(git check-ignore *)",
+      "Bash(dotnet run *)",
+      "Bash(xargs -I{} sh -c 'echo ==={}===; cat {}')",
+      "Bash(xargs cat)"
     ]
   }
 }

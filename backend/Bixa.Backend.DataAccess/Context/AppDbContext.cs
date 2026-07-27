@@ -13,6 +13,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public virtual DbSet<SolicitudDiasEspeciales> SolicitudesDiasEspeciales { get; set; }
     public virtual DbSet<SolicitudUtilidades> SolicitudesUtilidades { get; set; }
+    public virtual DbSet<SolicitudPrestaciones> SolicitudesPrestaciones { get; set; }
+    public virtual DbSet<SolicitudConstanciaTrabajo> SolicitudesConstanciaTrabajo { get; set; }
     public virtual DbSet<SolicitudVacaciones> SolicitudesVacaciones { get; set; }
     public virtual DbSet<SolicitudesChats> SolicitudesChats { get; set; }
     public virtual DbSet<SoporteChat> SoporteChats { get; set; }
@@ -233,6 +235,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(n => n.ReadAt)
                 .IsRequired(false);
 
+            entity.Property(n => n.ReferenceType)
+                .IsRequired(false)
+                .HasMaxLength(ModelLengths.Description);
+
+            entity.Property(n => n.ReferenceId)
+                .IsRequired(false);
+
             modelBuilder.Entity<Notifications>()
                 .HasOne(n => n.User)
                 .WithMany(u => u.Notification)
@@ -409,6 +418,45 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .OnDelete(DeleteBehavior.Cascade);
 
         #endregion SolicitudUtilidades Entity Configuration
+
+        #region SolicitudPrestaciones Entity Configuration
+
+        modelBuilder.Entity<SolicitudPrestaciones>().HasKey(sp => sp.Id);
+        modelBuilder.Entity<SolicitudPrestaciones>().Property(sp => sp.Id).ValueGeneratedOnAdd();
+        modelBuilder.Entity<SolicitudPrestaciones>().Property(sp => sp.TramiteId).IsRequired();
+        modelBuilder.Entity<SolicitudPrestaciones>().Property(sp => sp.EsPrestamo).IsRequired();
+        modelBuilder.Entity<SolicitudPrestaciones>().Property(sp => sp.Monto).IsRequired().HasColumnType("decimal(18,2)");
+        modelBuilder.Entity<SolicitudPrestaciones>().Property(sp => sp.Destino).IsRequired().HasConversion<int>();
+        modelBuilder.Entity<SolicitudPrestaciones>().Property(sp => sp.Observaciones).IsRequired(false).HasMaxLength(ModelLengths.Observation);
+        modelBuilder.Entity<SolicitudPrestaciones>().Property(sp => sp.Cuotas).IsRequired(false);
+        modelBuilder.Entity<SolicitudPrestaciones>().Property(sp => sp.ArchivoAdjunto).IsRequired(false).HasMaxLength(ModelLengths.FileName);
+
+        modelBuilder.Entity<SolicitudPrestaciones>()
+            .HasOne(sp => sp.Tramite)
+            .WithOne(t => t.SolicitudPrestaciones)
+            .HasForeignKey<SolicitudPrestaciones>(sp => sp.TramiteId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
+        #endregion SolicitudPrestaciones Entity Configuration
+
+        #region SolicitudConstanciaTrabajo Entity Configuration
+
+        modelBuilder.Entity<SolicitudConstanciaTrabajo>().HasKey(sct => sct.Id);
+        modelBuilder.Entity<SolicitudConstanciaTrabajo>().Property(sct => sct.Id).ValueGeneratedOnAdd();
+        modelBuilder.Entity<SolicitudConstanciaTrabajo>().Property(sct => sct.TramiteId).IsRequired();
+        modelBuilder.Entity<SolicitudConstanciaTrabajo>().Property(sct => sct.ConSueldo).IsRequired();
+        modelBuilder.Entity<SolicitudConstanciaTrabajo>().Property(sct => sct.DirigidoAEspecifico).IsRequired();
+        modelBuilder.Entity<SolicitudConstanciaTrabajo>().Property(sct => sct.DirigidoA).IsRequired(false).HasMaxLength(ModelLengths.Name);
+
+        modelBuilder.Entity<SolicitudConstanciaTrabajo>()
+            .HasOne(sct => sct.Tramite)
+            .WithOne(t => t.SolicitudConstanciaTrabajo)
+            .HasForeignKey<SolicitudConstanciaTrabajo>(sct => sct.TramiteId)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
+        #endregion SolicitudConstanciaTrabajo Entity Configuration
 
         #region FAQs Entity Configuration
 

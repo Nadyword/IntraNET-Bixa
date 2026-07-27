@@ -366,6 +366,19 @@
   white-space: nowrap;
 }
 
+.tramite-adjunto-link {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--red, #d91a1a);
+  text-decoration: none;
+  margin-top: 4px;
+}
+
+.tramite-adjunto-link:hover {
+  text-decoration: underline;
+}
+
 .historial-card-right {
   flex-shrink: 0;
   display: flex;

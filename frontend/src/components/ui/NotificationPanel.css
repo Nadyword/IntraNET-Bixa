@@ -1,0 +1,133 @@
+.notif-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 340px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--white);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.12));
+  z-index: 200;
+}
+
+.notif-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--gray-100);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 14px;
+  position: sticky;
+  top: 0;
+  background: var(--white);
+}
+
+.notif-panel-markall {
+  background: none;
+  border: none;
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.notif-panel-section {
+  padding: 8px 0;
+}
+
+.notif-panel-section + .notif-panel-section {
+  border-top: 1px solid var(--gray-100);
+}
+
+.notif-panel-section-title {
+  padding: 4px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--gray-300);
+}
+
+.notif-panel-pending-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--black);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.notif-panel-pending-item:hover {
+  background: var(--gray-50);
+}
+
+.notif-panel-empty {
+  padding: 16px;
+  font-size: 13px;
+  color: var(--gray-300);
+}
+
+.notif-panel-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.notif-panel-item:hover {
+  background: var(--gray-50);
+}
+
+.notif-panel-item--unread {
+  background: rgba(217, 26, 26, 0.04);
+}
+
+.notif-panel-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--red);
+}
+
+.notif-panel-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-panel-item-title {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--black);
+}
+
+.notif-panel-item-message {
+  font-size: 12.5px;
+  color: var(--gray-500);
+  margin-top: 2px;
+  overflow-wrap: break-word;
+}
+
+.notif-panel-item-time {
+  font-size: 11px;
+  color: var(--gray-300);
+  margin-top: 4px;
+}

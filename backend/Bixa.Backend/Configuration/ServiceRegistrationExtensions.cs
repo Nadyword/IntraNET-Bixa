@@ -81,6 +81,12 @@ public static class ServiceRegistrationExtensions
             var path = Path.Combine(env.WebRootPath ?? "wwwroot", "Firmas");
             return new FirmaService(path);
         });
+        services.AddScoped<IAdjuntoService>(sp =>
+        {
+            var env = sp.GetRequiredService<IWebHostEnvironment>();
+            var path = Path.Combine(env.WebRootPath ?? "wwwroot", "Adjuntos", "Prestaciones");
+            return new AdjuntoService(path);
+        });
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IUserRolService, RolService>();
         services.AddScoped<INotificationService, NotificationService>();
@@ -129,6 +135,7 @@ public static class ServiceRegistrationExtensions
     {
         services.AddScoped<ISnEmpleProfitRepository, SnEmpleProfitRepository>();
         services.AddScoped<IFechasFeriadasProfitRepository, FechasFeriadasProfitRepository>();
+        services.AddScoped<IUtilidadesProfitRepository, UtilidadesProfitRepository>();
         services.AddScoped<IReadOnlyUnitOfWork, ReadOnlyUnitOfWork>();
     }
 

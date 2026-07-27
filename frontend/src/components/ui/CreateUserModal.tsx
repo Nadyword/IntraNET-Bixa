@@ -3,6 +3,7 @@ import api from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 import { validateFirmaFile } from '../../lib/firmaValidation';
 import type { ApiResponse } from '../../services/authService';
+import { ButtonSpinner } from './ButtonSpinner';
 import './ForgotPasswordModal.css';
 import './CreateUserModal.css';
 
@@ -147,7 +148,7 @@ export const CreateUserModal: React.FC<Props> = ({ onClose }) => {
               Cancelar
             </button>
             <button type="submit" className="modal-btn-primary" disabled={loading}>
-              {loading ? 'Creando...' : 'Crear usuario'}
+              {loading ? <><ButtonSpinner /> Creando...</> : 'Crear usuario'}
             </button>
           </div>
         </form>

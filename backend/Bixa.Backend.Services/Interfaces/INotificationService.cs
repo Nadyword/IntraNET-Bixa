@@ -1,32 +1,39 @@
 using Bixa.Backend.Models.DTOs.NotificationModelDTO;
-using Bixa.Backend.Models.DTOs.RequestModelDTO;
+using Bixa.Backend.Models.Enums;
 using Bixa.Backend.Models.Response;
 
 namespace Bixa.Backend.Services.Interfaces;
 
-public interface INotificationService : IService<NotificationDTO, NotificationInsertDTO, NotificationEditDTO, string>
+public interface INotificationService
 {
-    Task<Result<int>> AddManyAsync(List<NotificationInsertDTO> notifications);
-
-    //string BuildAdvanceStateChangeNotification(Request Request, StateEnum newState);
+    /// <summary>
+    /// Crea una notificación para un usuario específico. Falla en silencio (solo loguea) para no
+    /// interrumpir la operación de negocio que la dispara.
+    /// </summary>
+    Task NotifyAsync(string userCi, string notificationType, string title, string message, string? referenceType = null, int? referenceId = null);
 
     /// <summary>
-    /// Deletes all notifications for a specific user.
+    /// Crea la misma notificación para todos los usuarios con el rol indicado.
     /// </summary>
-    Task<Result<bool>> DeleteAllNotificationsAsync();
+    Task NotifyRoleAsync(UserRolEnum rol, string notificationType, string title, string message, string? referenceType = null, int? referenceId = null);
 
     /// <summary>
-    /// Marks all notifications for a specific user as read.
+    /// Resumen de notificaciones para el usuario autenticado actual: no leídas persistidas
+    /// más los contadores en vivo aplicables a su rol.
     /// </summary>
-    Task<Result<bool>> MarkAllAsReadAsync();
+    Task<Result<NotificationSummaryDTO>> GetSummaryAsync();
+
+    Task<Result<bool>> MarkAsReadAsync(int notificationId);
+
+    Task<Result<int>> MarkAllAsReadAsync();
 
     /// <summary>
-    /// Marks a specific user notification as read.
+    /// Marca como leídas las notificaciones de tipo "Chat" del usuario autenticado actual.
+    /// Usado cuando abre un hilo de soporte (como remitente o como agente).
     /// </summary>
-    Task<Result<bool>> MarkAsReadAsync(string notificationId);
+    Task<int> MarkAllChatNotificationsAsReadAsync();
 
-    Task<bool> SendNotificationsToMultipleUsersAsync(
-    List<int> userIds,
-    RequestDTO requestDto,
-    Func<RequestDTO, string> notificationDescriptionBuilder);
+    Task<Result<bool>> DeleteAsync(int notificationId);
+
+    Task<Result<int>> DeleteAllAsync();
 }

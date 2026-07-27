@@ -17,7 +17,7 @@ public class RetrievePassword(string host, string tokken, string ci)
                         <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);">
                             <tr>
                                 <td style="background-color: #D93A3A; padding: 40px 30px; text-align: center;">
-                                    <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold; letter-spacing: 2px;">BIXA</h1>
+                                    <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold; letter-spacing: 2px;">Comunik2</h1>
                                     <p style="margin: 5px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 12px; letter-spacing: 3px; text-transform: uppercase;">Portal Corporativo</p>
                                 </td>
                             </tr>

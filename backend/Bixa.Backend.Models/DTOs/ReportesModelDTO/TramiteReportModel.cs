@@ -15,6 +15,7 @@ public class TramiteReportModel
     public VacacionesReportModel? Vacaciones { get; set; }
     public DiaEspecialReportModel? DiaEspecial { get; set; }
     public UtilidadesReportModel? Utilidades { get; set; }
+    public PrestacionesReportModel? Prestaciones { get; set; }
     public List<AprobacionReportModel> Aprobaciones { get; set; } = [];
     public byte[]? LogoEmpresa { get; set; }
     public string? EmpleadoUrlFirma { get; set; }
@@ -33,6 +34,16 @@ public class UtilidadesReportModel
     public string Motivo { get; set; } = string.Empty;
     // TODO: reemplazar por la consulta dinámica del monto disponible de utilidades cuando exista.
     public decimal TotalUtilidadesDisponible { get; set; }
+}
+
+public class PrestacionesReportModel
+{
+    public bool EsPrestamo { get; set; }
+    public decimal Monto { get; set; }
+    public string Destino { get; set; } = string.Empty;
+    public string? Observaciones { get; set; }
+    public int? Cuotas { get; set; }
+    public decimal? MontoCuota { get; set; }
 }
 
 public class VacacionesReportModel

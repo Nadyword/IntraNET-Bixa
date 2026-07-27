@@ -1,16 +1,17 @@
 import React from 'react';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
+import { useNotificationStore } from '../../store/notificationStore';
 import './Sidebar.css';
 
 interface NavItem {
   label: string;
   icon: string;
   id: string;
-  badge?: number;
   adminOnly?: boolean;
   nonAdminOnly?: boolean;
   nonEmployeeOnly?: boolean;
+  supervisorOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -20,6 +21,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Mis Trámites',         icon: '📊', id: 'tramites' },
   { label: 'Solicitudes',          icon: '📋', id: 'solicitudes', nonEmployeeOnly: true },
   { label: '🔒 Portal del Líder',  icon: '⭐', id: 'leader',          adminOnly: true },
+  { label: 'Mi Equipo',            icon: '🧑‍🤝‍🧑', id: 'miequipo',       supervisorOnly: true },
   { label: 'Administración',       icon: '🗂️', id: 'administracion',  adminOnly: true },
   { label: 'Soporte',              icon: '💬', id: 'soporte',          nonAdminOnly: true },
 ];
@@ -27,14 +29,24 @@ const NAV_ITEMS: NavItem[] = [
 export const Sidebar: React.FC = () => {
   const { sidebarOpen, activeSection, setActiveSection } = useUIStore();
   const rolId = useAuthStore((state) => state.user?.rolId);
+  const { summary } = useNotificationStore();
 
-  const isAdmin    = rolId === '1';
-  const isEmployee = rolId === '3';
+  const isAdmin      = rolId === '1';
+  const isSupervisor = rolId === '2';
+  const isEmployee   = rolId === '3';
+
+  const badgesById: Record<string, number> = summary
+    ? {
+        solicitudes: summary.pendingApprovals,
+        administracion: summary.pendingAdminApproval + summary.pendingArchive,
+      }
+    : {};
 
   const visibleItems = NAV_ITEMS.filter((item) => {
     if (item.adminOnly && !isAdmin) return false;
     if (item.nonAdminOnly && isAdmin) return false;
     if (item.nonEmployeeOnly && isEmployee) return false;
+    if (item.supervisorOnly && !isSupervisor) return false;
     return true;
   });
 
@@ -48,7 +60,7 @@ export const Sidebar: React.FC = () => {
         >
           <span className="nav-icon">{item.icon}</span>
           <span className="nav-label">{item.label}</span>
-          {item.badge && <span className="nav-badge">{item.badge}</span>}
+          {badgesById[item.id] > 0 && <span className="nav-badge">{badgesById[item.id]}</span>}
         </div>
       ))}
     </nav>

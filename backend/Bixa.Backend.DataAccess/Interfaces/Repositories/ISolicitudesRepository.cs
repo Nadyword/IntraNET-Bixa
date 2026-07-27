@@ -70,9 +70,30 @@ public interface ISolicitudesRepository
     Task<SolicitudUtilidades> GetSolicitudUtilidadesByTramiteId(int tramiteId);
 
     /// <summary>
+    /// Agrega una nueva solicitud de prestaciones sociales (préstamo o anticipo) a la base de datos.
+    /// </summary>
+    /// <param name="solicitud"></param>
+    /// <returns></returns>
+    Task<bool> AddSolicitudPrestaciones(SolicitudPrestaciones solicitud);
+
+    /// <summary>
+    ///  Obtiene una solicitud de prestaciones sociales por el ID del trámite.
+    /// </summary>
+    /// <param name="tramiteId"></param>
+    /// <returns></returns>
+    Task<SolicitudPrestaciones> GetSolicitudPrestacionesByTramiteId(int tramiteId);
+
+    /// <summary>
     /// Obtiene un usuario por su cédula de identidad (CI).
     /// </summary>
     /// <param name="ci"></param>
     /// <returns></returns>
     Task<Users> GetUserByCi(string ci);
+
+    /// <summary>
+    /// Agrega una nueva solicitud de constancia de trabajo a la base de datos.
+    /// </summary>
+    /// <param name="solicitud"></param>
+    /// <returns></returns>
+    Task<bool> AddSolicitudConstanciaTrabajo(SolicitudConstanciaTrabajo solicitud);
 }

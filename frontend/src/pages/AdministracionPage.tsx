@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../lib/api';
+import api, { API_ORIGIN } from '../lib/api';
+import { ButtonSpinner } from '../components/ui/ButtonSpinner';
 import './AdministracionPage.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -23,6 +24,22 @@ interface UtilidadesDetalle {
   motivo: string;
 }
 
+interface PrestacionesDetalle {
+  esPrestamo: boolean;
+  monto: number;
+  destino: string;
+  observaciones?: string;
+  cuotas?: number;
+  montoCuota?: number;
+  archivoAdjuntoUrl?: string;
+}
+
+interface ConstanciaTrabajoDetalle {
+  conSueldo: boolean;
+  dirigidoAEspecifico: boolean;
+  dirigidoA?: string;
+}
+
 interface TramiteDTO {
   id: number;
   tipoTramiteId: number;
@@ -36,6 +53,8 @@ interface TramiteDTO {
   vacaciones?: VacacionesDetalle;
   diaEspecial?: DiaEspecialDetalle;
   utilidades?: UtilidadesDetalle;
+  prestaciones?: PrestacionesDetalle;
+  constanciaTrabajo?: ConstanciaTrabajoDetalle;
 }
 
 interface ApiResponse<T> {
@@ -53,6 +72,7 @@ const TIPO_TRAMITE_ICON: Record<number, string> = {
   3: '🏦',
   4: '✈️',
   5: '📅',
+  6: '📃',
 };
 
 const ESTADO_LABEL: Record<number, { label: string; className: string }> = {
@@ -125,9 +145,15 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
   const icon   = TIPO_TRAMITE_ICON[tramite.tipoTramiteId] ?? '📄';
   const estado = ESTADO_LABEL[tramite.estado] ?? { label: String(tramite.estado), className: '' };
 
-  const reporteEndpoint = tramite.diaEspecial ? 'DiaEspecial' : tramite.utilidades ? 'Utilidades' : 'Vacaciones';
-  const tieneReporte = Boolean(tramite.vacaciones || tramite.diaEspecial || tramite.utilidades);
-  const reporteLabel = tramite.diaEspecial ? 'día especial' : tramite.utilidades ? 'anticipo de utilidades' : 'vacaciones';
+  const reporteEndpoint = tramite.diaEspecial ? 'DiaEspecial' : tramite.utilidades ? 'Utilidades' : tramite.prestaciones ? 'Prestaciones' : 'Vacaciones';
+  const tieneReporte = Boolean(tramite.vacaciones || tramite.diaEspecial || tramite.utilidades || tramite.prestaciones);
+  const reporteLabel = tramite.diaEspecial
+    ? 'día especial'
+    : tramite.utilidades
+    ? 'anticipo de utilidades'
+    : tramite.prestaciones
+    ? (tramite.prestaciones.esPrestamo ? 'préstamo sobre prestaciones sociales' : 'anticipo de prestaciones sociales')
+    : 'vacaciones';
 
   const handlePlanilla = async () => {
     setLoading(true);
@@ -166,19 +192,21 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
           </button>
           {esActivo ? (
             <>
-              <button
-                className="adm-btn adm-btn-rechazar"
-                disabled={aprobando || rechazando}
-                onClick={() => setShowRechazarModal(true)}
-              >
-                {rechazando ? '⏳ Rechazando...' : '✕ Rechazar'}
-              </button>
+              {tramite.tipoTramiteId !== 6 && (
+                <button
+                  className="adm-btn adm-btn-rechazar"
+                  disabled={aprobando || rechazando}
+                  onClick={() => setShowRechazarModal(true)}
+                >
+                  {rechazando ? <><ButtonSpinner /> Rechazando...</> : '✕ Rechazar'}
+                </button>
+              )}
               <button
                 className="adm-btn adm-btn-aprobar"
                 disabled={aprobando || rechazando}
                 onClick={() => aprobar()}
               >
-                {aprobando ? '⏳ Aprobando...' : '✓ Aprobar'}
+                {aprobando ? <><ButtonSpinner /> Aprobando...</> : '✓ Aprobar'}
               </button>
             </>
           ) : (
@@ -301,6 +329,75 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
                 </div>
               )}
 
+              {tramite.prestaciones && (
+                <div className="detalle-section">
+                  <h3 className="detalle-section-title">
+                    Detalle de {tramite.prestaciones.esPrestamo ? 'préstamo sobre prestaciones sociales' : 'anticipo de prestaciones sociales'}
+                  </h3>
+                  <div className="detalle-grid">
+                    <div className="detalle-field">
+                      <span className="detalle-label">Monto solicitado</span>
+                      <span className="detalle-value detalle-value--highlight">
+                        Bs {tramite.prestaciones.monto.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="detalle-field">
+                      <span className="detalle-label">Destino</span>
+                      <span className="detalle-value">{tramite.prestaciones.destino}</span>
+                    </div>
+                    {tramite.prestaciones.esPrestamo && tramite.prestaciones.cuotas && (
+                      <div className="detalle-field">
+                        <span className="detalle-label">Cuotas</span>
+                        <span className="detalle-value detalle-value--highlight">
+                          {tramite.prestaciones.cuotas} de Bs {tramite.prestaciones.montoCuota?.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} c/u
+                        </span>
+                      </div>
+                    )}
+                    {tramite.prestaciones.observaciones && (
+                      <div className="detalle-field detalle-field--full">
+                        <span className="detalle-label">Observaciones</span>
+                        <span className="detalle-value">{tramite.prestaciones.observaciones}</span>
+                      </div>
+                    )}
+                    {tramite.prestaciones.archivoAdjuntoUrl && (
+                      <div className="detalle-field detalle-field--full">
+                        <span className="detalle-label">Archivo adjunto</span>
+                        <a
+                          className="detalle-value detalle-adjunto-link"
+                          href={`${API_ORIGIN}${tramite.prestaciones.archivoAdjuntoUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          📎 Ver adjunto
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {tramite.constanciaTrabajo && (
+                <div className="detalle-section">
+                  <h3 className="detalle-section-title">Detalle de constancia de trabajo</h3>
+                  <div className="detalle-grid">
+                    <div className="detalle-field">
+                      <span className="detalle-label">Tipo</span>
+                      <span className="detalle-value detalle-value--highlight">
+                        {tramite.constanciaTrabajo.conSueldo ? 'Con sueldo' : 'Sin sueldo'}
+                      </span>
+                    </div>
+                    <div className="detalle-field">
+                      <span className="detalle-label">Dirigida a</span>
+                      <span className="detalle-value">
+                        {tramite.constanciaTrabajo.dirigidoAEspecifico && tramite.constanciaTrabajo.dirigidoA
+                          ? tramite.constanciaTrabajo.dirigidoA
+                          : 'A quien pueda interesar'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {tramite.motivoRechazo && (
                 <div className="detalle-section detalle-section--rechazo">
                   <h3 className="detalle-section-title detalle-section-title--rechazo">Motivo de rechazo</h3>
@@ -356,7 +453,7 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
                 disabled={rechazando || !razonRechazo.trim()}
                 onClick={() => rechazar(razonRechazo.trim())}
               >
-                {rechazando ? '⏳ Rechazando...' : 'Confirmar rechazo'}
+                {rechazando ? <><ButtonSpinner /> Rechazando...</> : 'Confirmar rechazo'}
               </button>
             </div>
           </div>

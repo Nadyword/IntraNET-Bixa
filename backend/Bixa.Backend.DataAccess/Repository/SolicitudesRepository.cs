@@ -72,8 +72,27 @@ public class SolicitudesRepository(AppDbContext dbContext, ProfitDbContext profi
         return await _context.SolicitudesUtilidades.FirstOrDefaultAsync(s => s.TramiteId == tramiteId) ?? throw new ArgumentNullException(nameof(tramiteId));
     }
 
+    public async Task<bool> AddSolicitudPrestaciones(SolicitudPrestaciones solicitud)
+    {
+        var result = await _context.SolicitudesPrestaciones.AddAsync(solicitud);
+        await _context.SaveChangesAsync();
+        return result != null;
+    }
+
+    public async Task<SolicitudPrestaciones> GetSolicitudPrestacionesByTramiteId(int tramiteId)
+    {
+        return await _context.SolicitudesPrestaciones.FirstOrDefaultAsync(s => s.TramiteId == tramiteId) ?? throw new ArgumentNullException(nameof(tramiteId));
+    }
+
     public async Task<Users> GetUserByCi(string ci)
     {
         return await _context.Users.FirstOrDefaultAsync(u => u.Ci == ci) ?? throw new ArgumentNullException(nameof(ci));
+    }
+
+    public async Task<bool> AddSolicitudConstanciaTrabajo(SolicitudConstanciaTrabajo solicitud)
+    {
+        var result = await _context.SolicitudesConstanciaTrabajo.AddAsync(solicitud);
+        await _context.SaveChangesAsync();
+        return result != null;
     }
 }

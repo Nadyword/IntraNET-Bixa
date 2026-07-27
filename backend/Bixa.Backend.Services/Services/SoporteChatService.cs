@@ -5,6 +5,7 @@ using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.DataAccess.Models;
 using Bixa.Backend.Services.Interfaces;
 using Bixa.Backend.Models.Response;
+using Bixa.Backend.Models.Enums;
 using AutoMapper;
 
 namespace Bixa.Backend.Services.Services;
@@ -19,19 +20,22 @@ namespace Bixa.Backend.Services.Services;
 /// <param name="soporteChatRepository">The SoporteChat repository instance for data access.</param>
 /// /// <param name="mapper">AutoMapper instance for DTO conversions.</param>
 public class SoporteChatService(
-    ISoporteChatRepository soporteChatRepository, IMapper mapper) : ISoporteChatService
+    ISoporteChatRepository soporteChatRepository, IMapper mapper, INotificationService notificationService, IUserRepository userRepository) : ISoporteChatService
 {
     private readonly ISoporteChatRepository _soporteChatRepository = soporteChatRepository;
     private readonly IMapper _mapper = mapper;
+    private readonly INotificationService _notificationService = notificationService;
+    private readonly IUserRepository _userRepository = userRepository;
 
     public async Task<Result<string>> AddNewAnswerAsync(SoporteChatRDTO soporte)
     {
         soporte.UserCi = UtilityService.NormalizeCiFormat(soporte.UserCi);
         if (!string.IsNullOrEmpty(soporte.RespondidoPorCi))
             soporte.RespondidoPorCi = UtilityService.NormalizeCiFormat(soporte.RespondidoPorCi);
+        var employeeCi = soporte.UserCi;
         SoporteChat newMensajeUser = _mapper.Map<SoporteChat>(soporte);
 
-        return await _soporteChatRepository.AddNewAnswerAsync(newMensajeUser).ContinueWith(task =>
+        var result = await _soporteChatRepository.AddNewAnswerAsync(newMensajeUser).ContinueWith(task =>
         {
             if (task.IsFaulted)
             {
@@ -40,6 +44,13 @@ public class SoporteChatService(
             }
             return Result.Success(task.Result);
         });
+
+        if (result.IsSuccess)
+        {
+            await _notificationService.NotifyAsync(employeeCi, "ChatReply", "Nueva respuesta en soporte", "Soporte respondió tu mensaje en el chat.", "Chat");
+        }
+
+        return result;
     }
 
     public async Task<Result<string>> AddNewMessageAsync(SoporteChatMDTO soporte)
@@ -47,6 +58,16 @@ public class SoporteChatService(
         soporte.UserCi = UtilityService.NormalizeCiFormat(soporte.UserCi);
         SoporteChat newMensajeUser = _mapper.Map<SoporteChat>(soporte);
         string resul = await _soporteChatRepository.AddNewMessageAsync(newMensajeUser);
+
+        var empleado = await _userRepository.GetUserByCiAsync(soporte.UserCi);
+        var nombreEmpleado = empleado != null ? $"{empleado.FirstName} {empleado.LastName}".Trim() : null;
+        var mensaje = string.IsNullOrWhiteSpace(nombreEmpleado)
+            ? $"El usuario {soporte.UserCi} envió un mensaje en el chat de soporte."
+            : $"El usuario {nombreEmpleado} (CI: {soporte.UserCi}) envió un mensaje en el chat de soporte.";
+
+        await _notificationService.NotifyRoleAsync(UserRolEnum.Administrador, "ChatMessage", "Nuevo mensaje de soporte", mensaje, "Chat");
+        await _notificationService.NotifyRoleAsync(UserRolEnum.Supervisor, "ChatMessage", "Nuevo mensaje de soporte", mensaje, "Chat");
+
         return Result<string>.Success(resul);
     }
 
@@ -74,6 +95,10 @@ public class SoporteChatService(
     public async Task<Result<bool>> SetMessageStatus(string Ci)
     {
         var result = await _soporteChatRepository.SetMessageStatus(UtilityService.NormalizeCiFormat(Ci));
+        // Se limpian las notificaciones de chat de quien está autenticado (no del "Ci" del hilo):
+        // cuando un admin abre el hilo de un empleado, "Ci" es el CI del empleado, pero quien está
+        // leyendo (y a quien hay que quitarle el aviso de "nuevo mensaje") es el admin autenticado.
+        await _notificationService.MarkAllChatNotificationsAsReadAsync();
         return Result.Success(result);
     }
 

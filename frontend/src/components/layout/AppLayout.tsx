@@ -1,10 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { TopHeader } from './TopHeader';
 import { Toast } from '../ui/Toast';
+import { CelebrationModal } from '../ui/CelebrationModal';
 import { useAuthStore } from '../../store/authStore';
 import { useUserProfileStore } from '../../store/userProfileStore';
+import { useNotificationStore } from '../../store/notificationStore';
 import { userService } from '../../services/userService';
+import { getCelebrationInfo, type CelebrationInfo } from '../../lib/celebrations';
 import './AppLayout.css';
 
 interface AppLayoutProps {
@@ -13,6 +16,7 @@ interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { user } = useAuthStore();
+  const { startPolling, stopPolling } = useNotificationStore();
   const {
     profile,
     familyGroup,
@@ -22,6 +26,24 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     setLoading,
     setError,
   } = useUserProfileStore();
+
+  const [celebration, setCelebration] = useState<CelebrationInfo | null>(null);
+  const celebrationCheckedRef = useRef(false);
+
+  useEffect(() => {
+    startPolling();
+    return () => stopPolling();
+  }, [startPolling, stopPolling]);
+
+  useEffect(() => {
+    if (celebrationCheckedRef.current || !profile) return;
+    celebrationCheckedRef.current = true;
+
+    const info = getCelebrationInfo(profile.fechaNac, profile.fechaIng);
+    if (info.esCumpleanos || info.esAniversario) {
+      setCelebration(info);
+    }
+  }, [profile]);
 
   useEffect(() => {
     if (!user?.ci) return;
@@ -56,6 +78,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         {children}
       </main>
       <Toast />
+      {celebration && profile && (
+        <CelebrationModal
+          nombre={profile.nombres ?? ''}
+          esCumpleanos={celebration.esCumpleanos}
+          esAniversario={celebration.esAniversario}
+          aniosAniversario={celebration.aniosAniversario}
+          onClose={() => setCelebration(null)}
+        />
+      )}
     </div>
   );
 };

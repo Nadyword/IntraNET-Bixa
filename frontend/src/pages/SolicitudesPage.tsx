@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
-import api from '../lib/api';
+import api, { API_ORIGIN } from '../lib/api';
+import { ButtonSpinner } from '../components/ui/ButtonSpinner';
 import './SolicitudesPage.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -30,6 +32,49 @@ interface AccionModal {
   accion: 'aprobar' | 'rechazar';
 }
 
+interface VacacionesDetalle {
+  desde: string;
+  hasta: string;
+  diasTotales: number;
+  observaciones?: string;
+}
+
+interface DiaEspecialDetalle {
+  fecha: string;
+  motivo: string;
+}
+
+interface UtilidadesDetalle {
+  monto: number;
+  motivo: string;
+}
+
+interface PrestacionesDetalle {
+  esPrestamo: boolean;
+  monto: number;
+  destino: string;
+  observaciones?: string;
+  cuotas?: number;
+  montoCuota?: number;
+  archivoAdjuntoUrl?: string;
+}
+
+interface TramiteDetalleDTO {
+  id: number;
+  tipoTramiteId: number;
+  tipoTramiteNombre: string;
+  userCi: string;
+  userNombre?: string;
+  fechaSolicitud: string;
+  updatedAt: string;
+  estado: number;
+  motivoRechazo?: string;
+  vacaciones?: VacacionesDetalle;
+  diaEspecial?: DiaEspecialDetalle;
+  utilidades?: UtilidadesDetalle;
+  prestaciones?: PrestacionesDetalle;
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const TIPO_TRAMITE_INFO: Record<number, { nombre: string; icon: string }> = {
@@ -40,10 +85,25 @@ const TIPO_TRAMITE_INFO: Record<number, { nombre: string; icon: string }> = {
   5: { nombre: 'Día Especial',            icon: '📅' },
 };
 
+const ESTADO_LABEL: Record<number, { label: string; className: string }> = {
+  1: { label: 'Creado',      className: 'sol-detalle-badge--creado'     },
+  2: { label: 'En Revisión', className: 'sol-detalle-badge--revision'   },
+  3: { label: 'Firmado',     className: 'sol-detalle-badge--firmado'    },
+  4: { label: 'Aprobado',    className: 'sol-detalle-badge--aprobado'   },
+  5: { label: 'Tramitando',  className: 'sol-detalle-badge--tramitando' },
+  6: { label: 'Finalizado',  className: 'sol-detalle-badge--finalizado' },
+  7: { label: 'Rechazado',   className: 'sol-detalle-badge--rechazado'  },
+};
+
 // ─── API ──────────────────────────────────────────────────────────────────────
 
 const fetchPorAprobar = async (ci: string): Promise<PorAprobarAPI[]> => {
   const res = await api.get<ApiResponse<PorAprobarAPI[]>>(`/solicitudes/PorAprobarByCi/${ci}`);
+  return res.data.data;
+};
+
+const fetchTramiteDetalle = async (tramiteId: number): Promise<TramiteDetalleDTO> => {
+  const res = await api.get<ApiResponse<TramiteDetalleDTO>>(`/solicitudes/Detalle/${tramiteId}`);
   return res.data.data;
 };
 
@@ -58,6 +118,13 @@ const aprobarTramite = async (dto: AprobarTramiteDTO): Promise<void> => {
   await api.put('/solicitudes/Aprobar', dto);
 };
 
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('es-VE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
 interface SolicitudCardProps {
@@ -65,9 +132,10 @@ interface SolicitudCardProps {
   tipo: TabType;
   onAprobar?: () => void;
   onRechazar?: () => void;
+  onVer: () => void;
 }
 
-const SolicitudCard: React.FC<SolicitudCardProps> = ({ item, tipo, onAprobar, onRechazar }) => {
+const SolicitudCard: React.FC<SolicitudCardProps> = ({ item, tipo, onAprobar, onRechazar, onVer }) => {
   const info = TIPO_TRAMITE_INFO[item.tipoTramiteId] ?? { nombre: 'Trámite', icon: '📄' };
   const nombreEmpleado = [item.firstName, item.lastName].filter(Boolean).join(' ') || '—';
 
@@ -89,11 +157,14 @@ const SolicitudCard: React.FC<SolicitudCardProps> = ({ item, tipo, onAprobar, on
         {item.comentario && (
           <p className="sol-detalle">"{item.comentario}"</p>
         )}
+        <button className="sol-btn-ver" onClick={onVer}>👁 Ver información</button>
       </div>
 
       {tipo === 'porAprobar' ? (
         <div className="sol-card-actions" style={{ margin: '3%'}}>
-          <button className="btn-reject" onClick={onRechazar}>✕ Rechazar</button>
+          {item.tipoTramiteId !== 6 && (
+            <button className="btn-reject" onClick={onRechazar}>✕ Rechazar</button>
+          )}
           <button className="btn-approve" onClick={onAprobar}>✓ Aprobar</button>
         </div>
       ) : (
@@ -114,6 +185,7 @@ export const SolicitudesPage: React.FC = () => {
   const [comentario, setComentario] = useState('');
   const [comentarioError, setComentarioError] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [verTramiteId, setVerTramiteId] = useState<number | null>(null);
 
   const user = useAuthStore(state => state.user);
   const queryClient = useQueryClient();
@@ -124,6 +196,13 @@ export const SolicitudesPage: React.FC = () => {
     queryKey: ['porAprobar', ci],
     queryFn: () => fetchPorAprobar(ci),
     enabled: ci.length > 0,
+    retry: false,
+  });
+
+  const { data: detalle, isLoading: detalleLoading, isError: detalleError } = useQuery({
+    queryKey: ['tramiteDetalle', verTramiteId],
+    queryFn: () => fetchTramiteDetalle(verTramiteId as number),
+    enabled: verTramiteId !== null,
     retry: false,
   });
 
@@ -236,6 +315,7 @@ export const SolicitudesPage: React.FC = () => {
                         tipo="porAprobar"
                         onAprobar={() => handleAccion(item, 'aprobar')}
                         onRechazar={() => handleAccion(item, 'rechazar')}
+                        onVer={() => setVerTramiteId(item.tramiteId)}
                         />
                     </div>
                   ))}
@@ -259,7 +339,12 @@ export const SolicitudesPage: React.FC = () => {
               ) : (
                 <div className="sol-grid">
                   {enEspera.map(item => (
-                    <SolicitudCard key={item.tramiteId} item={item} tipo="enEspera" />
+                    <SolicitudCard
+                      key={item.tramiteId}
+                      item={item}
+                      tipo="enEspera"
+                      onVer={() => setVerTramiteId(item.tramiteId)}
+                    />
                   ))}
                 </div>
               )}
@@ -331,7 +416,7 @@ export const SolicitudesPage: React.FC = () => {
                   disabled={mutation.isPending}
                 >
                   {mutation.isPending
-                    ? 'Procesando...'
+                    ? <><ButtonSpinner /> Procesando...</>
                     : accionModal.accion === 'aprobar'
                       ? 'Confirmar Aprobación'
                       : 'Confirmar Rechazo'}
@@ -340,6 +425,185 @@ export const SolicitudesPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal ver información de la solicitud */}
+      {verTramiteId !== null && createPortal(
+        <div className="sol-detalle-overlay" onClick={() => setVerTramiteId(null)}>
+          <div className="sol-detalle-modal" onClick={e => e.stopPropagation()}>
+            {detalleLoading && (
+              <div className="sol-detalle-status">
+                <span className="sol-empty-icon">⏳</span>
+                <p>Cargando información...</p>
+              </div>
+            )}
+
+            {detalleError && (
+              <div className="sol-detalle-status">
+                <span className="sol-empty-icon">⚠️</span>
+                <p>No se pudo cargar la información del trámite.</p>
+              </div>
+            )}
+
+            {detalle && (
+              <>
+                <div className="sol-detalle-header">
+                  <div className="sol-detalle-header-info">
+                    <div className="sol-detalle-header-icon-wrap">
+                      {TIPO_TRAMITE_INFO[detalle.tipoTramiteId]?.icon ?? '📄'}
+                    </div>
+                    <div>
+                      <h2>{detalle.tipoTramiteNombre}</h2>
+                      <span className={`sol-detalle-badge ${ESTADO_LABEL[detalle.estado]?.className ?? ''}`}>
+                        {ESTADO_LABEL[detalle.estado]?.label ?? detalle.estado}
+                      </span>
+                    </div>
+                  </div>
+                  <button className="sol-detalle-close-btn" onClick={() => setVerTramiteId(null)}>✕</button>
+                </div>
+
+                <div className="sol-detalle-body">
+                  <div className="sol-detalle-section">
+                    <h3 className="sol-detalle-section-title">Información general</h3>
+                    <div className="sol-detalle-grid">
+                      <div className="sol-detalle-field">
+                        <span className="sol-detalle-label">N° Trámite</span>
+                        <span className="sol-detalle-value">#{detalle.id}</span>
+                      </div>
+                      <div className="sol-detalle-field">
+                        <span className="sol-detalle-label">Empleado</span>
+                        <span className="sol-detalle-value">{detalle.userNombre ?? detalle.userCi}</span>
+                      </div>
+                      <div className="sol-detalle-field">
+                        <span className="sol-detalle-label">Fecha de solicitud</span>
+                        <span className="sol-detalle-value">{formatDate(detalle.fechaSolicitud)}</span>
+                      </div>
+                      <div className="sol-detalle-field">
+                        <span className="sol-detalle-label">Última actualización</span>
+                        <span className="sol-detalle-value">{formatDate(detalle.updatedAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {detalle.vacaciones && (
+                    <div className="sol-detalle-section">
+                      <h3 className="sol-detalle-section-title">Detalle de vacaciones</h3>
+                      <div className="sol-detalle-grid">
+                        <div className="sol-detalle-field">
+                          <span className="sol-detalle-label">Desde</span>
+                          <span className="sol-detalle-value">{formatDate(detalle.vacaciones.desde)}</span>
+                        </div>
+                        <div className="sol-detalle-field">
+                          <span className="sol-detalle-label">Hasta</span>
+                          <span className="sol-detalle-value">{formatDate(detalle.vacaciones.hasta)}</span>
+                        </div>
+                        <div className="sol-detalle-field">
+                          <span className="sol-detalle-label">Días totales</span>
+                          <span className="sol-detalle-value sol-detalle-value--highlight">{detalle.vacaciones.diasTotales} días</span>
+                        </div>
+                        {detalle.vacaciones.observaciones && (
+                          <div className="sol-detalle-field sol-detalle-field--full">
+                            <span className="sol-detalle-label">Observaciones</span>
+                            <span className="sol-detalle-value">{detalle.vacaciones.observaciones}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {detalle.diaEspecial && (
+                    <div className="sol-detalle-section">
+                      <h3 className="sol-detalle-section-title">Detalle de día especial</h3>
+                      <div className="sol-detalle-grid">
+                        <div className="sol-detalle-field">
+                          <span className="sol-detalle-label">Fecha</span>
+                          <span className="sol-detalle-value">{formatDate(detalle.diaEspecial.fecha)}</span>
+                        </div>
+                        <div className="sol-detalle-field sol-detalle-field--full">
+                          <span className="sol-detalle-label">Motivo</span>
+                          <span className="sol-detalle-value">{detalle.diaEspecial.motivo}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {detalle.utilidades && (
+                    <div className="sol-detalle-section">
+                      <h3 className="sol-detalle-section-title">Detalle de anticipo de utilidades</h3>
+                      <div className="sol-detalle-grid">
+                        <div className="sol-detalle-field">
+                          <span className="sol-detalle-label">Monto solicitado</span>
+                          <span className="sol-detalle-value sol-detalle-value--highlight">
+                            ${detalle.utilidades.monto.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="sol-detalle-field sol-detalle-field--full">
+                          <span className="sol-detalle-label">Motivo</span>
+                          <span className="sol-detalle-value">{detalle.utilidades.motivo}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {detalle.prestaciones && (
+                    <div className="sol-detalle-section">
+                      <h3 className="sol-detalle-section-title">
+                        Detalle de {detalle.prestaciones.esPrestamo ? 'préstamo sobre prestaciones sociales' : 'anticipo de prestaciones sociales'}
+                      </h3>
+                      <div className="sol-detalle-grid">
+                        <div className="sol-detalle-field">
+                          <span className="sol-detalle-label">Monto solicitado</span>
+                          <span className="sol-detalle-value sol-detalle-value--highlight">
+                            Bs {detalle.prestaciones.monto.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="sol-detalle-field">
+                          <span className="sol-detalle-label">Destino</span>
+                          <span className="sol-detalle-value">{detalle.prestaciones.destino}</span>
+                        </div>
+                        {detalle.prestaciones.esPrestamo && detalle.prestaciones.cuotas && (
+                          <div className="sol-detalle-field">
+                            <span className="sol-detalle-label">Cuotas</span>
+                            <span className="sol-detalle-value sol-detalle-value--highlight">
+                              {detalle.prestaciones.cuotas} de Bs {detalle.prestaciones.montoCuota?.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} c/u
+                            </span>
+                          </div>
+                        )}
+                        {detalle.prestaciones.observaciones && (
+                          <div className="sol-detalle-field sol-detalle-field--full">
+                            <span className="sol-detalle-label">Observaciones</span>
+                            <span className="sol-detalle-value">{detalle.prestaciones.observaciones}</span>
+                          </div>
+                        )}
+                        {detalle.prestaciones.archivoAdjuntoUrl && (
+                          <div className="sol-detalle-field sol-detalle-field--full">
+                            <span className="sol-detalle-label">Archivo adjunto</span>
+                            <a
+                              className="sol-detalle-value sol-detalle-adjunto-link"
+                              href={`${API_ORIGIN}${detalle.prestaciones.archivoAdjuntoUrl}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              📎 Ver adjunto
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {detalle.motivoRechazo && (
+                    <div className="sol-detalle-section sol-detalle-section--rechazo">
+                      <h3 className="sol-detalle-section-title sol-detalle-section-title--rechazo">Motivo de rechazo</h3>
+                      <p className="sol-detalle-rechazo-text">"{detalle.motivoRechazo}"</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

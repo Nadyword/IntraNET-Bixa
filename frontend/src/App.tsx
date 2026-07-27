@@ -11,6 +11,7 @@ import { TramitesPage } from './pages/TramitesPage';
 import { CulturePage } from './pages/CulturePage';
 import { useAuthStore } from './store/authStore';
 import { LeaderPage } from './pages/LeaderPage';
+import { MiEquipoPage } from './pages/MiEquipoPage';
 import { MyDataPage } from './pages/MyDataPage';
 import { LoginPage } from './pages/LoginPage';
 import { useUIStore } from './store/uiStore';
@@ -21,8 +22,9 @@ export default function App() {
   const { isAuthenticated, user } = useAuthStore();
   const { activeSection } = useUIStore();
 
-  const isAdmin    = user?.rolId === '1';
-  const isEmployee = user?.rolId === '3';
+  const isAdmin      = user?.rolId === '1';
+  const isSupervisor = user?.rolId === '2';
+  const isEmployee   = user?.rolId === '3';
 
   return (
     <Router>
@@ -47,6 +49,7 @@ export default function App() {
                   {activeSection === 'tramites'    && <TramitesPage />}
                   {activeSection === 'solicitudes' && !isEmployee && <SolicitudesPage />}
                   {activeSection === 'leader'          && (isAdmin ? <LeaderPage /> : <Navigate to="/" replace />)}
+                  {activeSection === 'miequipo'        && (isSupervisor ? <MiEquipoPage /> : <Navigate to="/" replace />)}
                   {activeSection === 'administracion' && (isAdmin ? <AdministracionPage /> : <Navigate to="/" replace />)}
                   {activeSection === 'soporte'     && !isAdmin && <ChatPage />}
                 </AppLayout>

@@ -13,4 +13,6 @@ public interface IUserService : IService<UserDTO, UserInsertDTO, UserEditDTO, st
     Task<Result<bool>> UpdateUserPassword(UserEditDTO userEdited, string newPassword);
 
     Task<Result<List<SnEmple>>> GetAllByCiAsync(List<UserDTO> users);
+
+    Task<Result<bool>> SolicitarCorreccion(string ci, string comentario);
 }

@@ -51,7 +51,7 @@ export const LoginPage: React.FC = () => {
       <div className="login-container">
         <div className="login-brand">
           <div className="brand-logo">
-            BIXA
+            Comunik2
             <span>PORTAL CORPORATIVO</span>
           </div>
 

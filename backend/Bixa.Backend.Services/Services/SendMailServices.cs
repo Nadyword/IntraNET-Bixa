@@ -65,4 +65,79 @@ public class SendMailServices(IConfiguration configuration) : ISendMailServices
             return false;
         }
     }
+
+    public async Task<bool> SendMailSolicitudPendienteAprobacion(string destinatario)
+    {
+        const string asunto = "Solicitud pendiente de tu aprobación";
+        var cuerpo = new SolicitudPendienteAprobacion().GetBodyMail();
+        try
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress("Productos Bixa", remitente));
+            message.To.Add(new MailboxAddress("Aprobador", destinatario));
+            message.Subject = asunto;
+            message.Body = new TextPart("html") { Text = cuerpo };
+
+            using var client = new SmtpClient();
+            await client.ConnectAsync(smtpHost, smtpPort, enableSsl);
+            await client.AuthenticateAsync(smtpUser, password);
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> SendMailSolicitudFirmadaCompleta(string destinatario)
+    {
+        const string asunto = "Solicitud lista para aprobación final";
+        var cuerpo = new SolicitudFirmadaCompleta().GetBodyMail();
+        try
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress("Productos Bixa", remitente));
+            message.To.Add(new MailboxAddress("Administrador", destinatario));
+            message.Subject = asunto;
+            message.Body = new TextPart("html") { Text = cuerpo };
+
+            using var client = new SmtpClient();
+            await client.ConnectAsync(smtpHost, smtpPort, enableSsl);
+            await client.AuthenticateAsync(smtpUser, password);
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> SendMailSolicitudCorreccion(string destinatario, string empleadoNombre, string empleadoCi, string comentario)
+    {
+        const string asunto = "Solicitud de corrección de datos";
+        var cuerpo = new CorreccionDatos(empleadoNombre, empleadoCi, comentario).GetBodyMail();
+        try
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress("Productos Bixa", remitente));
+            message.To.Add(new MailboxAddress("Administrador", destinatario));
+            message.Subject = asunto;
+            message.Body = new TextPart("html") { Text = cuerpo };
+
+            using var client = new SmtpClient();
+            await client.ConnectAsync(smtpHost, smtpPort, enableSsl);
+            await client.AuthenticateAsync(smtpUser, password);
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

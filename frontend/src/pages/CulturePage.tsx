@@ -40,7 +40,7 @@ export const CulturePage: React.FC = () => {
     },
     {
       title: 'Cumpleaños del Trabajador',
-      detail: 'Disfrute del día libre si coincide con día hábil.',
+      detail: 'Disfrute del día libre si coincide con día hábil. Contribución por cumpleaños.',
     },
     {
       title: 'Útiles Escolares',

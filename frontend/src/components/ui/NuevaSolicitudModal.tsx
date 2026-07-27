@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './NuevaSolicitudModal.css';
 import api from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
+import { ButtonSpinner } from './ButtonSpinner';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -15,7 +16,7 @@ interface Props {
   onSuccess?: () => void;
 }
 
-type TipoTramite = 'vacaciones' | 'diaEspecial' | 'utilidades' | 'prestamoPrestaciones';
+type TipoTramite = 'vacaciones' | 'diaEspecial' | 'utilidades' | 'prestamoPrestaciones' | 'constanciaTrabajo';
 
 interface TipoConfig {
   id: TipoTramite;
@@ -29,6 +30,7 @@ const TIPOS: TipoConfig[] = [
   { id: 'diaEspecial',          label: 'Día Especial',                    icon: '📝', enumId: 5 },
   { id: 'utilidades',           label: 'Anticipo de Utilidades',          icon: '💳', enumId: 1 },
   { id: 'prestamoPrestaciones', label: 'Prestaciones Sociales',  icon: '💰' },
+  { id: 'constanciaTrabajo',    label: 'Constancia de Trabajo',           icon: '📃', enumId: 6 },
 ];
 
 type SubTipoPrestamo = 'prestamo' | 'sociales';
@@ -44,11 +46,16 @@ const SUBTIPOS_PRESTAMO: SubTipoConfig[] = [
   { id: 'sociales', label: 'Anticipo de Prestaciones Sociales',   enumId: 2 },
 ];
 
-const DESTINOS_PRESTAMO: string[] = [
-  'Construcción, Adquisición o Mejora de Vivienda',
-  'Liberación de Hipoteca',
-  'Pensiones Escolares',
-  'Gastos por Atención Médica y Hospitalaria',
+interface DestinoConfig {
+  id: number;
+  label: string;
+}
+
+const DESTINOS_PRESTAMO: DestinoConfig[] = [
+  { id: 1, label: 'Construcción, Adquisición o Mejora de Vivienda' },
+  { id: 2, label: 'Liberación de Hipoteca' },
+  { id: 3, label: 'Pensiones Escolares' },
+  { id: 4, label: 'Gastos por Atención Médica y Hospitalaria' },
 ];
 
 const MOTIVOS_DIA_ESPECIAL: string[] = [
@@ -79,6 +86,8 @@ interface FormDiaEspecial {
 interface FormMonto {
   monto: string;
   observaciones: string;
+  cuotas: string;
+  archivo: File | null;
 }
 
 interface FormUtilidades {
@@ -86,7 +95,26 @@ interface FormUtilidades {
   motivo: string;
 }
 
-const MONTO_MAXIMO_UTILIDADES = 500000;
+interface FormConstanciaTrabajo {
+  conSueldo: '' | 'con' | 'sin';
+  dirigidoAEspecifico: boolean;
+  dirigidoA: string;
+}
+
+const CUOTAS_MAXIMAS = 52;
+const ARCHIVO_MAX_BYTES = 3 * 1024 * 1024;
+const ARCHIVO_EXTENSIONES_PERMITIDAS = ['.pdf', '.jpg', '.jpeg', '.png'];
+
+function validarArchivoAdjunto(archivo: File): string | null {
+  const extension = archivo.name.slice(archivo.name.lastIndexOf('.')).toLowerCase();
+  if (!ARCHIVO_EXTENSIONES_PERMITIDAS.includes(extension)) {
+    return 'El archivo debe ser PDF, JPG o PNG.';
+  }
+  if (archivo.size > ARCHIVO_MAX_BYTES) {
+    return 'El archivo no puede superar los 3 MB.';
+  }
+  return null;
+}
 
 function fechaLocalHoy(): string {
   const d = new Date();
@@ -116,10 +144,48 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     fechaInicio: '', fechaFin: '', diasTotales: 0, observaciones: '',
   });
   const [diaEspecial, setDiaEspecial] = useState<FormDiaEspecial>({ fecha: '', motivo: '' });
-  const [monto, setMonto] = useState<FormMonto>({ monto: '', observaciones: '' });
+  const [monto, setMonto] = useState<FormMonto>({ monto: '', observaciones: '', cuotas: '', archivo: null });
   const [utilidades, setUtilidades] = useState<FormUtilidades>({ monto: '', motivo: '' });
+  const [constanciaTrabajo, setConstanciaTrabajo] = useState<FormConstanciaTrabajo>({
+    conSueldo: '', dirigidoAEspecifico: false, dirigidoA: '',
+  });
   const [subTipoPrestamo, setSubTipoPrestamo] = useState<SubTipoPrestamo | ''>('');
   const [destinoPrestamo, setDestinoPrestamo] = useState('');
+
+  const [montoDisponibleUtilidades, setMontoDisponibleUtilidades] = useState<number | null>(null);
+  const [utilidadesLoading, setUtilidadesLoading] = useState(false);
+  const [utilidadesError, setUtilidadesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (tipo !== 'utilidades' || !user?.ci) return;
+
+    let cancelado = false;
+    setUtilidadesLoading(true);
+    setUtilidadesError(null);
+
+    api.get<ApiResponse<number | null>>(`/usersProfit/${user.ci}/Utilidades`)
+      .then((res) => {
+        if (cancelado) return;
+        if (res.data.success) {
+          setMontoDisponibleUtilidades(res.data.data ?? 0);
+        } else {
+          setUtilidadesError('No se pudo obtener el monto disponible.');
+        }
+      })
+      .catch((err) => {
+        if (cancelado) return;
+        if (err.response?.status === 404) {
+          setMontoDisponibleUtilidades(0);
+        } else {
+          setUtilidadesError('No se pudo obtener el monto disponible.');
+        }
+      })
+      .finally(() => {
+        if (!cancelado) setUtilidadesLoading(false);
+      });
+
+    return () => { cancelado = true; };
+  }, [tipo, user?.ci]);
 
   const [diasLoading, setDiasLoading] = useState(false);
   const [diasError, setDiasError] = useState<string | null>(null);
@@ -208,11 +274,26 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       if (!monto.monto || Number(monto.monto) <= 0) errs.monto = 'Ingresa un monto válido';
       if (!subTipoPrestamo) errs.subTipo = 'Requerido';
       if (!destinoPrestamo) errs.destino = 'Requerido';
+      if (subTipoPrestamo === 'prestamo') {
+        const cuotasNum = Number(monto.cuotas);
+        if (!monto.cuotas || cuotasNum <= 0 || cuotasNum > CUOTAS_MAXIMAS) {
+          errs.cuotas = `Ingresa una cantidad de cuotas entre 1 y ${CUOTAS_MAXIMAS}`;
+        }
+      }
+      if (monto.archivo) {
+        const archivoError = validarArchivoAdjunto(monto.archivo);
+        if (archivoError) errs.archivo = archivoError;
+      }
     }
     if (tipo === 'utilidades') {
       if (!utilidades.monto || Number(utilidades.monto) <= 0) errs.monto = 'Ingresa un monto válido';
-      else if (Number(utilidades.monto) > MONTO_MAXIMO_UTILIDADES) errs.monto = `El monto no puede superar $${MONTO_MAXIMO_UTILIDADES.toLocaleString('es-VE')}`;
+      else if (montoDisponibleUtilidades === null) errs.monto = 'No se pudo determinar el monto disponible, intenta de nuevo';
+      else if (Number(utilidades.monto) > montoDisponibleUtilidades) errs.monto = `El monto no puede superar $${montoDisponibleUtilidades.toLocaleString('es-VE')}`;
       if (!utilidades.motivo.trim()) errs.motivo = 'Requerido';
+    }
+    if (tipo === 'constanciaTrabajo') {
+      if (!constanciaTrabajo.conSueldo) errs.conSueldo = 'Requerido';
+      if (constanciaTrabajo.dirigidoAEspecifico && !constanciaTrabajo.dirigidoA.trim()) errs.dirigidoA = 'Requerido';
     }
 
     setErrors(errs);
@@ -287,8 +368,51 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       return;
     }
 
-    // Resto de tipos — pendientes de conectar
-    setEnviado(true);
+    if (tipo === 'constanciaTrabajo') {
+      setIsLoading(true);
+      try {
+        const payload = {
+          ci: user?.ci ?? '',
+          conSueldo: constanciaTrabajo.conSueldo === 'con',
+          dirigidoAEspecifico: constanciaTrabajo.dirigidoAEspecifico,
+          dirigidoA: constanciaTrabajo.dirigidoAEspecifico ? constanciaTrabajo.dirigidoA : null,
+        };
+        await api.post('/solicitudes/ConstanciaTrabajo', payload);
+        setEnviado(true);
+        onSuccess?.();
+      } catch (err: any) {
+        const msg = err?.response?.data?.message ?? 'Error al enviar la solicitud. Intenta de nuevo.';
+        setSubmitError(msg);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    if (tipo === 'prestamoPrestaciones') {
+      setIsLoading(true);
+      try {
+        const subTipo = SUBTIPOS_PRESTAMO.find((s) => s.id === subTipoPrestamo)!;
+        const formData = new FormData();
+        formData.append('ci', user?.ci ?? '');
+        formData.append('tipoTramiteId', String(subTipo.enumId));
+        formData.append('monto', String(Number(monto.monto)));
+        formData.append('destino', String(Number(destinoPrestamo)));
+        if (monto.observaciones) formData.append('observaciones', monto.observaciones);
+        if (subTipo.id === 'prestamo' && monto.cuotas) formData.append('cuotas', monto.cuotas);
+        if (monto.archivo) formData.append('archivo', monto.archivo);
+
+        await api.post('/solicitudes/Prestaciones', formData);
+        setEnviado(true);
+        onSuccess?.();
+      } catch (err: any) {
+        const msg = err?.response?.data?.message ?? 'Error al enviar la solicitud. Intenta de nuevo.';
+        setSubmitError(msg);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
   };
 
   if (enviado) {
@@ -451,14 +575,20 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                     <input
                       type="number"
                       min="1"
-                      max={MONTO_MAXIMO_UTILIDADES}
+                      max={montoDisponibleUtilidades ?? undefined}
                       value={utilidades.monto}
                       onChange={(e) => setUtilidades((u) => ({ ...u, monto: e.target.value }))}
                       className={errors.monto ? 'input-error' : ''}
                     />
                   </div>
                   <span className="ns-dias-badge">
-                    Monto máximo disponible (temporal): ${MONTO_MAXIMO_UTILIDADES.toLocaleString('es-VE')}
+                    {utilidadesLoading
+                      ? 'Consultando monto disponible...'
+                      : utilidadesError
+                      ? utilidadesError
+                      : montoDisponibleUtilidades !== null
+                      ? `Monto máximo disponible: $${montoDisponibleUtilidades.toLocaleString('es-VE')}`
+                      : ''}
                   </span>
                   {errors.monto && <span className="ns-error">{errors.monto}</span>}
                 </div>
@@ -473,6 +603,63 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                   />
                   {errors.motivo && <span className="ns-error">{errors.motivo}</span>}
                 </div>
+              </>
+            )}
+
+            {tipo === 'constanciaTrabajo' && (
+              <>
+                <div className="ns-field">
+                  <label>Tipo de constancia <span className="ns-required">*</span></label>
+                  <div className="ns-radio-group">
+                    <label className="ns-radio-option">
+                      <input
+                        type="radio"
+                        name="conSueldo"
+                        checked={constanciaTrabajo.conSueldo === 'con'}
+                        onChange={() => setConstanciaTrabajo((c) => ({ ...c, conSueldo: 'con' }))}
+                      />
+                      Con sueldo
+                    </label>
+                    <label className="ns-radio-option">
+                      <input
+                        type="radio"
+                        name="conSueldo"
+                        checked={constanciaTrabajo.conSueldo === 'sin'}
+                        onChange={() => setConstanciaTrabajo((c) => ({ ...c, conSueldo: 'sin' }))}
+                      />
+                      Sin sueldo
+                    </label>
+                  </div>
+                  {errors.conSueldo && <span className="ns-error">{errors.conSueldo}</span>}
+                </div>
+
+                <div className="ns-field">
+                  <label className="ns-checkbox-row">
+                    <input
+                      type="checkbox"
+                      checked={constanciaTrabajo.dirigidoAEspecifico}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setConstanciaTrabajo((c) => ({ ...c, dirigidoAEspecifico: checked, dirigidoA: checked ? c.dirigidoA : '' }));
+                      }}
+                    />
+                    Dirigir a una persona o entidad en específico
+                  </label>
+                </div>
+
+                {constanciaTrabajo.dirigidoAEspecifico && (
+                  <div className="ns-field">
+                    <label>Dirigido a <span className="ns-required">*</span></label>
+                    <input
+                      type="text"
+                      placeholder="Ej. A quien pueda interesar"
+                      value={constanciaTrabajo.dirigidoA}
+                      onChange={(e) => setConstanciaTrabajo((c) => ({ ...c, dirigidoA: e.target.value }))}
+                      className={errors.dirigidoA ? 'input-error' : ''}
+                    />
+                    {errors.dirigidoA && <span className="ns-error">{errors.dirigidoA}</span>}
+                  </div>
+                )}
               </>
             )}
 
@@ -502,7 +689,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                   >
                     <option value="">Selecciona el destino...</option>
                     {DESTINOS_PRESTAMO.map((d) => (
-                      <option key={d} value={d}>{d}</option>
+                      <option key={d.id} value={d.id}>{d.label}</option>
                     ))}
                   </select>
                   {errors.destino && <span className="ns-error">{errors.destino}</span>}
@@ -522,6 +709,28 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                   </div>
                   {errors.monto && <span className="ns-error">{errors.monto}</span>}
                 </div>
+
+                {subTipoPrestamo === 'prestamo' && (
+                  <div className="ns-field">
+                    <label>Cuotas <span className="ns-required">*</span></label>
+                    <input
+                      type="number"
+                      min="1"
+                      max={CUOTAS_MAXIMAS}
+                      placeholder={`Máximo ${CUOTAS_MAXIMAS} cuotas`}
+                      value={monto.cuotas}
+                      onChange={(e) => setMonto((m) => ({ ...m, cuotas: e.target.value }))}
+                      className={errors.cuotas ? 'input-error' : ''}
+                    />
+                    {errors.cuotas && <span className="ns-error">{errors.cuotas}</span>}
+                    {!errors.cuotas && monto.monto && Number(monto.monto) > 0 && monto.cuotas && Number(monto.cuotas) > 0 && (
+                      <span className="ns-dias-badge">
+                        💰 {monto.cuotas} cuotas de Bs {(Number(monto.monto) / Number(monto.cuotas)).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} c/u
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 <div className="ns-field">
                   <label>Observaciones</label>
                   <textarea
@@ -530,6 +739,21 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                     value={monto.observaciones}
                     onChange={(e) => setMonto((m) => ({ ...m, observaciones: e.target.value }))}
                   />
+                </div>
+
+                <div className="ns-field">
+                  <label>Adjuntar archivo (opcional)</label>
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                    onChange={(e) => {
+                      const archivo = e.target.files?.[0] ?? null;
+                      setMonto((m) => ({ ...m, archivo }));
+                    }}
+                    className={errors.archivo ? 'input-error' : ''}
+                  />
+                  <span className="ns-hint">PDF, JPG o PNG · máximo 3 MB</span>
+                  {errors.archivo && <span className="ns-error">{errors.archivo}</span>}
                 </div>
               </>
             )}
@@ -549,7 +773,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                   (tipo === 'diaEspecial' && diaEspecialChecking)
                 }
               >
-                {isLoading ? 'Enviando...' : 'Enviar solicitud'}
+                {isLoading ? <><ButtonSpinner /> Enviando...</> : 'Enviar solicitud'}
               </button>
             </div>
           </form>

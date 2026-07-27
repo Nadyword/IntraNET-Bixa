@@ -52,6 +52,16 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
         await _context.Users.CountAsync(u => u.IdUserRol == adminRoleId);
 
     /// <summary>
+    /// Recupera todos los usuarios activos que poseen el rol indicado.
+    /// </summary>
+    /// <param name="roleId">El ID del rol a filtrar.</param>
+    /// <returns>La lista de usuarios activos con ese rol.</returns>
+    public async Task<List<Users>> GetActiveByRoleAsync(int roleId) =>
+        await _context.Users
+            .Where(u => u.IdUserRol == roleId && u.IsActive)
+            .ToListAsync();
+
+    /// <summary>
     /// Deletes a user from the database by their ID. Marks the user for deletion.
     /// </summary>
     /// <param name="ci">The CI of the user to delete.</param>

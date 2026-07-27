@@ -17,6 +17,8 @@ public class TramitesRepository(AppDbContext dbContext) : ITramitesRepository
             .Include(t => t.SolicitudVacaciones)
             .Include(t => t.SolicitudDiasEspeciales)
             .Include(t => t.SolicitudUtilidades)
+            .Include(t => t.SolicitudPrestaciones)
+            .Include(t => t.SolicitudConstanciaTrabajo)
             .Where(t => t.UserCi == ci)
             .ToListAsync();
     }
@@ -28,6 +30,8 @@ public class TramitesRepository(AppDbContext dbContext) : ITramitesRepository
             .Include(t => t.SolicitudVacaciones)
             .Include(t => t.SolicitudDiasEspeciales)
             .Include(t => t.SolicitudUtilidades)
+            .Include(t => t.SolicitudPrestaciones)
+            .Include(t => t.SolicitudConstanciaTrabajo)
             .ToListAsync();
     }
 
@@ -38,6 +42,8 @@ public class TramitesRepository(AppDbContext dbContext) : ITramitesRepository
             .Include(t => t.SolicitudVacaciones)
             .Include(t => t.SolicitudDiasEspeciales)
             .Include(t => t.SolicitudUtilidades)
+            .Include(t => t.SolicitudPrestaciones)
+            .Include(t => t.SolicitudConstanciaTrabajo)
             .Include(t => t.User)
             .Where(t => t.Estado >= EstadoTramiteEnum.Firmado)
             .ToListAsync();
@@ -46,6 +52,19 @@ public class TramitesRepository(AppDbContext dbContext) : ITramitesRepository
     public async Task<Tramite> GetTramiteById(int tramiteId)
     {
         return await _context.Tramites.FirstOrDefaultAsync(t => t.Id == tramiteId) ?? throw new KeyNotFoundException($"Tramite with Id {tramiteId} not found.");
+    }
+
+    public async Task<Tramite?> GetTramiteDetalladoById(int tramiteId)
+    {
+        return await _context.Tramites
+            .Include(t => t.TipoTramite)
+            .Include(t => t.SolicitudVacaciones)
+            .Include(t => t.SolicitudDiasEspeciales)
+            .Include(t => t.SolicitudUtilidades)
+            .Include(t => t.SolicitudPrestaciones)
+            .Include(t => t.SolicitudConstanciaTrabajo)
+            .Include(t => t.User)
+            .FirstOrDefaultAsync(t => t.Id == tramiteId);
     }
 
     public async Task<bool> ArchivarTramite(int tramiteId)

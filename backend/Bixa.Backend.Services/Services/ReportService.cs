@@ -36,6 +36,7 @@ public class ReportService(string reportAssetsPath, string firmasPath) : IReport
             "Vacaciones" => new VacacionesDocument(model).GeneratePdf(),
             "DiaEspecial" => new DiaEspecialDocument(model).GeneratePdf(),
             "Utilidades" => new UtilidadesDocument(model).GeneratePdf(),
+            "Prestaciones" => new PrestacionesDocument(model).GeneratePdf(),
             _ => new GenericTramiteDocument(model).GeneratePdf(),
         };
     }

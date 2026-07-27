@@ -21,12 +21,14 @@ public class ReadOnlyUnitOfWork : IReadOnlyUnitOfWork
         GrupoFa = new GrupoFaProfitRepository(_context);
         Vacaciones = new VacacionesProfitRepository(_context);
         DiaEspeciales = new DiaEspecialesProfitRepository(_context);
+        Utilidades = new UtilidadesProfitRepository(_context);
     }
 
     public ISnEmpleProfitRepository SnEmple { get; }
     public IGrupoFaProfitRepository GrupoFa { get; }
     public IVacacionesProfitRepository Vacaciones { get; }
     public IDiaEspecialesProfitRepository DiaEspeciales { get; }
+    public IUtilidadesProfitRepository Utilidades { get; }
 
     public void Dispose()
     {

@@ -1,4 +1,5 @@
-﻿using Bixa.Backend.Models.DTOs.SoporteChatModelDTO;
+﻿using Bixa.Backend.Models.DTOs.NotificationModelDTO;
+using Bixa.Backend.Models.DTOs.SoporteChatModelDTO;
 using Bixa.Backend.Models.DTOs.UserModelDTO;
 using Bixa.Backend.DataAccess.Entities.DbProfit;
 using Bixa.Backend.Models.DTOs.UserRolDTO;
@@ -9,6 +10,8 @@ using System.Reflection;
 using AutoMapper;
 using Bixa.Backend.DataAccess.Entities.Solicitudes;
 using Bixa.Backend.Models.DTOs.SolicitudesModelDTO;
+using Bixa.Backend.Models.Enums;
+using Bixa.Backend.Models.Utilities;
 
 namespace Bixa.Backend.Services.Mapper;
 
@@ -92,6 +95,12 @@ public class BllMappingProfile : Profile
 
         #endregion SoporteChat Mappings
 
+        #region Notification Mappings
+
+        CreateMap<Notifications, NotificationDTO>();
+
+        #endregion Notification Mappings
+
         #region FAQs Mappings
 
         CreateMap<FAQs, FAQsDTO>()
@@ -136,11 +145,18 @@ public class BllMappingProfile : Profile
            .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt))
            .ForMember(dest => dest.Vacaciones, opt => opt.MapFrom(src => src.SolicitudVacaciones))
            .ForMember(dest => dest.DiaEspecial, opt => opt.MapFrom(src => src.SolicitudDiasEspeciales))
-           .ForMember(dest => dest.Utilidades, opt => opt.MapFrom(src => src.SolicitudUtilidades));
+           .ForMember(dest => dest.Utilidades, opt => opt.MapFrom(src => src.SolicitudUtilidades))
+           .ForMember(dest => dest.Prestaciones, opt => opt.MapFrom(src => src.SolicitudPrestaciones))
+           .ForMember(dest => dest.ConstanciaTrabajo, opt => opt.MapFrom(src => src.SolicitudConstanciaTrabajo));
 
         CreateMap<SolicitudVacaciones, VacacionesDetalleDTO>();
         CreateMap<SolicitudDiasEspeciales, DiaEspecialDetalleDTO>();
         CreateMap<SolicitudUtilidades, UtilidadesDetalleDTO>();
+        CreateMap<SolicitudPrestaciones, PrestacionesDetalleDTO>()
+            .ForMember(dest => dest.Destino, opt => opt.MapFrom(src => src.Destino.GetDescription()))
+            .ForMember(dest => dest.MontoCuota, opt => opt.MapFrom(src => src.Cuotas.HasValue && src.Cuotas > 0 ? src.Monto / src.Cuotas.Value : (decimal?)null))
+            .ForMember(dest => dest.ArchivoAdjuntoUrl, opt => opt.MapFrom(src => src.ArchivoAdjunto != null ? $"/Adjuntos/Prestaciones/{src.ArchivoAdjunto}" : null));
+        CreateMap<SolicitudConstanciaTrabajo, ConstanciaTrabajoDetalleDTO>();
 
         #endregion Tramites
 
@@ -206,6 +222,39 @@ public class BllMappingProfile : Profile
             .ReverseMap();
 
         #endregion Utilidades
+
+        #region Prestaciones
+
+        CreateMap<SolicPrestacionesDTO, Tramite>()
+            .ForMember(dest => dest.TipoTramiteId, opt => opt.MapFrom(src => src.TipoTramiteId))
+            .ForMember(dest => dest.UserCi, opt => opt.MapFrom(src => src.Ci))
+            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => src.Estado))
+            .ReverseMap();
+
+        CreateMap<SolicPrestacionesDTO, SolicitudPrestaciones>()
+            .ForMember(dest => dest.Monto, opt => opt.MapFrom(src => src.Monto))
+            .ForMember(dest => dest.Destino, opt => opt.MapFrom(src => src.Destino))
+            .ForMember(dest => dest.Observaciones, opt => opt.MapFrom(src => src.Observaciones))
+            .ForMember(dest => dest.EsPrestamo, opt => opt.MapFrom(src => src.TipoTramiteId == (int)TipoTramiteEnum.Prestaciones))
+            .ReverseMap();
+
+        #endregion Prestaciones
+
+        #region ConstanciaTrabajo
+
+        CreateMap<SolicConstanciaTrabajoDTO, Tramite>()
+            .ForMember(dest => dest.TipoTramiteId, opt => opt.MapFrom(src => src.TipoTramiteId))
+            .ForMember(dest => dest.UserCi, opt => opt.MapFrom(src => src.Ci))
+            .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => src.Estado))
+            .ReverseMap();
+
+        CreateMap<SolicConstanciaTrabajoDTO, SolicitudConstanciaTrabajo>()
+            .ForMember(dest => dest.ConSueldo, opt => opt.MapFrom(src => src.ConSueldo))
+            .ForMember(dest => dest.DirigidoAEspecifico, opt => opt.MapFrom(src => src.DirigidoAEspecifico))
+            .ForMember(dest => dest.DirigidoA, opt => opt.MapFrom(src => src.DirigidoAEspecifico ? src.DirigidoA : null))
+            .ReverseMap();
+
+        #endregion ConstanciaTrabajo
 
         #endregion Solicitudes Mappings
     }

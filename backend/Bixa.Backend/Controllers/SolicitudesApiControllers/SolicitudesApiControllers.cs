@@ -100,6 +100,39 @@ public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
         return HandleServiceResult(result);
     }
 
+    /// <summary>
+    /// Registra una nueva solicitud de prestaciones sociales (préstamo o anticipo) en el sistema.
+    /// </summary>
+    /// <param name="solicitud">El objeto SolicPrestacionesDTO que contiene la información de la solicitud.</param>
+    /// <returns>Guarda una nueva solicitud de prestaciones sociales en el sistema.</returns>
+    [HttpPost("Prestaciones")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SolicPrestaciones([FromForm] SolicPrestacionesDTO solicitud)
+    {
+        var result = await _solicitudesService.AddSolicitudPrestaciones(solicitud);
+        return HandleServiceResult(result);
+    }
+
+    /// <summary>
+    /// Registra una nueva solicitud de constancia de trabajo en el sistema. No requiere firmantes previos.
+    /// </summary>
+    /// <param name="solicitud">El objeto SolicConstanciaTrabajoDTO que contiene la información de la solicitud.</param>
+    /// <returns>Guarda una nueva solicitud de constancia de trabajo en el sistema.</returns>
+    [HttpPost("ConstanciaTrabajo")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SolicConstanciaTrabajo([FromBody] SolicConstanciaTrabajoDTO solicitud)
+    {
+        var result = await _solicitudesService.AddSolicitudConstanciaTrabajo(solicitud);
+        return HandleServiceResult(result);
+    }
+
     ///// <summary>
     ///// Obtiene todos los tramites de un usuario específico, identificados por su CI.
     ///// </summary>
@@ -205,6 +238,25 @@ public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
     }
 
     /// <summary>
+    /// Obtiene el detalle completo de un trámite específico, identificado por su ID.
+    /// </summary>
+    /// <param name="tramiteId">El ID del trámite del cual se desea obtener el detalle.</param>
+    /// <returns>El detalle completo del trámite.</returns>
+    [HttpGet("Detalle/{tramiteId}")]
+    [ProducesResponseType(typeof(ApiResponse<TramiteDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetTramiteDetalle(int tramiteId)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Supervisor, UserRolEnum.Administrador);
+        if (authResult != null) return authResult;
+
+        var result = await _solicitudesService.GetTramiteDetalle(tramiteId);
+        return HandleServiceResult(result);
+    }
+
+    /// <summary>
     /// Genera un PDF de prueba usando la plantilla genérica con datos de ejemplo.
     /// </summary>
     [HttpGet("Reporte/Vacaciones/{tramiteId}")]
@@ -271,6 +323,29 @@ public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
         var bytes = _reportService.GenerateTramiteReport(modelo, "Utilidades");
 
         return File(bytes, "application/pdf", "reporte_utilidades.pdf");
+    }
+
+    /// <summary>
+    /// Genera el PDF del reporte de una solicitud de prestaciones sociales (préstamo o anticipo).
+    /// </summary>
+    [HttpGet("Reporte/Prestaciones/{tramiteId}")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetReportePrestaciones(int tramiteId)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador, UserRolEnum.Supervisor);
+        if (authResult != null) return authResult;
+
+        var result = await _solicitudesService.GetInfoReportePrestaciones(tramiteId);
+        if (!result.IsSuccess)
+        {
+            return HandleServiceResult(Result.Fail<TramiteReportModel>(result.Error));
+        }
+
+        TramiteReportModel modelo = result.Value;
+        var bytes = _reportService.GenerateTramiteReport(modelo, "Prestaciones");
+
+        return File(bytes, "application/pdf", "reporte_prestaciones.pdf");
     }
 
     /// <summary>

@@ -147,10 +147,12 @@ internal static class ProfitSqlTemplates
         FROM Aprobaciones a
         INNER JOIN Tramites t ON a.TramiteId = t.Id
         INNER JOIN Users u ON t.UserCi = u.Ci
-        WHERE AprobadorCi = '@ci'
+        WHERE AprobadorCi = '@ci' AND a.Estado = 1
     """;
 
     internal const string GetFechasFeriadas = """
         SELECT fecha FROM snren_cf WHERE (feriado = 1 OR descanso = 1) AND (fecha >= @Desde AND fecha <= @Hasta)
     """;
+
+    internal const string GetUtilidades = "SELECT val_n AS MontoDisponible FROM snem_va a INNER JOIN snemple b ON a.cod_emp = b.cod_emp WHERE a.co_var = 'A001' AND b.ci = @ci";
 }

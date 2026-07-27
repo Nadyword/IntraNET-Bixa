@@ -15,4 +15,6 @@ public interface IReadOnlyUnitOfWork : IDisposable
     IVacacionesProfitRepository Vacaciones { get; }
 
     IDiaEspecialesProfitRepository DiaEspeciales { get; }
+
+    IUtilidadesProfitRepository Utilidades { get; }
 }

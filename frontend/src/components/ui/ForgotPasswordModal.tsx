@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../../lib/api';
+import { ButtonSpinner } from './ButtonSpinner';
 import './ForgotPasswordModal.css';
 
 interface Props {
@@ -68,7 +69,7 @@ export const ForgotPasswordModal: React.FC<Props> = ({ onClose }) => {
                   Cancelar
                 </button>
                 <button type="submit" className="modal-btn-primary" disabled={loading}>
-                  {loading ? 'Enviando...' : 'Enviar enlace'}
+                  {loading ? <><ButtonSpinner /> Enviando...</> : 'Enviar enlace'}
                 </button>
               </div>
             </form>

@@ -18,4 +18,7 @@ public enum TipoTramiteEnum
 
     [Description("Dia Especial")]
     DiaEspecial = 5,
+
+    [Description("Constancia de Trabajo")]
+    ConstanciaTrabajo = 6,
 }

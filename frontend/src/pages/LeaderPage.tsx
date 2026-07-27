@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../lib/api';
 import type { ApiResponse } from '../services/authService';
 import type { UserProfile } from '../store/userProfileStore';
+import { useAuthStore } from '../store/authStore';
 import { soporteService, type SolicitudChatDTO, type FAQsDTO } from '../services/soporteService';
 import { SoporteChatAdminModal } from '../components/ui/SoporteChatAdminModal';
 import { CreateUserModal } from '../components/ui/CreateUserModal';
@@ -15,7 +16,8 @@ const PAGE_SIZE = 50;
 
 
 export const LeaderPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('equipo');
+  const isAdmin = useAuthStore((state) => state.user?.rolId === '1');
+  const [activeTab, setActiveTab] = useState(isAdmin ? 'equipo' : 'chats');
 
   // Modales de gestión
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
@@ -182,35 +184,39 @@ export const LeaderPage: React.FC = () => {
       <div className="leader-header">
         <div>
           <h1>Portal del Líder</h1>
-          <p>Gestiona tu equipo, aprueba solicitudes y monitorea el desempeño</p>
+          <p>{isAdmin ? 'Gestiona tu equipo, aprueba solicitudes y monitorea el desempeño' : 'Responde los chats de soporte de tu equipo'}</p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="leader-tabs">
-        <button
-          className={`tab-btn ${activeTab === 'equipo' ? 'active' : ''}`}
-          onClick={() => handleTabChange('equipo')}
-        >
-          Mi equipo
-        </button>
+        {isAdmin && (
+          <button
+            className={`tab-btn ${activeTab === 'equipo' ? 'active' : ''}`}
+            onClick={() => handleTabChange('equipo')}
+          >
+            Mi equipo
+          </button>
+        )}
         <button
           className={`tab-btn ${activeTab === 'chats' ? 'active' : ''}`}
           onClick={() => handleTabChange('chats')}
         >
           Chats de soporte
         </button>
-        <button
-          className={`tab-btn ${activeTab === 'faqs' ? 'active' : ''}`}
-          onClick={() => handleTabChange('faqs')}
-        >
-          Preguntas frecuentes
-        </button>
+        {isAdmin && (
+          <button
+            className={`tab-btn ${activeTab === 'faqs' ? 'active' : ''}`}
+            onClick={() => handleTabChange('faqs')}
+          >
+            Preguntas frecuentes
+          </button>
+        )}
       </div>
 
       {/* Tab Content */}
       <div className="tab-content">
-        {activeTab === 'equipo' && (
+        {isAdmin && activeTab === 'equipo' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'center', margin: '15px', flexWrap: 'wrap', gap: '8px' }}>
               <button className="tramites-nueva-btn" onClick={() => setShowCreateUserModal(true)}>
@@ -350,7 +356,7 @@ export const LeaderPage: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'faqs' && (
+        {isAdmin && activeTab === 'faqs' && (
           <div className="faq-section">
             <div className="faq-header-row">
               <button

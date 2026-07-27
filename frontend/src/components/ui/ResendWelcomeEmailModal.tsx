@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import api from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 import type { ApiResponse } from '../../services/authService';
+import { ButtonSpinner } from './ButtonSpinner';
 import './ForgotPasswordModal.css';
 
 interface Props {
@@ -81,7 +82,7 @@ export const ResendWelcomeEmailModal: React.FC<Props> = ({ onClose }) => {
               Cancelar
             </button>
             <button type="submit" className="modal-btn-primary" disabled={loading}>
-              {loading ? 'Enviando...' : 'Reenviar correo'}
+              {loading ? <><ButtonSpinner /> Enviando...</> : 'Reenviar correo'}
             </button>
           </div>
         </form>

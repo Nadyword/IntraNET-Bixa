@@ -353,6 +353,43 @@ public class UserService(
             return Result.Fail<bool>("Error al intentar cambiar la contraseña (no se guardaron cambios)", ErrorTypeEnum.General);
     }
 
+    /// <summary>
+    /// Envía una solicitud de corrección de datos del empleado a todos los administradores activos por correo.
+    /// </summary>
+    /// <param name="ci">La CI del empleado que solicita la corrección.</param>
+    /// <param name="comentario">El detalle de la corrección solicitada.</param>
+    /// <returns>A <see cref="Result{T}"/> indicando si se pudo notificar al menos a un administrador.</returns>
+    public async Task<Result<bool>> SolicitarCorreccion(string ci, string comentario)
+    {
+        ci = UtilityService.NormalizeCiFormat(ci);
+        var solicitante = (await _userRepository.GetByCiAsync(ci)).FirstOrDefault();
+        if (solicitante == null)
+            return Result.Fail<bool>("Usuario no encontrado", ErrorTypeEnum.NotFound);
+
+        var nombreSolicitante = $"{solicitante.FirstName} {solicitante.LastName}".Trim();
+
+        var administradores = await _userRepository.GetActiveByRoleAsync((int)UserRolEnum.Administrador);
+        if (administradores.Count == 0)
+            return Result.Fail<bool>("No hay administradores activos registrados en el sistema.", ErrorTypeEnum.NotFound);
+
+        var enviosExitosos = 0;
+        foreach (var admin in administradores)
+        {
+            var correo = await _readOnlyUnitOfWork.SnEmple.GetEmailByCiAsync(admin.Ci);
+            if (string.IsNullOrWhiteSpace(correo))
+                continue;
+
+            var enviado = await _sendMail.SendMailSolicitudCorreccion(correo, nombreSolicitante, ci, comentario);
+            if (enviado)
+                enviosExitosos++;
+        }
+
+        if (enviosExitosos == 0)
+            return Result.Fail<bool>("No se pudo notificar a ningún administrador. Verifique que tengan un correo registrado.", ErrorTypeEnum.General);
+
+        return Result.Success(true);
+    }
+
     public async Task<List<SnEmple>> GetAllSnEmpleAsync(int pageNumber = 1, int pageSize = 10)
     {
         return await _readOnlyUnitOfWork.SnEmple.GetAllAsync(pageNumber, pageSize);

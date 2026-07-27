@@ -162,6 +162,27 @@
   margin: 4px 0 0;
 }
 
+/* Botón Ver */
+.sol-btn-ver {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: #f0f4ff;
+  color: #1976d2;
+  border: 1px solid #c5d8f8;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.sol-btn-ver:hover {
+  background: #1976d2;
+  color: white;
+  border-color: #1976d2;
+}
+
 /* Card Actions */
 .sol-card-actions {
   display: flex;
@@ -471,6 +492,229 @@
 .btn-danger:hover {
   background: #c0392b;
   transform: translateY(-1px);
+}
+
+/* Modal Ver información */
+.sol-detalle-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.sol-detalle-modal {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.25s ease-out;
+}
+
+.sol-detalle-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 20px;
+  color: var(--gray-400);
+}
+
+.sol-detalle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--gray-100);
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+}
+
+.sol-detalle-header-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.sol-detalle-header-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.sol-detalle-header h2 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--black);
+  margin: 0 0 6px;
+}
+
+.sol-detalle-close-btn {
+  background: var(--gray-100);
+  border: none;
+  color: var(--gray-500);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.sol-detalle-close-btn:hover {
+  background: var(--gray-200);
+  color: var(--black);
+}
+
+.sol-detalle-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sol-detalle-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sol-detalle-section--rechazo {
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.sol-detalle-section-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--gray-400);
+  margin: 0;
+}
+
+.sol-detalle-section-title--rechazo {
+  color: #c62828;
+}
+
+.sol-detalle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.sol-detalle-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sol-detalle-field--full {
+  grid-column: 1 / -1;
+}
+
+.sol-detalle-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--gray-400);
+}
+
+.sol-detalle-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--black);
+}
+
+.sol-detalle-value--highlight {
+  color: #1976d2;
+  font-size: 17px;
+}
+
+.sol-detalle-adjunto-link {
+  text-decoration: none;
+  color: #1976d2;
+}
+
+.sol-detalle-adjunto-link:hover {
+  text-decoration: underline;
+}
+
+.sol-detalle-rechazo-text {
+  font-size: 14px;
+  color: #c62828;
+  font-style: italic;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.sol-detalle-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.sol-detalle-badge--creado {
+  background: #e8f4fd;
+  color: #2980b9;
+}
+
+.sol-detalle-badge--revision {
+  background: #ede7f6;
+  color: #6c3fb5;
+}
+
+.sol-detalle-badge--firmado {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.sol-detalle-badge--tramitando {
+  background: #e1f5fe;
+  color: #0277bd;
+}
+
+.sol-detalle-badge--aprobado {
+  background: #eafaf1;
+  color: #1e8449;
+}
+
+.sol-detalle-badge--finalizado {
+  background: #eaf4fb;
+  color: #1a5276;
+}
+
+.sol-detalle-badge--rechazado {
+  background: #fdedec;
+  color: #c0392b;
 }
 
 /* Animations */

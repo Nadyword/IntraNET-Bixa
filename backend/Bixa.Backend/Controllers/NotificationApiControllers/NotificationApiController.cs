@@ -1,9 +1,7 @@
-using Bixa.Backend.Models.DTOs.NotificationModelDTO;
 using Bixa.Backend.DataAccess.Wrappers;
 using Microsoft.AspNetCore.Authorization;
 using Bixa.Backend.Services.Interfaces;
 using Bixa.Backend.Models.Response;
-using Bixa.Backend.Models.Query;
 using Microsoft.AspNetCore.Mvc;
 using Bixa.Backend.Models;
 using Bixa.Backend.Base;
@@ -12,13 +10,11 @@ using AutoMapper;
 namespace Bixa.Backend.Controllers.NotificationApiControllers;
 
 /// <summary>
-/// Initializes a new instance of the <see cref="NotificationApiController"/> class.
+/// Expone el resumen y la gestión de notificaciones del usuario autenticado.
 /// </summary>
-/// <param name="mapper">AutoMapper instance for DTO conversions.</param>
-/// <param name="loggerWrapper">Logger wrapper instance for logging.</param>
-/// <param name="notificationService">The user notification service instance for business logic.</param>
 [ApiController]
 [Route("api/notificationsApi")]
+[Authorize]
 public class NotificationApiController(
     IMapper mapper,
     LoggerWrapper loggerWrapper,
@@ -28,68 +24,70 @@ public class NotificationApiController(
     private readonly INotificationService _notificationService = notificationService;
 
     /// <summary>
-    /// Deletes a specific user notification for the current user.
+    /// Resumen de notificaciones del usuario autenticado: no leídas persistidas más los
+    /// contadores en vivo de acciones pendientes aplicables a su rol.
     /// </summary>
-    /// <param name="notificationId">The ID of the notification to delete.</param>
-    /// <returns>An <see cref="IActionResult"/> indicating the operation result (NoContent on success).</returns>
-    [HttpDelete("{notificationId:int}")]
-    [Authorize]
+    [HttpGet("Summary")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Delete(string notificationId)
+    public async Task<IActionResult> GetSummary()
     {
-        var result = await _notificationService.DeleteAsync(notificationId);
+        var result = await _notificationService.GetSummaryAsync();
         return HandleServiceResult(result);
     }
 
     /// <summary>
-    /// Deletes all notifications for the currently authenticated user.
+    /// Marca una notificación específica como leída.
     /// </summary>
-    /// <returns>An <see cref="IActionResult"/> indicating the operation result (NoContent on success).</returns>
-    [HttpDelete("all")]
-    [Authorize]
+    [HttpPut("{notificationId:int}/MarkAsRead")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> DeleteAllNotifications()
+    public async Task<IActionResult> MarkAsRead(int notificationId)
     {
-        var result = await _notificationService.DeleteAllNotificationsAsync();
-        return HandleServiceResult(result);
+        var result = await _notificationService.MarkAsReadAsync(notificationId);
+        return HandleServiceResult(result, "Notificación marcada como leída.");
     }
 
     /// <summary>
-    /// Marks all unread notifications for the current user as read.
+    /// Marca todas las notificaciones del usuario autenticado como leídas.
     /// </summary>
-    /// <returns>An <see cref="IActionResult"/> indicating the success or failure.</returns>
-    [HttpPut("mark-all-as-read")]
-    [Authorize]
+    [HttpPut("MarkAllAsRead")]
     [ProducesResponseType(typeof(ApiResponse<int>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> MarkAllAsRead()
     {
         var result = await _notificationService.MarkAllAsReadAsync();
-        return HandleServiceResult(result, $"Se marcaron exitosamente {result.Value} notificaciones como leídas.");
+        return HandleServiceResult(result, "Notificaciones marcadas como leídas.");
     }
 
     /// <summary>
-    /// Marks a specific user notification as read for the current user.
+    /// Elimina una notificación específica del usuario autenticado.
     /// </summary>
-    /// <param name="notificationId">The ID of the notification to mark as read.</param>
-    /// <returns>An <see cref="IActionResult"/> indicating the success or failure.</returns>
-    [HttpPut("{notificationId:int}/mark-as-read")]
-    [Authorize]
-    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [HttpDelete("{notificationId:int}")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> MarkAsRead(string notificationId)
+    public async Task<IActionResult> Delete(int notificationId)
     {
-        var result = await _notificationService.MarkAsReadAsync(notificationId);
-        return HandleServiceResult(result, "Notificación marcada como leída exitosamente.");
+        var result = await _notificationService.DeleteAsync(notificationId);
+        return HandleServiceResult(result);
+    }
+
+    /// <summary>
+    /// Elimina todas las notificaciones del usuario autenticado.
+    /// </summary>
+    [HttpDelete("all")]
+    [ProducesResponseType(typeof(ApiResponse<int>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DeleteAll()
+    {
+        var result = await _notificationService.DeleteAllAsync();
+        return HandleServiceResult(result);
     }
 }

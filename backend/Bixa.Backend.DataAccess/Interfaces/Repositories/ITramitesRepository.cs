@@ -31,6 +31,14 @@ public interface ITramitesRepository
     Task<Tramite> GetTramiteById(int tramiteId);
 
     /// <summary>
+    /// Obtiene un trámite específico por su ID, incluyendo toda la información de detalle
+    /// (tipo de trámite, usuario y datos particulares según el tipo de solicitud).
+    /// </summary>
+    /// <param name="tramiteId">El ID del trámite.</param>
+    /// <returns>El trámite con su detalle, o <c>null</c> si no existe.</returns>
+    Task<Tramite?> GetTramiteDetalladoById(int tramiteId);
+
+    /// <summary>
     /// Archiva un trámite específico por su ID, cambiando su estado a archivado.
     /// </summary>
     /// <param name="tramiteId">El ID del trámite a archivar.</param>

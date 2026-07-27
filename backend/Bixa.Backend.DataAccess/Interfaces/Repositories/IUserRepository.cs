@@ -10,6 +10,13 @@ public interface IUserRepository : IRepository<Users, string>
 {
     Task<int> CountAdminUsersAsync(int adminRoleId);
 
+    /// <summary>
+    /// Retrieves all active users that have the specified role.
+    /// </summary>
+    /// <param name="roleId">The role ID to filter by.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the list of matching users.</returns>
+    Task<List<Users>> GetActiveByRoleAsync(int roleId);
+
     Task DeleteNotificationsFromUserAsync(string ci);
 
     /// <summary>

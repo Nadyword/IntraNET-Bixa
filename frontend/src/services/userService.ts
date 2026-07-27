@@ -17,4 +17,7 @@ export const userService = {
 
   getFamilyGroup: (ci: string) =>
     api.get<ApiResponse<GrupoFamiliar[]>>(`/usersProfit/${ci}/GrupoFa`),
+
+  solicitarCorreccion: (comentario: string) =>
+    api.post<ApiResponse<boolean>>('/users/SolicitarCorreccion', { comentario }),
 };

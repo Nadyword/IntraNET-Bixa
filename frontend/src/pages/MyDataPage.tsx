@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useUserProfileStore, type GrupoFamiliar } from '../store/userProfileStore';
+import { userService } from '../services/userService';
+import { ButtonSpinner } from '../components/ui/ButtonSpinner';
 
 // ─── utilidades ───────────────────────────────────────────────────────────────
 
@@ -77,6 +79,24 @@ const tdStyle: React.CSSProperties = {
 
 const CorrectionModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [text, setText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!text.trim() || isLoading) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      await userService.solicitarCorreccion(text.trim());
+      setSent(true);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? 'Error al enviar la solicitud. Intenta de nuevo.';
+      setError(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div style={{
@@ -87,49 +107,83 @@ const CorrectionModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         background: 'var(--white)', borderRadius: 'var(--radius-lg)', padding: '32px',
         width: '100%', maxWidth: '480px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
       }}>
-        <h3 style={{ margin: '0 0 8px', color: 'var(--gray-900)', fontSize: '18px' }}>
-          Solicitar Corrección
-        </h3>
-        <p style={{ margin: '0 0 20px', color: 'var(--gray-500)', fontSize: '13px' }}>
-          Indique qué dato desea corregir y la información correcta.
-        </p>
+        {sent ? (
+          <>
+            <h3 style={{ margin: '0 0 8px', color: 'var(--gray-900)', fontSize: '18px' }}>
+              Solicitud enviada
+            </h3>
+            <p style={{ margin: '0 0 20px', color: 'var(--gray-500)', fontSize: '13px' }}>
+              Se notificó a los administradores. Te contactarán para confirmar el cambio.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={onClose}
+                style={{
+                  padding: '8px 18px', borderRadius: 'var(--radius-md)',
+                  border: 'none', background: 'var(--primary, #2563eb)',
+                  color: '#fff', fontSize: '14px', cursor: 'pointer', fontWeight: 500,
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h3 style={{ margin: '0 0 8px', color: 'var(--gray-900)', fontSize: '18px' }}>
+              Solicitar Corrección
+            </h3>
+            <p style={{ margin: '0 0 20px', color: 'var(--gray-500)', fontSize: '13px' }}>
+              Indique qué dato desea corregir y la información correcta.
+            </p>
 
-        <textarea
-          value={text}
-          onChange={e => setText(e.target.value)}
-          placeholder="Favor comente que tipo de cambio quiere realizar y agregue la información para reemplazar"
-          rows={6}
-          style={{
-            width: '100%', boxSizing: 'border-box', padding: '12px',
-            border: '1px solid var(--gray-900)', borderRadius: 'var(--radius-lg)',
-            fontSize: '14px', color: 'var(--gray-900)', resize: 'vertical',
-            fontFamily: 'inherit', outline: 'none', 
-          }}
-        />
+            <textarea
+              value={text}
+              onChange={e => setText(e.target.value)}
+              placeholder="Favor comente que tipo de cambio quiere realizar y agregue la información para reemplazar"
+              rows={6}
+              disabled={isLoading}
+              style={{
+                width: '100%', boxSizing: 'border-box', padding: '12px',
+                border: '1px solid var(--gray-900)', borderRadius: 'var(--radius-lg)',
+                fontSize: '14px', color: 'var(--gray-900)', resize: 'vertical',
+                fontFamily: 'inherit', outline: 'none',
+              }}
+            />
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '8px 18px', borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--gray-700)', background: 'var(----gray-800)',
-              color: 'var(--gray-800)', fontSize: '14px', cursor: 'pointer', fontWeight: 500,
-            }}
-          >
-            Cerrar
-          </button>
-          <button
-            style={{
-              padding: '8px 18px', borderRadius: 'var(--radius-md)',
-              border: 'none', background: 'var(--primary, #2563eb)',
-              color: '#fff', fontSize: '14px', cursor: 'pointer', fontWeight: 500,
-              opacity: text.trim() ? 1 : 0.5,
-            }}
-            disabled={!text.trim()}
-          >
-            Enviar Solicitud
-          </button>
-        </div>
+            {error && (
+              <p style={{ margin: '10px 0 0', color: 'var(--error, #dc2626)', fontSize: '13px' }}>
+                {error}
+              </p>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button
+                onClick={onClose}
+                disabled={isLoading}
+                style={{
+                  padding: '8px 18px', borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--gray-700)', background: 'var(----gray-800)',
+                  color: 'var(--gray-800)', fontSize: '14px', cursor: 'pointer', fontWeight: 500,
+                }}
+              >
+                Cerrar
+              </button>
+              <button
+                onClick={handleSubmit}
+                style={{
+                  padding: '8px 18px', borderRadius: 'var(--radius-md)',
+                  border: 'none', background: 'var(--primary, #2563eb)',
+                  color: '#fff', fontSize: '14px', cursor: 'pointer', fontWeight: 500,
+                  opacity: text.trim() && !isLoading ? 1 : 0.5,
+                }}
+                disabled={!text.trim() || isLoading}
+              >
+                {isLoading ? <><ButtonSpinner /> Enviando...</> : 'Enviar Solicitud'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

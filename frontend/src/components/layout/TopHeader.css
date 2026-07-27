@@ -76,6 +76,10 @@
   margin-left: auto;
 }
 
+.notif-wrapper {
+  position: relative;
+}
+
 .notif-btn {
   position: relative;
   width: 38px;

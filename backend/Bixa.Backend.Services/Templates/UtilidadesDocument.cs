@@ -127,15 +127,15 @@ public class UtilidadesDocument(TramiteReportModel model) : IDocument
 
             col.Item().Row(row =>
             {
-                row.RelativeItem(2).PaddingRight(15).Element(c => FormField(c, "NOMBRE DEL TRABAJADOR", model.EmpleadoNombre));
-                row.RelativeItem(1).Element(c => FormField(c, "CÉDULA", model.EmpleadoCi));
+                row.RelativeItem(0.85f).PaddingRight(15).Element(c => FormField(c, "NOMBRE DEL TRABAJADOR", model.EmpleadoNombre));
+                row.RelativeItem(0.15f).Element(c => FormField(c, "CÉDULA", model.EmpleadoCi));
             });
 
             col.Item().Row(row =>
             {
-                row.RelativeItem(1).PaddingRight(15).Element(c => FormField(c, "DEPARTAMENTO", model.EmpleadoDepartamento ?? "—"));
-                row.RelativeItem(1).PaddingRight(15).Element(c => FormField(c, "CARGO", model.EmpleadoCargo ?? "—"));
-                row.RelativeItem(1).Element(c => FormField(c, "FECHA DE INGRESO", model.FechaIngreso?.ToString("dd/MM/yyyy") ?? "—"));
+                row.RelativeItem(0.425f).PaddingRight(15).Element(c => FormField(c, "DEPARTAMENTO", model.EmpleadoDepartamento ?? "—"));
+                row.RelativeItem(0.425f).PaddingRight(15).Element(c => FormField(c, "CARGO", model.EmpleadoCargo ?? "—"));
+                row.RelativeItem(0.15f).Element(c => FormField(c, "FECHA DE INGRESO", model.FechaIngreso?.ToString("dd/MM/yyyy") ?? "—"));
             });
         });
     }

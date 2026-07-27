@@ -69,14 +69,14 @@ export const FirstLoginPage: React.FC = () => {
       <div className="first-login-container">
         <div className="first-login-brand">
           <div className="brand-logo">
-            BIXA
+            Comunik2
             <span>PORTAL CORPORATIVO</span>
           </div>
           <div className="brand-center-media">
             <img src="/Logo-login.webp" alt="BIXA" />
           </div>
           <div className="brand-tagline">
-            <strong>Bienvenido a Bixa</strong>
+            <strong>Bienvenido a Comunik2</strong>
             Crea tu contraseña para acceder por primera vez al portal corporativo.
           </div>
         </div>

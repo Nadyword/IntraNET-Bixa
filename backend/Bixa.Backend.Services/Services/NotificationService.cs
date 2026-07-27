@@ -1,349 +1,200 @@
+using Bixa.Backend.DataAccess.Interfaces;
 using Bixa.Backend.DataAccess.Interfaces.Repositories;
-using Bixa.Backend.Models.DTOs.NotificationModelDTO;
-using Bixa.Backend.Models.DTOs.RequestModelDTO;
 using Bixa.Backend.DataAccess.Wrappers;
 using Bixa.Backend.DataAccess.Entities;
+using Bixa.Backend.Models.DTOs.NotificationModelDTO;
 using Bixa.Backend.Services.Interfaces;
 using Bixa.Backend.Models.Response;
 using Bixa.Backend.Models.Enums;
 using Microsoft.Extensions.Logging;
-using Bixa.Backend.Models.Query;
 using AutoMapper;
 
 namespace Bixa.Backend.Services.Services;
 
 /// <summary>
-/// Service for managing user notification business logic and operations.
+/// Servicio de notificaciones de usuario: eventos discretos persistidos (cambios de estado de
+/// trámite, mensajes de chat) más contadores en vivo de acciones pendientes por rol.
 /// </summary>
-public class NotificationService(IUnitOfWork unitOfWork, IMapper mapper, LoggerWrapper loggerWrapper) : INotificationService
+public class NotificationService(
+    IUnitOfWork unitOfWork,
+    IAprobacionesRepository aprobacionesRepository,
+    ITramitesRepository tramitesRepository,
+    IMapper mapper,
+    LoggerWrapper loggerWrapper) : INotificationService
 {
     private readonly ILogger<NotificationService> _logger = loggerWrapper.CreateLogger<NotificationService>();
     private readonly IMapper _mapper = mapper;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IAprobacionesRepository _aprobacionesRepository = aprobacionesRepository;
+    private readonly ITramitesRepository _tramitesRepository = tramitesRepository;
 
-    /// <summary>
-    /// Adds a new user notification to the system.
-    /// </summary>
-    public async Task<Result<string>> AddAsync(NotificationInsertDTO dto)
+    private const int RecentTake = 20;
+
+    public async Task NotifyAsync(string userCi, string notificationType, string title, string message, string? referenceType = null, int? referenceId = null)
     {
         try
         {
-            var notificationEntity = _mapper.Map<NotificationInsertDTO, Notifications>(dto);
-            await _unitOfWork.Notifications.AddAsync(notificationEntity);
-
-            var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
-
-            if (saveChangesSuccess)
-                return Result.Success(notificationEntity.UserCi);
-            else
-                return Result.Fail<string>("No se pudo insertar la notificación de usuario. No se guardaron cambios.", ErrorTypeEnum.General);
+            await _unitOfWork.Notifications.AddAsync(new Notifications
+            {
+                UserCi = userCi,
+                NotificationType = notificationType,
+                Title = title,
+                Message = message,
+                IsRead = false,
+                ReferenceType = referenceType,
+                ReferenceId = referenceId,
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred while adding user notification: {Message}", ex.Message);
-            return Result.Fail<string>("Ocurrió un error inesperado al procesar la notificación.", ErrorTypeEnum.Database);
+            _logger.LogError(ex, "Error al crear notificación para {UserCi} ({Type}): {Message}", userCi, notificationType, ex.Message);
         }
     }
 
-    /// <summary>
-    /// Adds multiple user notifications to the system.
-    /// </summary>
-    public async Task<Result<int>> AddManyAsync(List<NotificationInsertDTO> notifications)
+    public async Task NotifyRoleAsync(UserRolEnum rol, string notificationType, string title, string message, string? referenceType = null, int? referenceId = null)
     {
         try
         {
-            var notificationEntities = notifications
-                .ConvertAll(dto => _mapper.Map<NotificationInsertDTO, Notifications>(dto))
-;
-
-            await _unitOfWork.Notifications.AddRangeAsync(notificationEntities);
-            var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
-
-            if (saveChangesSuccess)
-                return Result.Success(notificationEntities.Count);
-            else
-                return Result.Fail<int>("No se pudo insertar ninguna notificación.", ErrorTypeEnum.General);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error adding multiple notifications: {Message}", ex.Message);
-            return Result.Fail<int>("Ocurrió un error inesperado al agregar las notificaciones.", ErrorTypeEnum.Database);
-        }
-    }
-
-    /// <summary>
-    /// Deletes all notifications for a specific user.
-    /// </summary>
-    public async Task<Result<bool>> DeleteAllNotificationsAsync()
-    {
-        try
-        {
-            await _unitOfWork.BeginTransactionAsync();
-            var userId = _unitOfWork.GetCurrentUserCi();
-            if (userId == null)
+            var cis = await _unitOfWork.Notifications.GetCisByRolAsync(rol);
+            foreach (var ci in cis)
             {
-                await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>("Usuario no identificado.", ErrorTypeEnum.Validation);
-            }
-
-            var success = await _unitOfWork.Notifications.DeleteAllAsync(userId);
-            if (!success)
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>("No se encontraron notificaciones para eliminar.", ErrorTypeEnum.NotFound);
-            }
-
-            var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
-            if (saveChangesSuccess)
-            {
-                await _unitOfWork.CommitTransactionAsync();
-                return Result.Success(true);
-            }
-            else
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>("No se pudo realizar la eliminación masiva.", ErrorTypeEnum.General);
+                await NotifyAsync(ci, notificationType, title, message, referenceType, referenceId);
             }
         }
         catch (Exception ex)
         {
-            await _unitOfWork.RollbackTransactionAsync();
-            _logger.LogError(ex, "Error deleting all notifications: {Message}", ex.Message);
-            return Result.Fail<bool>("Ocurrió un error inesperado al eliminar las notificaciones.", ErrorTypeEnum.Database);
+            _logger.LogError(ex, "Error al notificar al rol {Rol} ({Type}): {Message}", rol, notificationType, ex.Message);
         }
     }
 
-    /// <summary>
-    /// Deletes a user notification by its unique identifier.
-    /// </summary>
-    public async Task<Result<bool>> DeleteAsync()
+    public async Task<Result<NotificationSummaryDTO>> GetSummaryAsync()
     {
-        try
-        {
-            await _unitOfWork.BeginTransactionAsync();
-            var existingNotification = (await _unitOfWork.Notifications.GetByCiAsync(_unitOfWork.GetCurrentUserCi()!)).FirstOrDefault();
-            if (existingNotification == null)
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>("Notificación de usuario no encontrada.", ErrorTypeEnum.NotFound);
-            }
-
-            var deletedSuccessfullyMarked = await _unitOfWork.Notifications.DeleteAsync(_unitOfWork.GetCurrentUserCi()!);
-
-            var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
-
-            if (deletedSuccessfullyMarked && saveChangesSuccess)
-            {
-                await _unitOfWork.CommitTransactionAsync();
-                return Result.Success(true);
-            }
-            else
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>("No se pudo eliminar la notificación.", ErrorTypeEnum.General);
-            }
-        }
-        catch (Exception ex)
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            _logger.LogError(ex, "Error occurred while deleting user notification with CI {Ci}: {Message}", _unitOfWork.GetCurrentUserCi(), ex.Message);
-            return Result.Fail<bool>("Ocurrió un error inesperado al intentar eliminar la notificación.", ErrorTypeEnum.Database);
-        }
-    }
-
-    public Task<Result<bool>> DeleteAsync(string ci)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>
-    /// Retrieves a paginated list of user notifications based on specified filters.
-    /// </summary>
-    public async Task<Result<List<NotificationDTO>>> GetAllAsync(int pageNumber, int pageSize)
-    {
-        try
-        {
-            var notifications = await _unitOfWork.Notifications.GetAllAsync(pageNumber, pageSize);
-
-            return Result.Success(_mapper.Map<List<NotificationDTO>>(notifications));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error occurred while retrieving notifications: {Message}", ex.Message);
-            return Result.Fail<List<NotificationDTO>>("Ocurrió un error inesperado al obtener las notificaciones.");
-        }
-    }
-
-    /// <summary>
-    /// Retrieves a single user notification by its unique identifier.
-    /// </summary>
-    public async Task<Result<NotificationDTO>> GetByCiAsync(string ci)
-    {
-        try
-        {
-            var notificationEntity = (await _unitOfWork.Notifications.GetByCiAsync(ci)).FirstOrDefault();
-            if (notificationEntity == null)
-                return Result.Fail<NotificationDTO>("Notificación no encontrada.", ErrorTypeEnum.NotFound);
-
-            var notificationDto = _mapper.Map<NotificationDTO>(notificationEntity);
-            return Result.Success(notificationDto);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error occurred while retrieving notification CI {ci}: {Message}", ci, ex.Message);
-            return Result.Fail<NotificationDTO>("Ocurrió un error inesperado al recuperar la notificación.");
-        }
-    }
-
-    /// <summary>
-    /// Retrieves a paginated list of notifications for a specific user.
-    /// </summary>
-    public async Task<Result<List<NotificationDTO>>> GetNotificationsByUserIdAsync(int pageNumber, int pageSize)
-    {
-        return await GetAllAsync(pageNumber, pageSize);
-    }
-
-    /// <summary>
-    /// Marks all notifications for a specific user as read.
-    /// </summary>
-    public async Task<Result<bool>> MarkAllAsReadAsync()
-    {
-        await _unitOfWork.BeginTransactionAsync();
         try
         {
             var userCi = _unitOfWork.GetCurrentUserCi();
             if (userCi == null)
+                return Result.Fail<NotificationSummaryDTO>("Usuario no identificado.", ErrorTypeEnum.Validation);
+
+            var rol = _unitOfWork.GetCurrentUserRol();
+
+            var summary = new NotificationSummaryDTO
             {
-                await _unitOfWork.RollbackTransactionAsync();
+                UnreadCount = await _unitOfWork.Notifications.GetUnreadCountAsync(userCi),
+                Recent = _mapper.Map<List<NotificationDTO>>(await _unitOfWork.Notifications.GetRecentByUserCiAsync(userCi, RecentTake)),
+            };
+
+            if (rol is UserRolEnum.Supervisor or UserRolEnum.Administrador)
+            {
+                summary.PendingApprovals = (await _aprobacionesRepository.GetTramitesForAprobacion(userCi)).Count;
+            }
+
+            if (rol == UserRolEnum.Administrador)
+            {
+                var aprobados = await _tramitesRepository.GetAprobados();
+                summary.PendingAdminApproval = aprobados.Count(t => t.Estado == EstadoTramiteEnum.Firmado);
+                summary.PendingArchive = aprobados.Count(t => t.Estado == EstadoTramiteEnum.Aprobado);
+            }
+
+            return Result.Success(summary);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener el resumen de notificaciones: {Message}", ex.Message);
+            return Result.Fail<NotificationSummaryDTO>("Ocurrió un error al obtener las notificaciones.", ErrorTypeEnum.Database);
+        }
+    }
+
+    public async Task<Result<bool>> MarkAsReadAsync(int notificationId)
+    {
+        try
+        {
+            var userCi = _unitOfWork.GetCurrentUserCi();
+            if (userCi == null)
                 return Result.Fail<bool>("Usuario no identificado.", ErrorTypeEnum.Validation);
-            }
 
-            var success = await _unitOfWork.Notifications.MarkAllAsReadAsync(userCi);
+            var success = await _unitOfWork.Notifications.MarkAsReadAsync(notificationId, userCi);
             if (!success)
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>("No se encontraron notificaciones sin leer para el usuario.", ErrorTypeEnum.NotFound);
-            }
+                return Result.Fail<bool>("Notificación no encontrada o ya leída.", ErrorTypeEnum.NotFound);
 
-            var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
-            if (saveChangesSuccess)
-            {
-                await _unitOfWork.CommitTransactionAsync();
-                return Result.Success(true);
-            }
-            else
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>("No se realizaron cambios al marcar todas las notificaciones.", ErrorTypeEnum.General);
-            }
+            return Result.Success(true);
         }
         catch (Exception ex)
         {
-            await _unitOfWork.RollbackTransactionAsync();
-            _logger.LogError(ex, "Error marking all notifications as read: {Message}", ex.Message);
-            return Result.Fail<bool>("Ocurrió un error inesperado al procesar la solicitud.", ErrorTypeEnum.Database);
+            _logger.LogError(ex, "Error al marcar la notificación {Id} como leída: {Message}", notificationId, ex.Message);
+            return Result.Fail<bool>("Ocurrió un error al procesar la solicitud.", ErrorTypeEnum.Database);
         }
     }
 
-    /// <summary>
-    /// Marks a specific user notification as read.
-    /// </summary>
-    public async Task<Result<bool>> MarkAsReadAsync(string notificationId)
+    public async Task<Result<int>> MarkAllAsReadAsync()
     {
-        await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var success = await _unitOfWork.Notifications.MarkAllAsReadAsync(notificationId);
+            var userCi = _unitOfWork.GetCurrentUserCi();
+            if (userCi == null)
+                return Result.Fail<int>("Usuario no identificado.", ErrorTypeEnum.Validation);
+
+            var count = await _unitOfWork.Notifications.MarkAllAsReadAsync(userCi);
+            return Result.Success(count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al marcar todas las notificaciones como leídas: {Message}", ex.Message);
+            return Result.Fail<int>("Ocurrió un error al procesar la solicitud.", ErrorTypeEnum.Database);
+        }
+    }
+
+    public async Task<int> MarkAllChatNotificationsAsReadAsync()
+    {
+        var userCi = _unitOfWork.GetCurrentUserCi();
+        if (userCi == null) return 0;
+
+        try
+        {
+            return await _unitOfWork.Notifications.MarkAllAsReadAsync(userCi, "Chat");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al marcar notificaciones de chat como leídas para {UserCi}: {Message}", userCi, ex.Message);
+            return 0;
+        }
+    }
+
+    public async Task<Result<bool>> DeleteAsync(int notificationId)
+    {
+        try
+        {
+            var userCi = _unitOfWork.GetCurrentUserCi();
+            if (userCi == null)
+                return Result.Fail<bool>("Usuario no identificado.", ErrorTypeEnum.Validation);
+
+            var success = await _unitOfWork.Notifications.DeleteAsync(notificationId, userCi);
             if (!success)
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>("Notificación no encontrada o ya marcada como leída.", ErrorTypeEnum.NotFound);
-            }
-
-            var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
-            if (saveChangesSuccess)
-            {
-                await _unitOfWork.CommitTransactionAsync();
-                return Result.Success(true);
-            }
-            else
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>("No se pudo actualizar el estado de la notificación.", ErrorTypeEnum.General);
-            }
-        }
-        catch (Exception ex)
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            _logger.LogError(ex, "Error marking notification {Id} as read: {Message}", notificationId, ex.Message);
-            return Result.Fail<bool>("Ocurrió un error inesperado al procesar la solicitud.", ErrorTypeEnum.Database);
-        }
-    }
-
-    public async Task<bool> SendNotificationsToMultipleUsersAsync(
-            List<int> userIds,
-            RequestDTO requestDto,
-            Func<RequestDTO, string> notificationDescriptionBuilder)
-    {
-        if (userIds.Count == 0)
-        {
-            return false;
-        }
-
-        try
-        {
-            var notificationDescription = notificationDescriptionBuilder(requestDto);
-
-            var notifications = userIds
-                .Distinct()
-                .Select(userId => new NotificationInsertDTO
-                {
-                    UserId = userId,
-                    Title = "General",
-                    Priority = "Normal",
-                    NotificationType = "RequestUpdate",
-                    Message = notificationDescription,
-                    IsRead = false
-                })
-                .ToList();
-
-            var notificationResult = await AddManyAsync(notifications);
-            return notificationResult.IsSuccess;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error sending multiple notifications for request {Id}: {Message}", requestDto.Id, ex.Message);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Updates an existing user notification's information.
-    /// </summary>
-    public async Task<Result<bool>> UpdateAsync(NotificationEditDTO dto)
-    {
-        try
-        {
-            var entity = (await _unitOfWork.Notifications.GetByCiAsync(dto.UserCi)).FirstOrDefault();
-
-            if (entity == null)
                 return Result.Fail<bool>("Notificación no encontrada.", ErrorTypeEnum.NotFound);
 
-            _mapper.Map(dto, entity);
-
-            await _unitOfWork.Notifications.UpdateAsync(entity);
-
-            var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
-
-            if (saveChangesSuccess)
-                return Result.Success(true);
-            else
-                return Result.Fail<bool>("No se guardaron cambios al intentar actualizar la notificación.", ErrorTypeEnum.General);
+            return Result.Success(true);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating notification ID {Id}: {Message}", dto.Id, ex.Message);
-            return Result.Fail<bool>("Ocurrió un error inesperado al actualizar la notificación.", ErrorTypeEnum.Database);
+            _logger.LogError(ex, "Error al eliminar la notificación {Id}: {Message}", notificationId, ex.Message);
+            return Result.Fail<bool>("Ocurrió un error al eliminar la notificación.", ErrorTypeEnum.Database);
+        }
+    }
+
+    public async Task<Result<int>> DeleteAllAsync()
+    {
+        try
+        {
+            var userCi = _unitOfWork.GetCurrentUserCi();
+            if (userCi == null)
+                return Result.Fail<int>("Usuario no identificado.", ErrorTypeEnum.Validation);
+
+            var count = await _unitOfWork.Notifications.DeleteAllAsync(userCi);
+            return Result.Success(count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar todas las notificaciones: {Message}", ex.Message);
+            return Result.Fail<int>("Ocurrió un error al eliminar las notificaciones.", ErrorTypeEnum.Database);
         }
     }
 }
