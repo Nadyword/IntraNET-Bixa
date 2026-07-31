@@ -1,8 +1,35 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useUserProfileStore } from '../store/userProfileStore';
+import { api } from '../lib/api';
+import { ajustarSaldoVacaciones } from '../lib/vacaciones';
 
 export const HomePage: React.FC = () => {
   const { profile } = useUserProfileStore();
+  const [diasVacacionesDisponibles, setDiasVacacionesDisponibles] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!profile?.codEmp) return;
+
+    let cancelado = false;
+    api.get(`/usersProfit/${profile.codEmp}/Vacaciones`)
+      .then(({ data }) => {
+        if (cancelado) return;
+        if (data.success) {
+          const registros: { disponibleAcumulado: number | null }[] = data.data ?? [];
+          const disponibleReal = registros.length > 0 ? registros[registros.length - 1].disponibleAcumulado ?? 0 : 0;
+          setDiasVacacionesDisponibles(ajustarSaldoVacaciones(disponibleReal));
+        } else {
+          setDiasVacacionesDisponibles(0);
+        }
+      })
+      .catch(() => {
+        if (!cancelado) setDiasVacacionesDisponibles(0);
+      });
+
+    return () => { cancelado = true; };
+  }, [profile?.codEmp]);
+
+  const vacacionesLabel = diasVacacionesDisponibles !== null ? `${diasVacacionesDisponibles} días` : '—';
 
   return (
     <div>
@@ -34,7 +61,7 @@ export const HomePage: React.FC = () => {
           </div>
           <div style={{ fontSize: '13px' }}>
             <strong style={{ display: 'block', color: 'var(--white)', fontSize: '15px', marginBottom: '2px' }}>
-              15 días
+              {vacacionesLabel}
             </strong>
             <span style={{ opacity: 0.6 }}>Vacaciones disponibles</span>
           </div>
@@ -52,7 +79,7 @@ export const HomePage: React.FC = () => {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '10px', borderBottom: '1px solid var(--gray-50)' }}>
             <span>🌴 Vacaciones Disponibles</span>
-            <strong style={{ color: 'var(--red)', fontSize: '16px' }}>15 días</strong>
+            <strong style={{ color: 'var(--red)', fontSize: '16px' }}>{vacacionesLabel}</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--gray-50)' }}>
             <span>📋 Solicitudes Activas</span>

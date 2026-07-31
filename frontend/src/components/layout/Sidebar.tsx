@@ -46,7 +46,7 @@ export const Sidebar: React.FC = () => {
     if (item.adminOnly && !isAdmin) return false;
     if (item.nonAdminOnly && isAdmin) return false;
     if (item.nonEmployeeOnly && isEmployee) return false;
-    if (item.supervisorOnly && !isSupervisor) return false;
+    if (item.supervisorOnly && !isSupervisor && !isAdmin) return false;
     return true;
   });
 

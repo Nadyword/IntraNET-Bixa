@@ -22,6 +22,7 @@ public class ReadOnlyUnitOfWork : IReadOnlyUnitOfWork
         Vacaciones = new VacacionesProfitRepository(_context);
         DiaEspeciales = new DiaEspecialesProfitRepository(_context);
         Utilidades = new UtilidadesProfitRepository(_context);
+        ConsultaHc = new ConsultaHcProfitRepository(_context);
     }
 
     public ISnEmpleProfitRepository SnEmple { get; }
@@ -29,6 +30,7 @@ public class ReadOnlyUnitOfWork : IReadOnlyUnitOfWork
     public IVacacionesProfitRepository Vacaciones { get; }
     public IDiaEspecialesProfitRepository DiaEspeciales { get; }
     public IUtilidadesProfitRepository Utilidades { get; }
+    public IConsultaHcProfitRepository ConsultaHc { get; }
 
     public void Dispose()
     {

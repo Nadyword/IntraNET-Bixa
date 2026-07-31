@@ -68,4 +68,9 @@ public class SnEmpleProfitRepository(ProfitDbContext context) : ISnEmpleProfitRe
             return Result.Fail<List<SnEmple>>("Usuario no encontrado", ErrorTypeEnum.NotFound);
         return Result.Success(emple);
     }
+
+    public async Task<List<EquipoSupervisor>> GetEquipoSupervisorAsync(string ci)
+        => await _context.EquipoSupervisor
+            .FromSqlRaw(ProfitSqlTemplates.GetEquipoSupervidor, new SqlParameter("@ci", ci))
+            .ToListAsync();
 }

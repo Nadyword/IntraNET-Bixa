@@ -407,6 +407,17 @@ public class UserService(
     }
 
     /// <summary>
+    /// Obtiene todo el personal a cargo (directo e indirecto) del supervisor con la CI dada.
+    /// </summary>
+    /// <param name="ci">La CI del supervisor autenticado.</param>
+    public async Task<Result<List<EquipoSupervisor>>> GetEquipoSupervisorAsync(string ci)
+    {
+        ci = UtilityService.NormalizeCiFormat(ci);
+        var equipo = await _readOnlyUnitOfWork.SnEmple.GetEquipoSupervisorAsync(ci);
+        return Result.Success(equipo);
+    }
+
+    /// <summary>
     /// Hashes the new password if provided, otherwise returns the existing password.
     /// </summary>
     /// <param name="password">The new password string.</param>

@@ -28,4 +28,11 @@ public interface ISnEmpleProfitRepository : IReadOnlyRepository<SnEmple, string>
     /// <returns>Un resultado que contiene una lista de objetos SnEmple asociados a los usuarios proporcionados. Si no se
     /// encuentran empleados, la lista estará vacía.</returns>
     Task<Result<List<SnEmple>>> GetAllByCiAsync(List<UserDTO> users);
+
+    /// <summary>
+    /// Obtiene de forma asíncrona a todo el personal a cargo (directo e indirecto) del supervisor con la CI dada.
+    /// </summary>
+    /// <param name="ci">La C.I. del supervisor.</param>
+    /// <returns>La lista de empleados que reportan, directa o indirectamente, al supervisor.</returns>
+    Task<List<EquipoSupervisor>> GetEquipoSupervisorAsync(string ci);
 }

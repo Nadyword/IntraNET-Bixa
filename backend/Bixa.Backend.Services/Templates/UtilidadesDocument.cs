@@ -133,8 +133,12 @@ public class UtilidadesDocument(TramiteReportModel model) : IDocument
 
             col.Item().Row(row =>
             {
-                row.RelativeItem(0.425f).PaddingRight(15).Element(c => FormField(c, "DEPARTAMENTO", model.EmpleadoDepartamento ?? "—"));
-                row.RelativeItem(0.425f).PaddingRight(15).Element(c => FormField(c, "CARGO", model.EmpleadoCargo ?? "—"));
+                row.RelativeItem(0.85f).PaddingRight(15).Column(inner =>
+                {
+                    inner.Spacing(10);
+                    inner.Item().Element(c => FormField(c, "DEPARTAMENTO", model.EmpleadoDepartamento ?? "—"));
+                    inner.Item().Element(c => FormField(c, "CARGO", model.EmpleadoCargo ?? "—"));
+                });
                 row.RelativeItem(0.15f).Element(c => FormField(c, "FECHA DE INGRESO", model.FechaIngreso?.ToString("dd/MM/yyyy") ?? "—"));
             });
         });

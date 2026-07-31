@@ -1,4 +1,5 @@
 ﻿using Bixa.Backend.Models.DTOs.UserModelDTO;
+using Bixa.Backend.DataAccess.Entities.DbProfit;
 using Bixa.Backend.DataAccess.Wrappers;
 using Microsoft.AspNetCore.Authorization;
 using Bixa.Backend.Services.Interfaces;
@@ -112,6 +113,28 @@ public class UserApiController(
         var listUser = await _userService.GetAllAsync(pageNumber, pageSize);
 
         return HandleServiceResult(await _userService.GetAllByCiAsync(listUser.Value));
+    }
+
+    /// <summary>
+    /// Retrieves todo el personal a cargo (directo e indirecto) del supervisor autenticado.
+    /// GET /api/users/mi-equipo
+    /// </summary>
+    /// <returns>API response containing the list of employees under the supervisor's charge.</returns>
+    [HttpGet("mi-equipo")]
+    [ProducesResponseType(typeof(ApiResponse<List<EquipoSupervisor>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetMiEquipo()
+    {
+        var authResult = RequireUserRol(UserRolEnum.Supervisor, UserRolEnum.Administrador);
+        if (authResult != null) return authResult;
+
+        var ci = User.FindFirst("ci")?.Value;
+        if (string.IsNullOrEmpty(ci))
+            return HandleServiceResult(Result.Fail<List<EquipoSupervisor>>("No se pudo identificar al usuario autenticado.", ErrorTypeEnum.Unauthorized));
+
+        var result = await _userService.GetEquipoSupervisorAsync(ci);
+        return HandleServiceResult(result);
     }
 
     /// <summary>

@@ -12,7 +12,6 @@ export const MiEquipoPage: React.FC = () => {
   const [teamLoading, setTeamLoading] = useState(false);
   const [teamError, setTeamError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCi, setSelectedCi] = useState<string | null>(null);
 
@@ -22,11 +21,9 @@ export const MiEquipoPage: React.FC = () => {
       setTeamLoading(true);
       setTeamError('');
       try {
-        const res = await api.get<ApiResponse<UserProfile[]>>(`/users/${currentPage}/${PAGE_SIZE}`);
+        const res = await api.get<ApiResponse<UserProfile[]>>('/users/mi-equipo');
         if (!cancelled) {
-          const data = res.data.data ?? [];
-          setTeamUsers(data);
-          setHasNextPage(data.length === PAGE_SIZE);
+          setTeamUsers(res.data.data ?? []);
         }
       } catch (err: unknown) {
         if (!cancelled) {
@@ -39,7 +36,11 @@ export const MiEquipoPage: React.FC = () => {
     };
     load();
     return () => { cancelled = true; };
-  }, [currentPage]);
+  }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const filteredUsers = teamUsers.filter((u) => {
     const q = searchQuery.trim().toLowerCase();
@@ -48,6 +49,10 @@ export const MiEquipoPage: React.FC = () => {
     const ci = (u.ci ?? '').toLowerCase();
     return fullName.includes(q) || ci.includes(q);
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const pagedUsers = filteredUsers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const hasNextPage = currentPage < totalPages;
 
   return (
     <>
@@ -100,7 +105,7 @@ export const MiEquipoPage: React.FC = () => {
                       </td>
                     </tr>
                   )}
-                  {!teamLoading && !teamError && filteredUsers.map((user, i) => (
+                  {!teamLoading && !teamError && pagedUsers.map((user, i) => (
                     <tr key={user.ci ?? i}>
                       <td>
                         <strong>
@@ -130,7 +135,7 @@ export const MiEquipoPage: React.FC = () => {
                 >
                   ← Anterior
                 </button>
-                <span>Página {currentPage}</span>
+                <span>Página {currentPage} de {totalPages}</span>
                 <button
                   disabled={!hasNextPage}
                   onClick={() => setCurrentPage((p) => p + 1)}

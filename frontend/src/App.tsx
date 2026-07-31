@@ -49,7 +49,7 @@ export default function App() {
                   {activeSection === 'tramites'    && <TramitesPage />}
                   {activeSection === 'solicitudes' && !isEmployee && <SolicitudesPage />}
                   {activeSection === 'leader'          && (isAdmin ? <LeaderPage /> : <Navigate to="/" replace />)}
-                  {activeSection === 'miequipo'        && (isSupervisor ? <MiEquipoPage /> : <Navigate to="/" replace />)}
+                  {activeSection === 'miequipo'        && (isSupervisor || isAdmin ? <MiEquipoPage /> : <Navigate to="/" replace />)}
                   {activeSection === 'administracion' && (isAdmin ? <AdministracionPage /> : <Navigate to="/" replace />)}
                   {activeSection === 'soporte'     && !isAdmin && <ChatPage />}
                 </AppLayout>

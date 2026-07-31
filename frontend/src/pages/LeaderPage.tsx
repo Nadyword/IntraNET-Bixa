@@ -195,7 +195,7 @@ export const LeaderPage: React.FC = () => {
             className={`tab-btn ${activeTab === 'equipo' ? 'active' : ''}`}
             onClick={() => handleTabChange('equipo')}
           >
-            Mi equipo
+            Usuarios
           </button>
         )}
         <button

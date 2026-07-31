@@ -59,7 +59,9 @@
       "Bash(git check-ignore *)",
       "Bash(dotnet run *)",
       "Bash(xargs -I{} sh -c 'echo ==={}===; cat {}')",
-      "Bash(xargs cat)"
+      "Bash(xargs cat)",
+      "Bash(sqlcmd -?)",
+      "Bash(sqlcmd *)"
     ]
   }
 }

@@ -139,8 +139,12 @@ public class PrestacionesDocument(TramiteReportModel model) : IDocument
             col.Item().Row(row =>
             {
                 row.RelativeItem(1).PaddingRight(15).Element(c => FormField(c, "FECHA DE INGRESO", model.FechaIngreso?.ToString("dd/MM/yyyy") ?? "—"));
-                row.RelativeItem(1).PaddingRight(15).Element(c => FormField(c, "DEPARTAMENTO", model.EmpleadoDepartamento ?? "—"));
-                row.RelativeItem(1).Element(c => FormField(c, "CARGO", model.EmpleadoCargo ?? "—"));
+                row.RelativeItem(1).Column(inner =>
+                {
+                    inner.Spacing(10);
+                    inner.Item().Element(c => FormField(c, "DEPARTAMENTO", model.EmpleadoDepartamento ?? "—"));
+                    inner.Item().Element(c => FormField(c, "CARGO", model.EmpleadoCargo ?? "—"));
+                });
             });
         });
     }

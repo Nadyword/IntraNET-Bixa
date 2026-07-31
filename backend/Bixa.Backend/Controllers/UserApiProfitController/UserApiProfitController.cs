@@ -115,4 +115,38 @@ public class UserApiProfitController(
         var result = await _readOnlyUnitOfWork.Utilidades.GetMontoDisponibleByCiAsync(normalizedCi);
         return HandleServiceResult(result);
     }
+
+    /// <summary>
+    /// Consulta de HC (Cobertura 1 - 10.000,00): titular, prima trimestral en Bs. y montos de nómina de los 3 meses.
+    /// </summary>
+    /// <param name="ci">La cédula de identidad del empleado.</param>
+    /// <returns>API response con el registro de HC de cobertura 1.</returns>
+    [HttpGet("{ci}/ConsultaHc/Cobertura1")]
+    [ProducesResponseType(typeof(ApiResponse<ConsultaHc>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetConsultaHcCobertura1(string ci)
+    {
+        var normalizedCi = UtilityService.NormalizeCiFormat(ci);
+        var result = await _readOnlyUnitOfWork.ConsultaHc.GetConsultaHcAsync(normalizedCi, 10000.00m);
+        return HandleServiceResult(result);
+    }
+
+    /// <summary>
+    /// Consulta de HC (Cobertura 2 - 20.000,00): asegurado y pago a Bixa trimestral en $.
+    /// </summary>
+    /// <param name="ci">La cédula de identidad del empleado.</param>
+    /// <returns>API response con el registro de HC de cobertura 2.</returns>
+    [HttpGet("{ci}/ConsultaHc/Cobertura2")]
+    [ProducesResponseType(typeof(ApiResponse<ConsultaHc>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetConsultaHcCobertura2(string ci)
+    {
+        var normalizedCi = UtilityService.NormalizeCiFormat(ci);
+        var result = await _readOnlyUnitOfWork.ConsultaHc.GetConsultaHcAsync(normalizedCi, 20000.00m);
+        return HandleServiceResult(result);
+    }
 }

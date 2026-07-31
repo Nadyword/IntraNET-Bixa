@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import './NuevaSolicitudModal.css';
 import api from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
+import { useUserProfileStore } from '../../store/userProfileStore';
 import { ButtonSpinner } from './ButtonSpinner';
+import { ajustarSaldoVacaciones } from '../../lib/vacaciones';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -134,6 +136,7 @@ const fetchDiasHabiles = async (desde: string, hasta: string): Promise<number> =
 
 export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => {
   const user = useAuthStore((s) => s.user);
+  const profile = useUserProfileStore((s) => s.profile);
   const [tipo, setTipo] = useState<TipoTramite | null>(null);
   const [enviado, setEnviado] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -186,6 +189,43 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
 
     return () => { cancelado = true; };
   }, [tipo, user?.ci]);
+
+  const [diasDisponiblesVacaciones, setDiasDisponiblesVacaciones] = useState<number | null>(null);
+  const [vacacionesSaldoLoading, setVacacionesSaldoLoading] = useState(false);
+  const [vacacionesSaldoError, setVacacionesSaldoError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (tipo !== 'vacaciones' || !profile?.codEmp) return;
+
+    let cancelado = false;
+    setVacacionesSaldoLoading(true);
+    setVacacionesSaldoError(null);
+
+    api.get<ApiResponse<{ disponibleAcumulado: number | null }[]>>(`/usersProfit/${profile.codEmp}/Vacaciones`)
+      .then((res) => {
+        if (cancelado) return;
+        if (res.data.success) {
+          const registros = res.data.data ?? [];
+          const disponibleReal = registros.length > 0 ? registros[registros.length - 1].disponibleAcumulado ?? 0 : 0;
+          setDiasDisponiblesVacaciones(ajustarSaldoVacaciones(disponibleReal));
+        } else {
+          setVacacionesSaldoError('No se pudo obtener el saldo de vacaciones disponible.');
+        }
+      })
+      .catch((err) => {
+        if (cancelado) return;
+        if (err.response?.status === 404) {
+          setDiasDisponiblesVacaciones(0);
+        } else {
+          setVacacionesSaldoError('No se pudo obtener el saldo de vacaciones disponible.');
+        }
+      })
+      .finally(() => {
+        if (!cancelado) setVacacionesSaldoLoading(false);
+      });
+
+    return () => { cancelado = true; };
+  }, [tipo, profile?.codEmp]);
 
   const [diasLoading, setDiasLoading] = useState(false);
   const [diasError, setDiasError] = useState<string | null>(null);
@@ -263,6 +303,13 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         errs.fechaFin = 'La fecha de inicio no puede ser posterior a la fecha de fin';
       else if (diasLoading) errs.fechaFin = 'Espera a que se calculen los días hábiles';
       else if (diasError) errs.fechaFin = diasError;
+      if (!errs.fechaFin && !diasLoading && !diasError && vacaciones.fechaInicio && vacaciones.fechaFin) {
+        if (vacacionesSaldoLoading) errs.fechaFin = 'Espera a que se consulte tu saldo de vacaciones disponible';
+        else if (vacacionesSaldoError) errs.fechaFin = vacacionesSaldoError;
+        else if (diasDisponiblesVacaciones === null) errs.fechaFin = 'No se pudo determinar tu saldo disponible, intenta de nuevo';
+        else if (vacaciones.diasTotales > diasDisponiblesVacaciones)
+          errs.fechaFin = `Solo tienes ${diasDisponiblesVacaciones} día(s) disponible(s) para solicitar`;
+      }
     }
     if (tipo === 'diaEspecial') {
       if (!diaEspecial.fecha) errs.fecha = 'Requerido';
@@ -512,6 +559,16 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                     )}
                   </div>
                 )}
+
+                <div className="ns-dias-badge">
+                  {vacacionesSaldoLoading
+                    ? 'Consultando saldo disponible...'
+                    : vacacionesSaldoError
+                    ? <span className="ns-error">{vacacionesSaldoError}</span>
+                    : diasDisponiblesVacaciones !== null
+                    ? <>🏖️ Días disponibles para solicitar: <strong>{diasDisponiblesVacaciones}</strong></>
+                    : ''}
+                </div>
 
                 <div className="ns-field">
                   <label>Observaciones</label>

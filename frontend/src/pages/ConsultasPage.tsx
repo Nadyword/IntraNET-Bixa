@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useUserProfileStore } from '../store/userProfileStore';
 import { api } from '../lib/api';
+import { ajustarSaldoVacaciones } from '../lib/vacaciones';
 import './ConsultasPage.css';
 
 interface Vacacion {
@@ -22,11 +23,25 @@ interface DiaEspecial {
   comentario: string | null;
 }
 
+interface ConsultaHc {
+  nombreCompleto: string | null;
+  primaTrimBs: number | null;
+  pagoBixaTrim: number | null;
+  mes1E071: number | null;
+  mes2E071: number | null;
+  mes3E071: number | null;
+}
+
 const formatFecha = (fecha: string | null): string => {
   if (!fecha) return '—';
   const d = new Date(fecha);
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
+
+const formatMonto = (monto: number | null | undefined): string =>
+  typeof monto === 'number'
+    ? monto.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '—';
 
 export const ConsultasPage: React.FC = () => {
 
@@ -48,8 +63,18 @@ export const ConsultasPage: React.FC = () => {
   const [loadingUtilidades, setLoadingUtilidades] = useState(false);
   const [errorUtilidades, setErrorUtilidades] = useState<string | null>(null);
 
-  const ultimoDisponible = vacaciones !== null && vacaciones.length > 0
+  // null = aún no consultado, undefined = consultado sin registros, ConsultaHc = con datos
+  const [hcCobertura1, setHcCobertura1] = useState<ConsultaHc | null | undefined>(null);
+  const [hcCobertura2, setHcCobertura2] = useState<ConsultaHc | null | undefined>(null);
+  const [loadingHc, setLoadingHc] = useState(false);
+  const [modalHc, setModalHc] = useState(false);
+  const [errorHc, setErrorHc] = useState<string | null>(null);
+
+  const ultimoDisponibleReal = vacaciones !== null && vacaciones.length > 0
     ? vacaciones[vacaciones.length - 1].disponibleAcumulado
+    : null;
+  const ultimoDisponible = ultimoDisponibleReal !== null
+    ? ajustarSaldoVacaciones(ultimoDisponibleReal)
     : null;
 
   const diasEspUsados = diasEspeciales !== null
@@ -125,6 +150,37 @@ export const ConsultasPage: React.FC = () => {
     }
   };
 
+  const handleConsultarHc = async () => {
+    if (!profile?.ci) return;
+    setLoadingHc(true);
+    setErrorHc(null);
+    try {
+      const normalizedCi = profile.ci;
+      const [cob1, cob2] = await Promise.allSettled([
+        api.get(`/usersProfit/${normalizedCi}/ConsultaHc/Cobertura1`),
+        api.get(`/usersProfit/${normalizedCi}/ConsultaHc/Cobertura2`),
+      ]);
+
+      if (cob1.status === 'fulfilled' && cob1.value.data.success) {
+        setHcCobertura1(cob1.value.data.data);
+      } else {
+        setHcCobertura1(undefined);
+      }
+
+      if (cob2.status === 'fulfilled' && cob2.value.data.success) {
+        setHcCobertura2(cob2.value.data.data);
+      } else {
+        setHcCobertura2(undefined);
+      }
+
+      setModalHc(true);
+    } catch {
+      setErrorHc('Error al consultar HC');
+    } finally {
+      setLoadingHc(false);
+    }
+  };
+
   return (
     <div className="consultas-page">
       <div className="consultas-header">
@@ -139,14 +195,17 @@ export const ConsultasPage: React.FC = () => {
         <div className="stat-card">
           <div className="stat-icon red">🏖️</div>
           <div className="stat-info">
-            <h3>{ultimoDisponible !== null ? ultimoDisponible : '—'}</h3>
-            <p>Días de vacaciones disponibles</p>
             <div className="stat-sub">
-              {vacaciones === null
-                ? 'Sin consultar'
-                : vacaciones.length === 0
-                ? 'Sin registros'
-                : 'Disponible acumulado'}
+              {vacaciones === null ? (
+                'Sin consultar'
+              ) : vacaciones.length === 0 ? (
+                'Sin registros'
+              ) : (
+                <>
+                  <div>Días de vacaciones disponibles: <strong>{ultimoDisponibleReal}</strong></div>
+                  <div>Días disponibles menos vacaciones colectivas: <strong>{ultimoDisponible}</strong></div>
+                </>
+              )}
             </div>
             {errorVacaciones && <div className="stat-error">{errorVacaciones}</div>}
             <button
@@ -181,13 +240,33 @@ export const ConsultasPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Consulta de HC */}
+        <div className="stat-card">
+          <div className="stat-icon red">🏥</div>
+          <div className="stat-info">
+            <h3 style={{ fontSize: '22px' }}>HC</h3>
+            <p>Prima trimestral y pago a Bixa</p>
+            <div className="stat-sub">
+              {hcCobertura1 === null && hcCobertura2 === null
+                ? 'Sin consultar'
+                : !hcCobertura1 && !hcCobertura2
+                ? 'Sin registros'
+                : 'Consultado'}
+            </div>
+            {errorHc && <div className="stat-error">{errorHc}</div>}
+            <button
+              className="consultar-btn"
+              onClick={handleConsultarHc}
+              disabled={loadingHc}
+            >
+              {loadingHc ? 'Consultando...' : 'Consultar'}
+            </button>
+          </div>
+        </div>
+
         <div className="stat-card">
           <div className="stat-icon green">💰</div>
           <div className="stat-info"><h3 style={{ fontSize: '22px' }}>*En desarrollo*</h3><p>Prestaciones acumuladas</p></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon red">🏥</div>
-          <div className="stat-info"><h3 style={{ fontSize: '22px' }}>*En desarrollo*</h3><p>Descuento HC mensual</p></div>
         </div>
         <div className="stat-card">
           <div className="stat-icon red">📄</div>
@@ -296,6 +375,67 @@ export const ConsultasPage: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal HC */}
+      {modalHc && (hcCobertura1 || hcCobertura2) && (
+        <div className="modal-overlay" onClick={() => setModalHc(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h2>Consulta de HC</h2>
+              </div>
+              <button className="modal-close" onClick={() => setModalHc(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p className="modal-subtitle">Cobertura 1</p>
+              {hcCobertura1 ? (
+                <table className="vacaciones-table">
+                  <thead>
+                    <tr>
+                      <th>Nombre del asegurado</th>
+                      <th>Prima trim en Bs. Factura</th>
+                      <th>Mes 1</th>
+                      <th>Mes 2</th>
+                      <th>Mes 3</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>{hcCobertura1.nombreCompleto ?? '—'}</td>
+                      <td>{formatMonto(hcCobertura1.primaTrimBs)}</td>
+                      <td>{formatMonto(hcCobertura1.mes1E071)}</td>
+                      <td>{formatMonto(hcCobertura1.mes2E071)}</td>
+                      <td>{formatMonto(hcCobertura1.mes3E071)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              ) : (
+                <p className="stat-sub">Sin registros</p>
+              )}
+
+              <p className="modal-subtitle" style={{ marginTop: '20px' }}>Cobertura 2</p>
+              {hcCobertura2 ? (
+                <table className="vacaciones-table">
+                  <thead>
+                    <tr>
+                      <th>Nombre del asegurado</th>
+                      <th>Pago a Bixa Trim $</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>{hcCobertura2.nombreCompleto ?? '—'}</td>
+                      <td>{formatMonto(hcCobertura2.pagoBixaTrim)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              ) : (
+                <p className="stat-sub">Sin registros</p>
+              )}
             </div>
           </div>
         </div>

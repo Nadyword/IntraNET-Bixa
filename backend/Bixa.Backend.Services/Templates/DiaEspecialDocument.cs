@@ -121,10 +121,11 @@ public class DiaEspecialDocument(TramiteReportModel model) : IDocument
                 row.RelativeItem(1).Element(c => FormField(c, "CI", model.EmpleadoCi));
             });
 
-            col.Item().Row(row =>
+            col.Item().Column(inner =>
             {
-                row.RelativeItem(1).PaddingRight(15).Element(c => FormField(c, "CARGO", model.EmpleadoCargo ?? "—"));
-                row.RelativeItem(1).Element(c => FormField(c, "DEPARTAMENTO", model.EmpleadoDepartamento ?? "—"));
+                inner.Spacing(10);
+                inner.Item().Element(c => FormField(c, "CARGO", model.EmpleadoCargo ?? "—"));
+                inner.Item().Element(c => FormField(c, "DEPARTAMENTO", model.EmpleadoDepartamento ?? "—"));
             });
         });
     }
