@@ -457,6 +457,53 @@
   background: var(--gray-50);
 }
 
+/* HC - Mes 1/2/3 editables */
+.hc-mes-input {
+  width: 90px;
+  padding: 6px 8px;
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.hc-mes-input:focus {
+  outline: none;
+  border-color: var(--red);
+}
+
+.hc-mes-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.hc-mes-summary {
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.hc-mes-actions .consultar-btn {
+  width: auto;
+  margin-top: 0;
+}
+
+.hc-mes-success {
+  color: #1e8449;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hc-mes-error {
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .vacaciones-last-row td {
   background: #fff8f8;
   font-weight: 500;

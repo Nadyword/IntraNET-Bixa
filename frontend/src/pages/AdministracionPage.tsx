@@ -530,6 +530,12 @@ const TramiteTable: React.FC<{ tramites: TramiteDTO[]; emptyText: string }> = ({
 export const AdministracionPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'solicitudes' | 'finalizados'>('solicitudes');
 
+  const [busquedaFinalizados, setBusquedaFinalizados] = useState('');
+  const [mostrarBusquedaAvanzada, setMostrarBusquedaAvanzada] = useState(false);
+  const [filtroTipoTramite, setFiltroTipoTramite] = useState('');
+  const [filtroFechaDesde, setFiltroFechaDesde] = useState('');
+  const [filtroFechaHasta, setFiltroFechaHasta] = useState('');
+
   const { data: tramites = [], isLoading, isError } = useQuery({
     queryKey: ['aprobados'],
     queryFn: fetchAprobados,
@@ -539,6 +545,52 @@ export const AdministracionPage: React.FC = () => {
   const activos     = tramites.filter(t => t.estado <= 3);
   const tramitando  = tramites.filter(t => t.estado === 4);
   const finalizados = tramites.filter(t => t.estado === 5);
+
+  const tiposTramiteFinalizados = Array.from(
+    new Map(finalizados.map(t => [t.tipoTramiteId, t.tipoTramiteNombre])).entries()
+  ).sort((a, b) => a[1].localeCompare(b[1]));
+
+  const hayFiltrosFinalizadosActivos =
+    busquedaFinalizados.trim() !== '' ||
+    filtroTipoTramite !== '' ||
+    filtroFechaDesde !== '' ||
+    filtroFechaHasta !== '';
+
+  const finalizadosFiltrados = finalizados.filter(t => {
+    if (busquedaFinalizados.trim()) {
+      const q = busquedaFinalizados.trim().toLowerCase();
+      const matchNombre = (t.userNombre ?? '').toLowerCase().includes(q);
+      const matchCi = (t.userCi ?? '').toLowerCase().includes(q);
+      if (!matchNombre && !matchCi) return false;
+    }
+    if (filtroTipoTramite && String(t.tipoTramiteId) !== filtroTipoTramite) return false;
+    if (filtroFechaDesde) {
+      const desde = new Date(filtroFechaDesde);
+      desde.setHours(0, 0, 0, 0);
+      if (new Date(t.updatedAt) < desde) return false;
+    }
+    if (filtroFechaHasta) {
+      const hasta = new Date(filtroFechaHasta);
+      hasta.setHours(23, 59, 59, 999);
+      if (new Date(t.updatedAt) > hasta) return false;
+    }
+    return true;
+  });
+
+  const finalizadosOrdenados = [...finalizadosFiltrados].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  );
+
+  const finalizadosMostrados = hayFiltrosFinalizadosActivos
+    ? finalizadosOrdenados
+    : finalizadosOrdenados.slice(0, 20);
+
+  const limpiarFiltrosFinalizados = () => {
+    setBusquedaFinalizados('');
+    setFiltroTipoTramite('');
+    setFiltroFechaDesde('');
+    setFiltroFechaHasta('');
+  };
 
   return (
     <div className="adm-page">
@@ -599,7 +651,72 @@ export const AdministracionPage: React.FC = () => {
           {activeTab === 'finalizados' && (
             <>
               <div className="adm-section-label adm-section-label--finalizados">Finalizados</div>
-              <TramiteTable tramites={finalizados} emptyText="No hay trámites finalizados." />
+
+              <div className="adm-search-bar">
+                <input
+                  type="text"
+                  className="adm-search-input"
+                  placeholder="Buscar por nombre y apellido o CI..."
+                  value={busquedaFinalizados}
+                  onChange={e => setBusquedaFinalizados(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className={`adm-search-adv-toggle ${mostrarBusquedaAvanzada ? 'active' : ''}`}
+                  onClick={() => setMostrarBusquedaAvanzada(v => !v)}
+                >
+                  Búsqueda avanzada {mostrarBusquedaAvanzada ? '▲' : '▼'}
+                </button>
+              </div>
+
+              {mostrarBusquedaAvanzada && (
+                <div className="adm-search-advanced">
+                  <div className="adm-search-field">
+                    <label>Tipo de trámite</label>
+                    <select
+                      value={filtroTipoTramite}
+                      onChange={e => setFiltroTipoTramite(e.target.value)}
+                    >
+                      <option value="">Todos</option>
+                      {tiposTramiteFinalizados.map(([id, nombre]) => (
+                        <option key={id} value={String(id)}>{nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="adm-search-field">
+                    <label>Fecha finalización desde</label>
+                    <input
+                      type="date"
+                      value={filtroFechaDesde}
+                      onChange={e => setFiltroFechaDesde(e.target.value)}
+                    />
+                  </div>
+                  <div className="adm-search-field">
+                    <label>Fecha finalización hasta</label>
+                    <input
+                      type="date"
+                      value={filtroFechaHasta}
+                      onChange={e => setFiltroFechaHasta(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="adm-search-clear-btn"
+                    onClick={limpiarFiltrosFinalizados}
+                    disabled={!hayFiltrosFinalizadosActivos}
+                  >
+                    Limpiar filtros
+                  </button>
+                </div>
+              )}
+
+              <p className="adm-search-hint">
+                {hayFiltrosFinalizadosActivos
+                  ? `${finalizadosMostrados.length} resultado${finalizadosMostrados.length !== 1 ? 's' : ''} encontrado${finalizadosMostrados.length !== 1 ? 's' : ''}`
+                  : `Mostrando los ${finalizadosMostrados.length} registros más recientes de ${finalizados.length}`}
+              </p>
+
+              <TramiteTable tramites={finalizadosMostrados} emptyText="No hay trámites finalizados." />
             </>
           )}
         </div>

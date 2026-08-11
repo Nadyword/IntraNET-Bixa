@@ -293,6 +293,34 @@
   white-space: nowrap;
 }
 
+/* ── Búsqueda (Historial) ───────────────────────────────── */
+.tramites-search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.tramites-search-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--gray-100, #e0e0e0);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.tramites-search-input:focus {
+  outline: none;
+  border-color: var(--red);
+}
+
+.tramites-search-hint {
+  font-size: 13px;
+  color: var(--gray-400);
+  margin: 0 0 12px;
+}
+
 /* ── Historial ──────────────────────────────────────────── */
 .historial-list {
   display: flex;

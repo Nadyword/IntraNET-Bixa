@@ -59,6 +59,7 @@ public static class ServiceRegistrationExtensions
         services.AddScoped<ITramitesRepository, TramitesRepository>();
         services.AddScoped<IAprobacionesRepository, AprobacionesRepository>();
         services.AddScoped<IGrupoFaProfitRepository, GrupoFaProfitRepository>();
+        services.AddScoped<IHcMesRegistroRepository, HcMesRegistroRepository>();
     }
 
     /// <summary>
@@ -95,6 +96,7 @@ public static class ServiceRegistrationExtensions
         services.AddScoped<ISolicitudesService, SolicitudesService>();
         services.AddScoped<ITramitesService, TramitesService>();
         services.AddScoped<IAprobacionesService, AprobacionesService>();
+        services.AddScoped<IHcMesRegistroService, HcMesRegistroService>();
     }
 
     /// <summary>

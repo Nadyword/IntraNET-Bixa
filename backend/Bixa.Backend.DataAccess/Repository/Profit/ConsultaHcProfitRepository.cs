@@ -44,4 +44,35 @@ public class ConsultaHcProfitRepository(ProfitDbContext context) : IConsultaHcPr
             return Result.Fail<ConsultaHc>(ex.Message, ErrorTypeEnum.Conflict);
         }
     }
+
+    /// <summary>
+    /// Obtiene TODOS los registros de HC (cobertura 1 = 10000.00 o cobertura 2 = 20000.00) para el empleado indicado.
+    /// En cobertura 2 puede haber más de un registro (uno por cada familiar/beneficiario).
+    /// </summary>
+    /// <param name="ci">La cédula de identidad del empleado.</param>
+    /// <param name="cover">El valor de cobertura consultado (10000.00 o 20000.00).</param>
+    /// <returns>Un resultado con la lista de registros de HC. Si no existe ninguno, el resultado indica un error de tipo NotFound.</returns>
+    public async Task<Result<List<ConsultaHc>>> GetConsultaHcListAsync(string ci, decimal cover)
+    {
+        try
+        {
+            var registros = await _context.ConsultaHc
+                .FromSqlRaw(
+                    ProfitSqlTemplates.GetConsultaHC,
+                    new SqlParameter("@CiEmpleado", ci),
+                    new SqlParameter("@Cover", cover))
+                .ToListAsync();
+
+            if (registros.Count == 0)
+            {
+                return Result.Fail<List<ConsultaHc>>("Sin registros", ErrorTypeEnum.NotFound);
+            }
+
+            return Result.Success(registros);
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail<List<ConsultaHc>>(ex.Message, ErrorTypeEnum.Conflict);
+        }
+    }
 }

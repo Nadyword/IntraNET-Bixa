@@ -41,6 +41,27 @@ public class ReportService(string reportAssetsPath, string firmasPath) : IReport
         };
     }
 
+    public byte[] GenerateArcReport(ArcReportModel model)
+    {
+        QuestPDF.Settings.License = LicenseType.Community;
+
+        if (model.LogoEmpresa is not { Length: > 0 })
+        {
+            var logoPath = Path.Combine(_assetsPath, "Logo.webp");
+            if (File.Exists(logoPath))
+                model.LogoEmpresa = File.ReadAllBytes(logoPath);
+        }
+
+        if (model.FirmaSelloAgente is not { Length: > 0 })
+        {
+            var firmaSelloPath = Path.Combine(_assetsPath, "FirmaSelloArc.png");
+            if (File.Exists(firmaSelloPath))
+                model.FirmaSelloAgente = File.ReadAllBytes(firmaSelloPath);
+        }
+
+        return new ArcDocument(model).GeneratePdf();
+    }
+
     public async Task<string> SaveReportImageAsync(Stream imageStream, string fileName)
     {
         Directory.CreateDirectory(_assetsPath);

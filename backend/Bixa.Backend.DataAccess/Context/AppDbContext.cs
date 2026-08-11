@@ -26,6 +26,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public virtual DbSet<Tramite> Tramites { get; set; }
     public virtual DbSet<Users> Users { get; set; }
     public virtual DbSet<FAQs> FAQs { get; set; }
+    public virtual DbSet<HcMesRegistro> HcMesRegistros { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -466,6 +467,30 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<FAQs>().Property(f => f.Response).IsRequired().HasMaxLength(ModelLengths.Description);
 
         #endregion FAQs Entity Configuration
+
+        #region HcMesRegistro Entity Configuration
+
+        modelBuilder.Entity<HcMesRegistro>().HasKey(h => h.Id);
+        modelBuilder.Entity<HcMesRegistro>().Property(h => h.Id).ValueGeneratedOnAdd();
+        modelBuilder.Entity<HcMesRegistro>().Property(h => h.UserCi).IsRequired().HasMaxLength(ModelLengths.Ci);
+        modelBuilder.Entity<HcMesRegistro>().Property(h => h.Mes1).IsRequired().HasColumnType("decimal(18,2)");
+        modelBuilder.Entity<HcMesRegistro>().Property(h => h.Mes2).IsRequired().HasColumnType("decimal(18,2)");
+        modelBuilder.Entity<HcMesRegistro>().Property(h => h.Mes3).IsRequired().HasColumnType("decimal(18,2)");
+        modelBuilder.Entity<HcMesRegistro>().Property(h => h.PrimaTrimBs).IsRequired().HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<HcMesRegistro>()
+            .HasIndex(h => h.UserCi)
+            .IsUnique();
+
+        modelBuilder.Entity<HcMesRegistro>()
+            .HasOne(h => h.User)
+            .WithMany()
+            .HasForeignKey(h => h.UserCi)
+            .HasPrincipalKey(u => u.Ci)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
+        #endregion HcMesRegistro Entity Configuration
 
         #region BaseEntities Relationships Configuration (Auditoría)
 

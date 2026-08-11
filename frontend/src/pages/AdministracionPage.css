@@ -388,6 +388,116 @@
   }
 }
 
+/* ── Búsqueda (Finalizados) ─────────────────────────────── */
+.adm-search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.adm-search-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--gray-100, #e0e0e0);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.adm-search-input:focus {
+  outline: none;
+  border-color: var(--red);
+}
+
+.adm-search-adv-toggle {
+  padding: 10px 16px;
+  border: 1px solid var(--gray-100, #e0e0e0);
+  border-radius: var(--radius);
+  background: white;
+  color: var(--gray-500);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition);
+}
+
+.adm-search-adv-toggle:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.adm-search-adv-toggle.active {
+  background: var(--red);
+  border-color: var(--red);
+  color: white;
+}
+
+.adm-search-advanced {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 16px;
+  background: var(--gray-50, #f9f9f9);
+  border: 1px dashed var(--gray-200, #e0e0e0);
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.adm-search-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.adm-search-field label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--gray-400, #aaa);
+}
+
+.adm-search-field select,
+.adm-search-field input[type="date"] {
+  padding: 8px 10px;
+  border: 1px solid var(--gray-100, #e0e0e0);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 13px;
+  background: white;
+}
+
+.adm-search-clear-btn {
+  padding: 9px 14px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--gray-100, #f2f3f4);
+  color: var(--gray-600, #616a6b);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.adm-search-clear-btn:not(:disabled):hover {
+  filter: brightness(0.95);
+}
+
+.adm-search-clear-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.adm-search-hint {
+  font-size: 13px;
+  color: var(--gray-400);
+  margin: 0 0 12px;
+}
+
 /* ── Botón Ver ──────────────────────────────────────────── */
 .adm-btn-ver {
   background: #f0f4ff;

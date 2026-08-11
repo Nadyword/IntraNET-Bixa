@@ -10,7 +10,19 @@ import { DeleteUserModal } from '../components/ui/DeleteUserModal';
 import { EditUserModal } from '../components/ui/EditUserModal';
 import { ResendWelcomeEmailModal } from '../components/ui/ResendWelcomeEmailModal';
 import { EmployeeProfileModal } from '../components/ui/EmployeeProfileModal';
+import { HcEditModal } from '../components/ui/HcEditModal';
 import './LeaderPage.css';
+
+interface HcMesRegistroAdmin {
+  ci: string;
+  nombreCompleto: string | null;
+  mes1: number;
+  mes2: number;
+  mes3: number;
+  primaTrimBs: number;
+  updatedAt: string;
+  modifiedByCi: string | null;
+}
 
 const PAGE_SIZE = 50;
 
@@ -96,6 +108,14 @@ export const LeaderPage: React.FC = () => {
   const [selectedCi, setSelectedCi] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Estado de HC (mes1/mes2/mes3)
+  const [hcRegistros, setHcRegistros] = useState<HcMesRegistroAdmin[]>([]);
+  const [hcLoading, setHcLoading] = useState(false);
+  const [hcError, setHcError] = useState('');
+  const [hcSearchQuery, setHcSearchQuery] = useState('');
+  const [hcRefreshKey, setHcRefreshKey] = useState(0);
+  const [hcEditRegistro, setHcEditRegistro] = useState<HcMesRegistroAdmin | null>(null);
+
   useEffect(() => {
     if (activeTab !== 'equipo') return;
     let cancelled = false;
@@ -164,6 +184,27 @@ export const LeaderPage: React.FC = () => {
     return () => { cancelled = true; };
   }, [activeTab]);
 
+  useEffect(() => {
+    if (activeTab !== 'hc' || !isAdmin) return;
+    let cancelled = false;
+    const q = hcSearchQuery.trim();
+    const timeout = setTimeout(async () => {
+      setHcLoading(true);
+      setHcError('');
+      try {
+        const res = q
+          ? await api.get<ApiResponse<HcMesRegistroAdmin[]>>('/hc/buscar', { params: { q } })
+          : await api.get<ApiResponse<HcMesRegistroAdmin[]>>('/hc/recientes', { params: { take: 20 } });
+        if (!cancelled) setHcRegistros(res.data.data ?? []);
+      } catch {
+        if (!cancelled) setHcError('Error al cargar los registros de HC.');
+      } finally {
+        if (!cancelled) setHcLoading(false);
+      }
+    }, q ? 300 : 0);
+    return () => { cancelled = true; clearTimeout(timeout); };
+  }, [activeTab, isAdmin, hcSearchQuery, hcRefreshKey]);
+
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     if (tab === 'equipo') setCurrentPage(1);
@@ -210,6 +251,14 @@ export const LeaderPage: React.FC = () => {
             onClick={() => handleTabChange('faqs')}
           >
             Preguntas frecuentes
+          </button>
+        )}
+        {isAdmin && (
+          <button
+            className={`tab-btn ${activeTab === 'hc' ? 'active' : ''}`}
+            onClick={() => handleTabChange('hc')}
+          >
+            HC
           </button>
         )}
       </div>
@@ -478,6 +527,81 @@ export const LeaderPage: React.FC = () => {
             )}
           </div>
         )}
+
+        {isAdmin && activeTab === 'hc' && (
+          <div>
+            <div className="team-search-bar">
+              <input
+                type="text"
+                className="team-search-input"
+                placeholder="Buscar por nombre, apellido o CI..."
+                value={hcSearchQuery}
+                onChange={(e) => setHcSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <p className="team-hint">
+              {hcSearchQuery.trim()
+                ? 'Buscando en todos los registros de HC...'
+                : `Mostrando los últimos ${hcRegistros.length} registros editados`}
+            </p>
+
+            <div className="team-section">
+              <table className="team-table">
+                <thead>
+                  <tr>
+                    <th>Nombre y Apellido</th>
+                    <th>CI</th>
+                    <th>Mes 1</th>
+                    <th>Mes 2</th>
+                    <th>Mes 3</th>
+                    <th>Prima Trim Bs.</th>
+                    <th>Actualizado</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {hcLoading && (
+                    <tr>
+                      <td colSpan={8} className="team-empty">Cargando registros de HC...</td>
+                    </tr>
+                  )}
+                  {!hcLoading && hcError && (
+                    <tr>
+                      <td colSpan={8} className="team-error">{hcError}</td>
+                    </tr>
+                  )}
+                  {!hcLoading && !hcError && hcRegistros.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="team-empty">
+                        {hcSearchQuery.trim() ? 'No hay resultados para la búsqueda.' : 'No hay registros de HC editados.'}
+                      </td>
+                    </tr>
+                  )}
+                  {!hcLoading && !hcError && hcRegistros.map((r) => (
+                    <tr key={r.ci}>
+                      <td><strong>{r.nombreCompleto ?? '—'}</strong></td>
+                      <td>{r.ci}</td>
+                      <td>{r.mes1.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</td>
+                      <td>{r.mes2.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</td>
+                      <td>{r.mes3.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</td>
+                      <td>{r.primaTrimBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</td>
+                      <td>{new Date(r.updatedAt).toLocaleDateString('es-VE')}</td>
+                      <td>
+                        <button
+                          className="action-link-btn"
+                          onClick={() => setHcEditRegistro(r)}
+                        >
+                          Editar →
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
 
@@ -498,6 +622,14 @@ export const LeaderPage: React.FC = () => {
       )}
       {selectedChat && (
         <SoporteChatAdminModal chat={selectedChat} onClose={() => setSelectedChat(null)} />
+      )}
+      {hcEditRegistro && (
+        <HcEditModal
+          ci={hcEditRegistro.ci}
+          nombreCompleto={hcEditRegistro.nombreCompleto}
+          onClose={() => setHcEditRegistro(null)}
+          onSaved={() => setHcRefreshKey((k) => k + 1)}
+        />
       )}
     </>
   );

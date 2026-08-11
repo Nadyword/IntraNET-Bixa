@@ -61,7 +61,18 @@
       "Bash(xargs -I{} sh -c 'echo ==={}===; cat {}')",
       "Bash(xargs cat)",
       "Bash(sqlcmd -?)",
-      "Bash(sqlcmd *)"
+      "Bash(sqlcmd *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(sqllocaldb info *)",
+      "PowerShell(sqlcmd *)",
+      "Bash(sed -i 's/CAST\\(sncontr_pol.campo1 AS DECIMAL\\(18,2\\)\\) AS dias,/TRY_CAST\\(REPLACE\\(sncontr_pol.campo1, '\\\\'','\\\\'', '\\\\''.'\\\\''\\) AS DECIMAL\\(18,2\\)\\) AS dias,/' 'C:\\\\Users\\\\samue\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Proyectos-IntraNET-Bixa\\\\12505a43-d38c-46fc-9ffe-602f81915243\\\\scratchpad\\\\test_hc.sql')",
+      "Bash(sed -i 's/CAST\\(sncontr_pol.campo2 AS DECIMAL\\(18,6\\)\\) AS tasa,/TRY_CAST\\(REPLACE\\(sncontr_pol.campo2, '\\\\'','\\\\'', '\\\\''.'\\\\''\\) AS DECIMAL\\(18,6\\)\\) AS tasa,/' 'C:\\\\Users\\\\samue\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--Proyectos-IntraNET-Bixa\\\\12505a43-d38c-46fc-9ffe-602f81915243\\\\scratchpad\\\\test_hc.sql')",
+      "Bash(awk '/internal const string GetConsultaHC = \"\"\"/{flag=1; next} flag && /^        \"\"\";/{flag=0} flag' \"D:/Proyectos/IntraNET Bixa/backend/Bixa.Backend.DataAccess/Templates/Profit/ProfitSqlTemplates.cs\")",
+      "Bash(awk '/internal const string GetConsultaARC = \"\"\"/{flag=1; next} flag && /^        \"\"\";/{flag=0} flag' \"D:/Proyectos/IntraNET Bixa/backend/Bixa.Backend.DataAccess/Templates/Profit/ProfitSqlTemplates.cs\")",
+      "Bash(mkdir -p \"/c/Users/samue/AppData/Local/Temp/claude/D--Proyectos-IntraNET-Bixa/13ce1590-725d-438f-b02e-cca1246342c0/scratchpad/arc-test\")",
+      "Read(//c/Users/samue/AppData/Local/Temp/claude/D--Proyectos-IntraNET-Bixa/13ce1590-725d-438f-b02e-cca1246342c0/scratchpad/**)",
+      "Bash(dotnet new *)",
+      "Bash(dotnet add *)"
     ]
   }
 }

@@ -165,7 +165,7 @@ internal static class ProfitSqlTemplates
             e.supervisor
         FROM snemple e
         INNER JOIN dbo.sncargo AS c ON e.co_cargo = c.co_cargo
-        INNER JOIN dbo.sndepart AS d ON c.co_depart = d.co_depart
+        INNER JOIN dbo.sndepart AS d ON e.co_depart = d.co_depart
         WHERE e.supervisor IN (
             SELECT cod_emp
             FROM snemple
@@ -183,7 +183,7 @@ internal static class ProfitSqlTemplates
             e.supervisor
         FROM snemple e
         INNER JOIN dbo.sncargo AS c ON e.co_cargo = c.co_cargo
-        INNER JOIN dbo.sndepart AS d ON c.co_depart = d.co_depart
+        INNER JOIN dbo.sndepart AS d ON e.co_depart = d.co_depart
         INNER JOIN JerarquiaEmpleados AS r ON e.supervisor = r.CodEmp
         WHERE e.status = 'A'
     )
@@ -198,45 +198,111 @@ internal static class ProfitSqlTemplates
     """;
 
     internal const string GetConsultaHC = """
-    IF OBJECT_ID('tempdb..#Resultados') IS NOT NULL
-        DROP TABLE #Resultados;
+        IF OBJECT_ID('tempdb..#Resultados') IS NOT NULL
+            DROP TABLE #Resultados;
 
-    IF OBJECT_ID('tempdb..#NominaE071') IS NOT NULL
-        DROP TABLE #NominaE071;
+        IF OBJECT_ID('tempdb..#NominaE071') IS NOT NULL
+            DROP TABLE #NominaE071;
 
-    DECLARE
-        @sTipo_Poliza char(6) = null,
-        @iNum_Contrpol_d int = null,                        w
-        @iNum_Contrpol_h int = null,
-        @sCod_emp_d char(17) = null,
-        @sCod_emp_h char(17) = null,
-        @ci VARCHAR(15) = @CiEmpleado,
-        @covertura DECIMAL(18,2) = @Cover,
-        @tipo_orden INT = 0
-        SET NOCOUNT ON;
-        SET @tipo_orden = IIF(@covertura = 10000.00,1,2);
-        SET @sCod_emp_d = (SELECT cod_emp FROM snemple WHERE ci = @ci )
-        SET @sCod_emp_h = (SELECT cod_emp FROM snemple WHERE ci = @ci)
+        DECLARE
+            @sTipo_Poliza char(6) = null,
+            @iNum_Contrpol_d int = null,
+            @iNum_Contrpol_h int = null,
+            @sCod_emp_d char(17) = null,
+            @sCod_emp_h char(17) = null,
+            @ci VARCHAR(15) = @CiEmpleado,
+            @covertura DECIMAL(18,2) = @Cover,
+            @Parentesco VARCHAR(40),
+            @NControl INT
+            SET NOCOUNT ON;
+            SET @Parentesco = IIF(@covertura = 10000.00,'EMPLEADO','');
 
+            -- TOP 1 + ORDER BY: algunos empleados tienen más de un registro con la misma ci
+            -- (reingresos). Se prioriza el registro Activo para evitar "Subquery returned more than 1 value".
+            SET @sCod_emp_d = (SELECT TOP 1 cod_emp FROM snemple WHERE ci = @ci ORDER BY CASE WHEN status = 'A' THEN 0 ELSE 1 END, cod_emp DESC)
+            SET @sCod_emp_h = @sCod_emp_d
+
+            SELECT
+                cod_emp,
+                YEAR(fec_emis) AS anio,
+                MONTH(fec_emis) AS mes,
+                SUM(monto) AS monto
+            INTO #NominaE071
+            FROM snnomi
+            WHERE co_conce = 'E071'
+            GROUP BY cod_emp, YEAR(fec_emis), MONTH(fec_emis)
+
+            CREATE CLUSTERED INDEX IX_NominaE071 ON #NominaE071(cod_emp, anio, mes)
+
+        -- 1. Inserción de Titulares (Empleados)
         SELECT
-            cod_emp,
-            YEAR(fec_emis) AS anio,
-            MONTH(fec_emis) AS mes,
-            SUM(monto) AS monto
-        INTO #NominaE071
-        FROM snnomi
-        WHERE co_conce = 'E071'
-        GROUP BY cod_emp, YEAR(fec_emis), MONTH(fec_emis)
+                snemple.cod_emp,
+                snemple.ci,
+                sncontr_pol.num_contrpol,
+                sncontr_pol.tipo_poliza,
+                1 AS tipo_orden,
+                snemple.nombre_completo,
+                CAST(CASE snemple.status
+                    WHEN 'A' THEN 'Activo'
+                    WHEN 'I' THEN 'Inactivo'
+                    WHEN 'L' THEN 'Liquidado'
+                    WHEN 'O' THEN 'Otro'
+                    WHEN 'PL' THEN 'Por Liquidar'
+                    WHEN 'EL' THEN 'Parcialmente Liquidado' ELSE ''
+                END AS VARCHAR(30)) AS status,
+                CAST('EMPLEADO' AS VARCHAR(15)) AS parentesco_bixa,
+                CAST('TITULAR' AS VARCHAR(15)) AS parentesco,
+                snemple.fecha_nac,
+                snpolitrab.monto_pol,
+                (snpolitrab.monto_pol - ISNULL(pol_ref.monto_pol, 0)) AS monto_emp,
+                ISNULL(pol_ref.monto_pol, CAST(0.00 AS DECIMAL(18,2))) AS monto_pol_ref,
+                -- campo1/campo2 son varchar y algunos registros usan coma como separador decimal
+                -- (ej. '737,88'); sin REPLACE+TRY_CAST el CAST directo lanza el error 8114.
+                TRY_CAST(REPLACE(sncontr_pol.campo1, ',', '.') AS DECIMAL(18,2)) AS dias,
+                TRY_CAST(REPLACE(sncontr_pol.campo2, ',', '.') AS DECIMAL(18,6)) AS tasa,
+                ISNULL(NM1.monto, CAST(0.00 AS DECIMAL(18,2))) AS mes1_E071,
+                ISNULL(NM2.monto, CAST(0.00 AS DECIMAL(18,2))) AS mes2_E071,
+                ISNULL(NM3.monto, CAST(0.00 AS DECIMAL(18,2))) AS mes3_E071
 
-        CREATE CLUSTERED INDEX IX_NominaE071 ON #NominaE071(cod_emp, anio, mes)
+            INTO #Resultados
+            FROM sncontr_pol
+            INNER JOIN snpolitrab ON (snpolitrab.num_contrpol = sncontr_pol.num_contrpol)
+            INNER JOIN snemple ON (snpolitrab.cod_emp = snemple.cod_emp)
+            INNER JOIN snren_contrpol ON (snren_contrpol.num_contrpol = sncontr_pol.num_contrpol)
 
-    SELECT
-            snemple.cod_emp,
-            snemple.ci,
-            sncontr_pol.num_contrpol,
-            sncontr_pol.tipo_poliza,
-            1 AS tipo_orden,
-            snemple.nombre_completo,
+            LEFT JOIN snpolitrab AS pol_ref
+                   ON CAST(pol_ref.num_contrpol AS VARCHAR(30)) = LTRIM(RTRIM(sncontr_pol.campo3))
+                  AND pol_ref.cod_emp = snemple.cod_emp
+            LEFT JOIN #NominaE071 NM1
+                   ON NM1.cod_emp = snemple.cod_emp
+                  AND NM1.anio = YEAR(snren_contrpol.desde)
+                  AND NM1.mes = MONTH(snren_contrpol.desde)
+            LEFT JOIN #NominaE071 NM2
+                   ON NM2.cod_emp = snemple.cod_emp
+                  AND NM2.anio = YEAR(DATEADD(MONTH, 1, snren_contrpol.desde))
+                  AND NM2.mes = MONTH(DATEADD(MONTH, 1, snren_contrpol.desde))
+
+            LEFT JOIN #NominaE071 NM3
+                   ON NM3.cod_emp = snemple.cod_emp
+                  AND NM3.anio = YEAR(DATEADD(MONTH, 2, snren_contrpol.desde))
+                  AND NM3.mes = MONTH(DATEADD(MONTH, 2, snren_contrpol.desde))
+
+            WHERE
+            ((@iNum_Contrpol_d IS NULL OR sncontr_pol.num_contrpol >= @iNum_Contrpol_d)
+                AND (@iNum_Contrpol_h IS NULL OR sncontr_pol.num_contrpol <= @iNum_Contrpol_h ))
+                AND ((@sCod_emp_d IS NULL OR snemple.cod_emp >= @sCod_emp_d)
+                AND (@sCod_emp_h IS NULL OR snemple.cod_emp <= @sCod_emp_h ))
+                AND (@sTipo_Poliza is null or @sTipo_Poliza = sncontr_pol.tipo_poliza)
+
+            -- 2. Inserción de Familiares
+            INSERT INTO #Resultados
+            SELECT
+                snemple.cod_emp,
+                snemple.ci,
+                sncontr_pol.num_contrpol,
+                sncontr_pol.tipo_poliza,
+                2 AS tipo_orden,
+                sngru_fa.nombre AS nombre_completo,
             CAST(CASE snemple.status
                 WHEN 'A' THEN 'Activo'
                 WHEN 'I' THEN 'Inactivo'
@@ -245,133 +311,506 @@ internal static class ProfitSqlTemplates
                 WHEN 'PL' THEN 'Por Liquidar'
                 WHEN 'EL' THEN 'Parcialmente Liquidado' ELSE ''
             END AS VARCHAR(30)) AS status,
-            CAST('EMPLEADO' AS VARCHAR(15)) AS parentesco_bixa,
-            CAST('TITULAR' AS VARCHAR(15)) AS parentesco,
-            snemple.fecha_nac,
-            snpolitrab.monto_pol,
-            (snpolitrab.monto_pol - pol_ref.monto_pol    ) AS monto_emp,
-            ISNULL(pol_ref.monto_pol, CAST(0.00 AS DECIMAL(18,2))) AS monto_pol_ref,
-            CAST(sncontr_pol.campo1 AS DECIMAL(18,2)) AS dias,
-            CAST(sncontr_pol.campo2 AS DECIMAL(18,6)) AS tasa,
-            ISNULL(NM1.monto, CAST(0.00 AS DECIMAL(18,2))) AS mes1_E071,
-            ISNULL(NM2.monto, CAST(0.00 AS DECIMAL(18,2))) AS mes2_E071,
-            ISNULL(NM3.monto, CAST(0.00 AS DECIMAL(18,2))) AS mes3_E071
+            CAST('FAMILIAR' AS VARCHAR(15)) AS parentesco_bixa,
+                CAST(case when sngru_fa.log1=1 then 'TITULAR' else 'BENEFICIARIO' end AS VARCHAR(15)) AS parentesco,
+            sngru_fa.fecha_nac,
 
-        INTO #Resultados
-        FROM sncontr_pol
-        INNER JOIN snpolitrab ON (snpolitrab.num_contrpol = sncontr_pol.num_contrpol)
-        INNER JOIN snemple ON (snpolitrab.cod_emp = snemple.cod_emp)
-        INNER JOIN snren_contrpol ON (snren_contrpol.num_contrpol = sncontr_pol.num_contrpol)
+                snpolifam.monto_poliza AS monto_pol,
+                (snpolifam.monto_poliza - ISNULL(fam_ref.monto_poliza, 0)) AS monto_emp,
+                ISNULL(fam_ref.monto_poliza, CAST(0.00 AS DECIMAL(18,2))) AS monto_pol_ref,
+                TRY_CAST(REPLACE(sncontr_pol.campo1, ',', '.') AS DECIMAL(18,2)) AS dias,
+                TRY_CAST(REPLACE(sncontr_pol.campo2, ',', '.') AS DECIMAL(18,6)) AS tasa,
 
-        LEFT JOIN snpolitrab AS pol_ref
-               ON CAST(pol_ref.num_contrpol AS VARCHAR(30)) = LTRIM(RTRIM(sncontr_pol.campo3))
-              AND pol_ref.cod_emp = snemple.cod_emp
-        LEFT JOIN #NominaE071 NM1
-               ON NM1.cod_emp = snemple.cod_emp
-              AND NM1.anio = YEAR(snren_contrpol.desde)
-              AND NM1.mes = MONTH(snren_contrpol.desde)
-        LEFT JOIN #NominaE071 NM2
-               ON NM2.cod_emp = snemple.cod_emp
-              AND NM2.anio = YEAR(DATEADD(MONTH, 1, snren_contrpol.desde))
-              AND NM2.mes = MONTH(DATEADD(MONTH, 1, snren_contrpol.desde))
+                CAST(0.00 AS DECIMAL(18,2)) AS mes1_E071,
+                CAST(0.00 AS DECIMAL(18,2)) AS mes2_E071,
+                CAST(0.00 AS DECIMAL(18,2)) AS mes3_E071
 
-        LEFT JOIN #NominaE071 NM3
-               ON NM3.cod_emp = snemple.cod_emp
-              AND NM3.anio = YEAR(DATEADD(MONTH, 2, snren_contrpol.desde))
-              AND NM3.mes = MONTH(DATEADD(MONTH, 2, snren_contrpol.desde))
+            FROM sncontr_pol
+            INNER JOIN snpolifam ON (snpolifam.num_contrpol = sncontr_pol.num_contrpol)
+            INNER JOIN snemple ON (snpolifam.cod_emp = snemple.cod_emp)
+            INNER JOIN sngru_fa ON (sngru_fa.co_gru_fa = snpolifam.co_gru_fa and sngru_fa.cod_emp = snemple.cod_emp)
+            INNER JOIN snren_contrpol ON (snren_contrpol.num_contrpol = sncontr_pol.num_contrpol)
 
-        WHERE
-        ((@iNum_Contrpol_d IS NULL OR sncontr_pol.num_contrpol >= @iNum_Contrpol_d)
-            AND (@iNum_Contrpol_h IS NULL OR sncontr_pol.num_contrpol <= @iNum_Contrpol_h ))
-            AND ((@sCod_emp_d IS NULL OR snemple.cod_emp >= @sCod_emp_d)
-            AND (@sCod_emp_h IS NULL OR snemple.cod_emp <= @sCod_emp_h ))
-            AND (@sTipo_Poliza is null or @sTipo_Poliza = sncontr_pol.tipo_poliza)
+            LEFT JOIN snpolifam AS fam_ref
+                   ON CAST(fam_ref.num_contrpol AS VARCHAR(30)) = LTRIM(RTRIM(sncontr_pol.campo3))
+                  AND fam_ref.cod_emp = snemple.cod_emp
+                  AND fam_ref.co_gru_fa = sngru_fa.co_gru_fa
+            WHERE
+                ((@iNum_Contrpol_d IS NULL OR sncontr_pol.num_contrpol >= @iNum_Contrpol_d)
+                    AND (@iNum_Contrpol_h IS NULL OR sncontr_pol.num_contrpol <= @iNum_Contrpol_h ))
+                AND ((@sCod_emp_d IS NULL OR snemple.cod_emp >= @sCod_emp_d)
+                    AND (@sCod_emp_h IS NULL OR snemple.cod_emp <= @sCod_emp_h ))
 
-        -- 2. Inserción de Familiares
-        INSERT INTO #Resultados
-        SELECT
-            snemple.cod_emp,
-            snemple.ci,
-            sncontr_pol.num_contrpol,
-            sncontr_pol.tipo_poliza,
-            2 AS tipo_orden,
-            sngru_fa.nombre AS nombre_completo,
-        CAST(CASE snemple.status
-            WHEN 'A' THEN 'Activo'
-            WHEN 'I' THEN 'Inactivo'
-            WHEN 'L' THEN 'Liquidado'
-            WHEN 'O' THEN 'Otro'
-            WHEN 'PL' THEN 'Por Liquidar'
-            WHEN 'EL' THEN 'Parcialmente Liquidado' ELSE ''
-        END AS VARCHAR(30)) AS status,
-        CAST('FAMILIAR' AS VARCHAR(15)) AS parentesco_bixa,
-            CAST(case when sngru_fa.log1=1 then 'TITULAR' else 'BENEFICIARIO' end AS VARCHAR(15)) AS parentesco,
-        sngru_fa.fecha_nac,
+            -- Días de la cobertura 1 (titular): la cobertura 2 (familiar) no siempre trae su propio
+            -- campo1/campo2, así que "dias" para el pago a Bixa se toma del titular del mismo empleado.
+            DECLARE @diasTitular DECIMAL(18,2) = (
+                SELECT TOP 1 r.dias
+                FROM #Resultados r
+                INNER JOIN snren_contrpol c ON r.num_contrpol = c.num_contrpol
+                WHERE r.status = 'Activo' AND c.cobertura = 10000.00 AND r.tipo_orden = 1 AND r.cod_emp = @sCod_emp_d
+                ORDER BY c.num_contrpol DESC
+            );
 
-            snpolifam.monto_poliza AS monto_pol,
-            (snpolifam.monto_poliza - fam_ref.monto_poliza   ) AS monto_emp,
-            ISNULL(fam_ref.monto_poliza, CAST(0.00 AS DECIMAL(18,2))) AS monto_pol_ref,
-            CAST(sncontr_pol.campo1 AS DECIMAL(18,2)) AS dias,
-            CAST(sncontr_pol.campo2 AS DECIMAL(18,6)) AS tasa,
+            SET @NControl =  (SELECT Max(r.num_contrpol) FROM #Resultados r INNER JOIN snren_contrpol c ON r.num_contrpol = c.num_contrpol
+            WHERE r.status = 'Activo' AND c.cobertura = @covertura AND r.cod_emp = @sCod_emp_d AND r.parentesco_bixa <> @Parentesco)
 
-            CAST(0.00 AS DECIMAL(18,2)) AS mes1_E071,
-            CAST(0.00 AS DECIMAL(18,2)) AS mes2_E071,
-            CAST(0.00 AS DECIMAL(18,2)) AS mes3_E071
-
-        FROM sncontr_pol
-        INNER JOIN snpolifam ON (snpolifam.num_contrpol = sncontr_pol.num_contrpol)
-        INNER JOIN snemple ON (snpolifam.cod_emp = snemple.cod_emp)
-        INNER JOIN sngru_fa ON (sngru_fa.co_gru_fa = snpolifam.co_gru_fa and sngru_fa.cod_emp = snemple.cod_emp)
-        INNER JOIN snren_contrpol ON (snren_contrpol.num_contrpol = sncontr_pol.num_contrpol)
-
-        LEFT JOIN snpolifam AS fam_ref
-               ON CAST(fam_ref.num_contrpol AS VARCHAR(30)) = LTRIM(RTRIM(sncontr_pol.campo3))
-              AND fam_ref.cod_emp = snemple.cod_emp
-              AND fam_ref.co_gru_fa = sngru_fa.co_gru_fa
-
-    WHERE
-    ((@iNum_Contrpol_d IS NULL OR sncontr_pol.num_contrpol >= @iNum_Contrpol_d)
-    AND (@iNum_Contrpol_h IS NULL OR sncontr_pol.num_contrpol <= @iNum_Contrpol_h ))
-    AND ((@sCod_emp_d IS NULL OR snemple.cod_emp >= @sCod_emp_d)
-    AND (@sCod_emp_h IS NULL OR snemple.cod_emp <= @sCod_emp_h ))
-
-        -- Días de la cobertura 1 (titular): la cobertura 2 (familiar) no siempre trae su propio
-        -- campo1/campo2, así que "dias" para el pago a Bixa se toma del titular del mismo empleado.
-        DECLARE @diasTitular DECIMAL(18,2) = (
-            SELECT TOP 1 r.dias
-            FROM #Resultados r
-            INNER JOIN snren_contrpol c ON r.num_contrpol = c.num_contrpol
-            WHERE r.status = 'Activo' AND c.cobertura = 10000.00 AND r.tipo_orden = 1 AND r.cod_emp = @sCod_emp_d
+            SELECT
+                c.cobertura AS Cobertura,
+                r.cod_emp AS CodEmp,
+                r.ci AS Ci,
+                r.num_contrpol AS NumContrpol,
+                r.tipo_poliza AS TipoPoliza,
+                r.tipo_orden AS TipoOrden,
+                r.nombre_completo AS NombreCompleto,
+                r.status AS Status,
+                r.parentesco_bixa AS ParentescoBixa,
+                r.parentesco AS Parentesco,
+                r.fecha_nac AS FechaNac,
+                r.monto_pol AS MontoPol,
+                r.monto_emp AS MontoEmp,
+                r.monto_pol_ref AS MontoPolRef,
+                ISNULL(r.dias, @diasTitular) AS Dias,
+                r.tasa AS Tasa,
+                r.mes1_E071 AS Mes1E071,
+                r.mes2_E071 AS Mes2E071,
+                r.mes3_E071 AS Mes3E071,
+                CAST(((r.monto_pol / 365.0) * r.dias) * r.tasa AS DECIMAL(18,2)) AS PrimaTrimBs,
+                CAST((r.monto_emp / 4) AS DECIMAL(18,2)) AS PagoBixaTrim
+            FROM #Resultados r INNER JOIN snren_contrpol c ON r.num_contrpol = c.num_contrpol
+            WHERE r.status = 'Activo' AND c.cobertura = @covertura AND r.cod_emp = @sCod_emp_d AND r.parentesco_bixa <> @Parentesco AND r.num_contrpol = @NControl
             ORDER BY c.num_contrpol DESC
-        );
 
-        SELECT TOP 1
-            c.cobertura AS Cobertura,
-            r.cod_emp AS CodEmp,
-            r.ci AS Ci,
-            r.num_contrpol AS NumContrpol,
-            r.tipo_poliza AS TipoPoliza,
-            r.tipo_orden AS TipoOrden,
-            r.nombre_completo AS NombreCompleto,
-            r.status AS Status,
-            r.parentesco_bixa AS ParentescoBixa,
-            r.parentesco AS Parentesco,
-            r.fecha_nac AS FechaNac,
-            r.monto_pol AS MontoPol,
-            r.monto_emp AS MontoEmp,
-            r.monto_pol_ref AS MontoPolRef,
-            ISNULL(r.dias, @diasTitular) AS Dias,
-            r.tasa AS Tasa,
-            r.mes1_E071 AS Mes1E071,
-            r.mes2_E071 AS Mes2E071,
-            r.mes3_E071 AS Mes3E071,
-            CASE WHEN r.tipo_orden = 1 THEN CAST(((r.monto_pol / 365.0) * r.dias) * r.tasa AS DECIMAL(18,2)) END AS PrimaTrimBs,
-            CASE WHEN r.tipo_orden = 2 THEN CAST((r.monto_emp / 365.0) * ISNULL(r.dias, @diasTitular) AS DECIMAL(18,2)) END AS PagoBixaTrim
-        FROM #Resultados r INNER JOIN snren_contrpol c ON r.num_contrpol = c.num_contrpol
-        WHERE r.status = 'Activo' AND c.cobertura = @covertura AND r.tipo_orden = @tipo_orden AND r.cod_emp = @sCod_emp_d
-        ORDER BY c.num_contrpol DESC
+            DROP TABLE #Resultados
+            DROP TABLE #NominaE071
+        """;
 
-        DROP TABLE #Resultados
-        DROP TABLE #NominaE071
-    """;
+    internal const string GetConsultaARC = """
+
+        DECLARE
+                        @sCo_Emp_d char(17)= null,
+                        @sCo_Emp_h char(17)= null,
+                        @ci VARCHAR(15) = @CiEmpleado,
+                        @iAnhio int = @anoActual,
+                        @sCo_Cont char(12)=null,
+                        @sCo_Depart char(12)=null,
+                        @sCampOrderBy varchar(16) = null,
+                        @sDir varchar(6) = null,
+                        @bHeaderRep bit = 0
+
+        	SET NOCOUNT ON;
+                        -- TOP 1 + ORDER BY: algunos empleados tienen más de un registro con la misma ci
+                        -- (reingresos). Se prioriza el registro Activo para evitar "Subquery returned more than 1 value".
+                        SET @sCo_Emp_d = (SELECT TOP 1 cod_emp FROM snemple WHERE ci = @ci ORDER BY CASE WHEN status = 'A' THEN 0 ELSE 1 END, cod_emp DESC)
+                        SET @sCo_Emp_h = @sCo_Emp_d
+                        DECLARE @CodRemuneracion char(12), @CodPorcentRetencion char(12)
+                        set @CodRemuneracion = dbo.GetConcepto('O012')
+                        set @CodPorcentRetencion =  dbo.GetConcepto('R004')
+
+                        SELECT  snemple.cod_emp,
+                                                       snemple.nombre_completo,
+                                                       (dbo.GetPrefixId(snemple.nac)) +snemple.ci as  cedula,
+                                                       snemple.fecha_nac,
+                                                       isnull(dbo.GetValorCampoAdi('G14TEL', 'GENE'),'') AS telefono,
+                                                       isnull(dbo.GetValorCampoAdi('G10EST', 'GENE'),'') AS estado,
+                                                       isnull(dbo.GetValorCampoAdi('G12CIU', 'GENE'),'') AS ciudad,
+                                                       isnull(dbo.GetValorCampoAdi('G09DCM', 'GENE'),'') AS direccion,
+                                                       [dbo].[GetMontoConcepMensAcum] (@CodRemuneracion, snrecibo.cod_emp, 1 , @iAnhio)as RemuneracionAcumulada,
+                                                       1 as mes,
+
+                                                       max([dbo].[GetPorcentRetencion] (@CodPorcentRetencion,snnomi.reci_num)) as PorcentRetencion,
+                                                       sum([dbo].[GetMontoConceptoRecibo] (@CodRemuneracion,snnomi.reci_num)) as Remuneracion,
+
+                                                       [dbo].[GetImpuestoRetenido](snrecibo.cod_emp,@CodPorcentRetencion,1,@iAnhio) as ImpuestoRetenido,
+                                                       [dbo].[GetMontoImpuestoRetenidoAcum](snrecibo.cod_emp, 1 ,@iAnhio )as ImpuestoRetenidoAcum
+                        FROM snemple
+                                       INNER JOIN snrecibo ON (snrecibo.cod_emp = snemple.cod_emp)
+                                       INNER JOIN snnomi ON (snnomi.reci_num = snrecibo.reci_num)
+
+                        WHERE
+                                       (MONTH(snrecibo.fec_emis) = 1)AND
+                                       ((@sCo_Emp_d IS NULL OR @sCo_Emp_d <= snemple.cod_emp )
+                                                                       AND (@sCo_Emp_h IS NULL OR snemple.cod_emp <= @sCo_Emp_h ))
+                                       AND (YEAR(snrecibo.fec_emis) = @iAnhio)
+                                       AND (snnomi.co_conce=@CodRemuneracion)
+                                       AND (@sCo_Cont is null or @sCo_Cont = snemple.co_cont)
+                                       AND (@sCo_Depart is null or @sCo_Depart = snemple.co_depart)
+
+                        GROUP BY snrecibo.cod_emp, snnomi.cod_emp,  snemple.cod_emp, snemple.nombre_completo,snemple.nac,snemple.ci,snemple.fecha_nac,direccion, telefono, estado
+
+                        union
+
+                        SELECT  snemple.cod_emp,
+                                                       snemple.nombre_completo,
+                                                       (dbo.GetPrefixId(snemple.nac)) +snemple.ci  as  cedula,
+                                                       snemple.fecha_nac,
+                                                       isnull(dbo.GetValorCampoAdi('G14TEL', 'GENE'),'') AS telefono,
+                                                       isnull(dbo.GetValorCampoAdi('G10EST', 'GENE'),'') AS estado,
+                                                       isnull(dbo.GetValorCampoAdi('G12CIU', 'GENE'),'') AS ciudad,
+                                                       isnull(dbo.GetValorCampoAdi('G09DCM', 'GENE'),'') AS direccion,
+                                                       [dbo].[GetMontoConcepMensAcum] (@CodRemuneracion, snrecibo.cod_emp, 2 , @iAnhio)as RemuneracionAcumulada,
+                                                       2 as mes,
+
+                                                       max([dbo].[GetPorcentRetencion] (@CodPorcentRetencion,snnomi.reci_num)) as PorcentRetencion,
+                                                       sum([dbo].[GetMontoConceptoRecibo] (@CodRemuneracion,snnomi.reci_num)) as Remuneracion,
+
+                                                       [dbo].[GetImpuestoRetenido] (snrecibo.cod_emp,@CodPorcentRetencion,2,@iAnhio) as ImpuestoRetenido,
+                                                       [dbo].[GetMontoImpuestoRetenidoAcum](snrecibo.cod_emp, 2 ,@iAnhio )as ImpuestoRetenidoAcum
+
+                        FROM snemple
+                                       INNER JOIN snrecibo ON (snrecibo.cod_emp = snemple.cod_emp)
+                                       INNER JOIN snnomi ON (snnomi.reci_num = snrecibo.reci_num)
+
+                        WHERE
+                                       (MONTH(snrecibo.fec_emis) = 2)AND
+                                       ((@sCo_Emp_d IS NULL OR @sCo_Emp_d <= snemple.cod_emp )
+                                                                       AND (@sCo_Emp_h IS NULL OR snemple.cod_emp <= @sCo_Emp_h ))
+                                       AND (YEAR(snrecibo.fec_emis) = @iAnhio)
+                                       AND (snnomi.co_conce=@CodRemuneracion)
+                                       AND (@sCo_Cont is null or @sCo_Cont = snemple.co_cont)
+                                       AND (@sCo_Depart is null or @sCo_Depart = snemple.co_depart)
+
+                        GROUP BY snrecibo.cod_emp,snnomi.cod_emp,  snemple.cod_emp, snemple.nombre_completo,snemple.nac,snemple.ci,snemple.fecha_nac,/*snnomi.co_cont,*/ direccion, telefono, estado
+
+                        union
+
+                        SELECT  snemple.cod_emp,
+                                                       snemple.nombre_completo,
+                                                       (dbo.GetPrefixId(snemple.nac)) + snemple.ci as  cedula,
+                                                       snemple.fecha_nac,
+                                                       isnull(dbo.GetValorCampoAdi('G14TEL', 'GENE'),'') AS telefono,
+                                                       isnull(dbo.GetValorCampoAdi('G10EST', 'GENE'),'') AS estado,
+                                                       isnull(dbo.GetValorCampoAdi('G12CIU', 'GENE'),'') AS ciudad,
+                                                       isnull(dbo.GetValorCampoAdi('G09DCM', 'GENE'),'') AS direccion,
+                                                       [dbo].[GetMontoConcepMensAcum] (@CodRemuneracion, snrecibo.cod_emp, 3 , @iAnhio)as RemuneracionAcumulada,
+                                                       3 as mes,
+
+                                                       max([dbo].[GetPorcentRetencion] (@CodPorcentRetencion,snnomi.reci_num)) as PorcentRetencion,
+                                                       sum([dbo].[GetMontoConceptoRecibo] (@CodRemuneracion,snnomi.reci_num)) as Remuneracion,
+
+                                                       [dbo].[GetImpuestoRetenido] (snrecibo.cod_emp,@CodPorcentRetencion,3,@iAnhio) as ImpuestoRetenido,
+                                                       [dbo].[GetMontoImpuestoRetenidoAcum](snrecibo.cod_emp, 3 ,@iAnhio )as ImpuestoRetenidoAcum
+
+                        FROM snemple
+                                       INNER JOIN snrecibo ON (snrecibo.cod_emp = snemple.cod_emp)
+                                       INNER JOIN snnomi ON (snnomi.reci_num = snrecibo.reci_num)
+
+                        WHERE
+                                       (MONTH(snrecibo.fec_emis) = 3)AND
+                                       ((@sCo_Emp_d IS NULL OR @sCo_Emp_d <= snemple.cod_emp )
+                                                                       AND (@sCo_Emp_h IS NULL OR snemple.cod_emp <= @sCo_Emp_h ))
+                                       AND (YEAR(snrecibo.fec_emis) = @iAnhio)
+                                       AND (snnomi.co_conce=@CodRemuneracion)
+                                       AND (@sCo_Cont is null or @sCo_Cont = snemple.co_cont)
+                                       AND (@sCo_Depart is null or @sCo_Depart = snemple.co_depart)
+
+                        GROUP BY snrecibo.cod_emp,snnomi.cod_emp,  snemple.cod_emp, snemple.nombre_completo,snemple.nac,snemple.ci,snemple.fecha_nac,/*snnomi.co_cont,*/ direccion, telefono, estado
+
+                        union
+
+                        SELECT  snemple.cod_emp,
+                                                       snemple.nombre_completo,
+                                                       (dbo.GetPrefixId(snemple.nac)) + snemple.ci as  cedula,
+                                                       snemple.fecha_nac,
+                                                       isnull(dbo.GetValorCampoAdi('G14TEL', 'GENE'),'') AS telefono,
+                                                       isnull(dbo.GetValorCampoAdi('G10EST', 'GENE'),'') AS estado,
+                                                       isnull(dbo.GetValorCampoAdi('G12CIU', 'GENE'),'') AS ciudad,
+                                                       isnull(dbo.GetValorCampoAdi('G09DCM', 'GENE'),'') AS direccion,
+                                                       [dbo].[GetMontoConcepMensAcum] (@CodRemuneracion, snrecibo.cod_emp, 4 , @iAnhio)as RemuneracionAcumulada,
+                                                       4 as mes,
+
+                                                       max([dbo].[GetPorcentRetencion] (@CodPorcentRetencion,snnomi.reci_num)) as PorcentRetencion,
+                                                       sum([dbo].[GetMontoConceptoRecibo] (@CodRemuneracion,snnomi.reci_num)) as Remuneracion,
+
+                                                       [dbo].[GetImpuestoRetenido] (snrecibo.cod_emp,@CodPorcentRetencion,4,@iAnhio) as ImpuestoRetenido,
+                                                       [dbo].[GetMontoImpuestoRetenidoAcum](snrecibo.cod_emp, 4 ,@iAnhio )as ImpuestoRetenidoAcum
+
+                        FROM snemple
+                                       INNER JOIN snrecibo ON (snrecibo.cod_emp = snemple.cod_emp)
+                                       INNER JOIN snnomi ON (snnomi.reci_num = snrecibo.reci_num)
+
+                        WHERE
+                                       (MONTH(snrecibo.fec_emis) = 4)AND
+                                       ((@sCo_Emp_d IS NULL OR @sCo_Emp_d <= snemple.cod_emp )
+                                                                       AND (@sCo_Emp_h IS NULL OR snemple.cod_emp <= @sCo_Emp_h ))
+                                       AND (YEAR(snrecibo.fec_emis) = @iAnhio)
+                                       AND (snnomi.co_conce=@CodRemuneracion)
+                                       AND (@sCo_Cont is null or @sCo_Cont = snemple.co_cont)
+                                       AND (@sCo_Depart is null or @sCo_Depart = snemple.co_depart)
+
+                        GROUP BY snrecibo.cod_emp,snnomi.cod_emp,  snemple.cod_emp, snemple.nombre_completo,snemple.nac,snemple.ci,snemple.fecha_nac,/*snnomi.co_cont,*/ direccion, telefono, estado
+
+                        union
+
+                        SELECT  snemple.cod_emp,
+                                                       snemple.nombre_completo,
+                                                       (dbo.GetPrefixId(snemple.nac)) + snemple.ci as  cedula,
+                                                       snemple.fecha_nac,
+                                                       isnull(dbo.GetValorCampoAdi('G14TEL', 'GENE'),'') AS telefono,
+                                                       isnull(dbo.GetValorCampoAdi('G10EST', 'GENE'),'') AS estado,
+                                                       isnull(dbo.GetValorCampoAdi('G12CIU', 'GENE'),'') AS ciudad,
+                                                       isnull(dbo.GetValorCampoAdi('G09DCM', 'GENE'),'') AS direccion,
+                                                       [dbo].[GetMontoConcepMensAcum] (@CodRemuneracion, snrecibo.cod_emp, 5 , @iAnhio)as RemuneracionAcumulada,
+                                                       5 as mes,
+
+                                                       max([dbo].[GetPorcentRetencion] (@CodPorcentRetencion,snnomi.reci_num)) as PorcentRetencion,
+                                                       sum([dbo].[GetMontoConceptoRecibo] (@CodRemuneracion,snnomi.reci_num)) as Remuneracion,
+
+                                                       [dbo].[GetImpuestoRetenido] (snrecibo.cod_emp,@CodPorcentRetencion,5,@iAnhio) as ImpuestoRetenido,
+                                                       [dbo].[GetMontoImpuestoRetenidoAcum](snrecibo.cod_emp, 5 ,@iAnhio )as ImpuestoRetenidoAcum
+
+                        FROM snemple
+                                       INNER JOIN snrecibo ON (snrecibo.cod_emp = snemple.cod_emp)
+                                       INNER JOIN snnomi ON (snnomi.reci_num = snrecibo.reci_num)
+
+                        WHERE
+                                       (MONTH(snrecibo.fec_emis) = 5)AND
+                                       ((@sCo_Emp_d IS NULL OR @sCo_Emp_d <= snemple.cod_emp )
+                                                                       AND (@sCo_Emp_h IS NULL OR snemple.cod_emp <= @sCo_Emp_h ))
+                                       AND (YEAR(snrecibo.fec_emis) = @iAnhio)
+                                       AND (snnomi.co_conce=@CodRemuneracion)
+                                       AND (@sCo_Cont is null or @sCo_Cont = snemple.co_cont)
+                                       AND (@sCo_Depart is null or @sCo_Depart = snemple.co_depart)
+
+                        GROUP BY snrecibo.cod_emp, snnomi.cod_emp,  snemple.cod_emp, snemple.nombre_completo,snemple.nac,snemple.ci,snemple.fecha_nac,direccion, telefono, estado
+
+                        union
+
+                        SELECT  snemple.cod_emp,
+                                                       snemple.nombre_completo,
+                                                       (dbo.GetPrefixId(snemple.nac)) + snemple.ci as  cedula,
+                                                       snemple.fecha_nac,
+                                                       isnull(dbo.GetValorCampoAdi('G14TEL', 'GENE'),'') AS telefono,
+                                                       isnull(dbo.GetValorCampoAdi('G10EST', 'GENE'),'') AS estado,
+                                                       isnull(dbo.GetValorCampoAdi('G12CIU', 'GENE'),'') AS ciudad,
+                                                       isnull(dbo.GetValorCampoAdi('G09DCM', 'GENE'),'') AS direccion,
+                                                       [dbo].[GetMontoConcepMensAcum] (@CodRemuneracion, snrecibo.cod_emp, 6 , @iAnhio)as RemuneracionAcumulada,
+                                                       6 as mes,
+
+                                                       max([dbo].[GetPorcentRetencion] (@CodPorcentRetencion,snnomi.reci_num)) as PorcentRetencion,
+                                                       sum([dbo].[GetMontoConceptoRecibo] (@CodRemuneracion,snnomi.reci_num)) as Remuneracion,
+
+                                                       [dbo].[GetImpuestoRetenido] (snrecibo.cod_emp,@CodPorcentRetencion,6,@iAnhio) as ImpuestoRetenido,
+                                                       [dbo].[GetMontoImpuestoRetenidoAcum](snrecibo.cod_emp, 6 ,@iAnhio )as ImpuestoRetenidoAcum
+
+                        FROM snemple
+                                       INNER JOIN snrecibo ON (snrecibo.cod_emp = snemple.cod_emp)
+                                       INNER JOIN snnomi ON (snnomi.reci_num = snrecibo.reci_num)
+
+                        WHERE
+                                       (MONTH(snrecibo.fec_emis) = 6)AND
+                                       ((@sCo_Emp_d IS NULL OR @sCo_Emp_d <= snemple.cod_emp )
+                                                                       AND (@sCo_Emp_h IS NULL OR snemple.cod_emp <= @sCo_Emp_h ))
+                                       AND (YEAR(snrecibo.fec_emis) = @iAnhio)
+                                       AND (snnomi.co_conce=@CodRemuneracion)
+                                       AND (@sCo_Cont is null or @sCo_Cont = snemple.co_cont)
+                                       AND (@sCo_Depart is null or @sCo_Depart = snemple.co_depart)
+
+                        GROUP BY snrecibo.cod_emp, snnomi.cod_emp,  snemple.cod_emp, snemple.nombre_completo,snemple.nac,snemple.ci,snemple.fecha_nac,/*snnomi.co_cont,*/ direccion, telefono, estado
+
+                        union
+
+                        SELECT  snemple.cod_emp,
+                                                       snemple.nombre_completo,
+                                                       (dbo.GetPrefixId(snemple.nac)) + snemple.ci as  cedula,
+                                                       snemple.fecha_nac,
+                                                       isnull(dbo.GetValorCampoAdi('G14TEL', 'GENE'),'') AS telefono,
+                                                       isnull(dbo.GetValorCampoAdi('G10EST', 'GENE'),'') AS estado,
+                                                       isnull(dbo.GetValorCampoAdi('G12CIU', 'GENE'),'') AS ciudad,
+                                                       isnull(dbo.GetValorCampoAdi('G09DCM', 'GENE'),'') AS direccion,
+                                                       [dbo].[GetMontoConcepMensAcum] (@CodRemuneracion, snrecibo.cod_emp, 7 , @iAnhio)as RemuneracionAcumulada,
+                                                       7 as mes,
+
+                                                       max([dbo].[GetPorcentRetencion] (@CodPorcentRetencion,snnomi.reci_num)) as PorcentRetencion,
+                                                       sum([dbo].[GetMontoConceptoRecibo] (@CodRemuneracion,snnomi.reci_num)) as Remuneracion,
+
+                                                       [dbo].[GetImpuestoRetenido] (snrecibo.cod_emp,@CodPorcentRetencion,7,@iAnhio) as ImpuestoRetenido,
+                                                       [dbo].[GetMontoImpuestoRetenidoAcum](snrecibo.cod_emp, 7 ,@iAnhio )as ImpuestoRetenidoAcum
+
+                        FROM snemple
+                                       INNER JOIN snrecibo ON (snrecibo.cod_emp = snemple.cod_emp)
+                                       INNER JOIN snnomi ON (snnomi.reci_num = snrecibo.reci_num)
+
+                        WHERE
+                                       (MONTH(snrecibo.fec_emis) = 7)AND
+                                       ((@sCo_Emp_d IS NULL OR @sCo_Emp_d <= snemple.cod_emp )
+                                                                       AND (@sCo_Emp_h IS NULL OR snemple.cod_emp <= @sCo_Emp_h ))
+                                       AND (YEAR(snrecibo.fec_emis) = @iAnhio)
+                                       AND (snnomi.co_conce=@CodRemuneracion)
+                                       AND (@sCo_Cont is null or @sCo_Cont = snemple.co_cont)
+                                       AND (@sCo_Depart is null or @sCo_Depart = snemple.co_depart)
+
+                        GROUP BY snrecibo.cod_emp, snnomi.cod_emp,  snemple.cod_emp, snemple.nombre_completo,snemple.nac,snemple.ci,snemple.fecha_nac,direccion, telefono, estado
+
+                        union
+
+                        SELECT  snemple.cod_emp,
+                                                       snemple.nombre_completo,
+                                                       (dbo.GetPrefixId(snemple.nac)) + snemple.ci as  cedula,
+                                                       snemple.fecha_nac,
+                                                       isnull(dbo.GetValorCampoAdi('G14TEL', 'GENE'),'') AS telefono,
+                                                       isnull(dbo.GetValorCampoAdi('G10EST', 'GENE'),'') AS estado,
+                                                       isnull(dbo.GetValorCampoAdi('G12CIU', 'GENE'),'') AS ciudad,
+                                                       isnull(dbo.GetValorCampoAdi('G09DCM', 'GENE'),'') AS direccion,
+                                                       [dbo].[GetMontoConcepMensAcum] (@CodRemuneracion, snrecibo.cod_emp, 8 , @iAnhio)as RemuneracionAcumulada,
+                                                       8 as mes,
+
+                                                       max([dbo].[GetPorcentRetencion] (@CodPorcentRetencion,snnomi.reci_num)) as PorcentRetencion,
+                                                       sum([dbo].[GetMontoConceptoRecibo] (@CodRemuneracion,snnomi.reci_num)) as Remuneracion,
+
+                                                       [dbo].[GetImpuestoRetenido] (snrecibo.cod_emp,@CodPorcentRetencion,8,@iAnhio) as ImpuestoRetenido,
+                                                       [dbo].[GetMontoImpuestoRetenidoAcum](snrecibo.cod_emp, 8 ,@iAnhio )as ImpuestoRetenidoAcum
+
+                        FROM snemple
+                                       INNER JOIN snrecibo ON (snrecibo.cod_emp = snemple.cod_emp)
+                                       INNER JOIN snnomi ON (snnomi.reci_num = snrecibo.reci_num)
+
+                        WHERE
+                                       (MONTH(snrecibo.fec_emis) = 8)AND
+                                       ((@sCo_Emp_d IS NULL OR @sCo_Emp_d <= snemple.cod_emp )
+                                                                       AND (@sCo_Emp_h IS NULL OR snemple.cod_emp <= @sCo_Emp_h ))
+                                       AND (YEAR(snrecibo.fec_emis) = @iAnhio)
+                                       AND (snnomi.co_conce=@CodRemuneracion)
+                                       AND (@sCo_Cont is null or @sCo_Cont = snemple.co_cont)
+                                       AND (@sCo_Depart is null or @sCo_Depart = snemple.co_depart)
+
+                        GROUP BY snrecibo.cod_emp, snnomi.cod_emp,  snemple.cod_emp, snemple.nombre_completo,snemple.nac,snemple.ci,snemple.fecha_nac,/*snnomi.co_cont,*/ direccion, telefono, estado
+
+                        union
+
+                        SELECT  snemple.cod_emp,
+                                                       snemple.nombre_completo,
+                                                       (dbo.GetPrefixId(snemple.nac)) + snemple.ci as  cedula,
+                                                       snemple.fecha_nac,
+                                                       isnull(dbo.GetValorCampoAdi('G14TEL', 'GENE'),'') AS telefono,
+                                                       isnull(dbo.GetValorCampoAdi('G10EST', 'GENE'),'') AS estado,
+                                                       isnull(dbo.GetValorCampoAdi('G12CIU', 'GENE'),'') AS ciudad,
+                                                       isnull(dbo.GetValorCampoAdi('G09DCM', 'GENE'),'') AS direccion,
+                                                       [dbo].[GetMontoConcepMensAcum] (@CodRemuneracion, snrecibo.cod_emp, 9 , @iAnhio)as RemuneracionAcumulada,
+                                                       9 as mes,
+
+                                                       max([dbo].[GetPorcentRetencion] (@CodPorcentRetencion,snnomi.reci_num)) as PorcentRetencion,
+                                                       sum([dbo].[GetMontoConceptoRecibo] (@CodRemuneracion,snnomi.reci_num)) as Remuneracion,
+
+                                                       [dbo].[GetImpuestoRetenido] (snrecibo.cod_emp,@CodPorcentRetencion,9,@iAnhio) as ImpuestoRetenido,
+                                                       [dbo].[GetMontoImpuestoRetenidoAcum](snrecibo.cod_emp, 9 ,@iAnhio )as ImpuestoRetenidoAcum
+
+                        FROM snemple
+                                       INNER JOIN snrecibo ON (snrecibo.cod_emp = snemple.cod_emp)
+                                       INNER JOIN snnomi ON (snnomi.reci_num = snrecibo.reci_num)
+
+                        WHERE
+                                       (MONTH(snrecibo.fec_emis) = 9)AND
+                                       ((@sCo_Emp_d IS NULL OR @sCo_Emp_d <= snemple.cod_emp )
+                                                                       AND (@sCo_Emp_h IS NULL OR snemple.cod_emp <= @sCo_Emp_h ))
+                                       AND (YEAR(snrecibo.fec_emis) = @iAnhio)
+                                       AND (snnomi.co_conce=@CodRemuneracion)
+                                       AND (@sCo_Cont is null or @sCo_Cont = snemple.co_cont)
+                                       AND (@sCo_Depart is null or @sCo_Depart = snemple.co_depart)
+
+                        GROUP BY snrecibo.cod_emp, snnomi.cod_emp,  snemple.cod_emp, snemple.nombre_completo,snemple.nac,snemple.ci,snemple.fecha_nac,direccion, telefono, estado
+
+                        union
+
+                        SELECT  snemple.cod_emp,
+                                                       snemple.nombre_completo,
+                                                       (dbo.GetPrefixId(snemple.nac)) + snemple.ci as  cedula,
+                                                       snemple.fecha_nac,
+                                                       isnull(dbo.GetValorCampoAdi('G14TEL', 'GENE'),'') AS telefono,
+                                                       isnull(dbo.GetValorCampoAdi('G10EST', 'GENE'),'') AS estado,
+                                                       isnull(dbo.GetValorCampoAdi('G12CIU', 'GENE'),'') AS ciudad,
+                                                       isnull(dbo.GetValorCampoAdi('G09DCM', 'GENE'),'') AS direccion,
+                                                       [dbo].[GetMontoConcepMensAcum] (@CodRemuneracion, snrecibo.cod_emp, 10 , @iAnhio)as RemuneracionAcumulada,
+                                                       10 as mes,
+
+                                                       max([dbo].[GetPorcentRetencion] (@CodPorcentRetencion,snnomi.reci_num)) as PorcentRetencion,
+                                                       sum([dbo].[GetMontoConceptoRecibo] (@CodRemuneracion,snnomi.reci_num)) as Remuneracion,
+
+                                                       [dbo].[GetImpuestoRetenido] (snrecibo.cod_emp,@CodPorcentRetencion,10,@iAnhio) as ImpuestoRetenido,
+                                                       [dbo].[GetMontoImpuestoRetenidoAcum](snrecibo.cod_emp, 10 ,@iAnhio )as ImpuestoRetenidoAcum
+
+                        FROM snemple
+                                       INNER JOIN snrecibo ON (snrecibo.cod_emp = snemple.cod_emp)
+                                       INNER JOIN snnomi ON (snnomi.reci_num = snrecibo.reci_num)
+
+                        WHERE
+                                       (MONTH(snrecibo.fec_emis) = 10)AND
+                                       ((@sCo_Emp_d IS NULL OR @sCo_Emp_d <= snemple.cod_emp )
+                                                                       AND (@sCo_Emp_h IS NULL OR snemple.cod_emp <= @sCo_Emp_h ))
+                                       AND (YEAR(snrecibo.fec_emis) = @iAnhio)
+                                       AND (snnomi.co_conce=@CodRemuneracion)
+                                       AND (@sCo_Cont is null or @sCo_Cont = snemple.co_cont)
+                                       AND (@sCo_Depart is null or @sCo_Depart = snemple.co_depart)
+
+                        GROUP BY snrecibo.cod_emp, snnomi.cod_emp,  snemple.cod_emp, snemple.nombre_completo,snemple.nac,snemple.ci,snemple.fecha_nac,direccion, telefono, estado
+
+                        union
+
+                        SELECT  snemple.cod_emp,
+                                                       snemple.nombre_completo,
+                                                       (dbo.GetPrefixId(snemple.nac)) + snemple.ci as  cedula,
+                                                       snemple.fecha_nac,
+                                                       isnull(dbo.GetValorCampoAdi('G14TEL', 'GENE'),'') AS telefono,
+                                                       isnull(dbo.GetValorCampoAdi('G10EST', 'GENE'),'') AS estado,
+                                                       isnull(dbo.GetValorCampoAdi('G12CIU', 'GENE'),'') AS ciudad,
+                                                       isnull(dbo.GetValorCampoAdi('G09DCM', 'GENE'),'') AS direccion,
+                                                       [dbo].[GetMontoConcepMensAcum] (@CodRemuneracion, snrecibo.cod_emp, 11 , @iAnhio)as RemuneracionAcumulada,
+                                                       11 as mes,
+
+                                                       max([dbo].[GetPorcentRetencion] (@CodPorcentRetencion,snnomi.reci_num)) as PorcentRetencion,
+                                                       sum([dbo].[GetMontoConceptoRecibo] (@CodRemuneracion,snnomi.reci_num)) as Remuneracion,
+
+                                                       [dbo].[GetImpuestoRetenido] (snrecibo.cod_emp,@CodPorcentRetencion,11,@iAnhio) as ImpuestoRetenido,
+                                                       [dbo].[GetMontoImpuestoRetenidoAcum](snrecibo.cod_emp, 11 ,@iAnhio )as ImpuestoRetenidoAcum
+
+                        FROM snemple
+                                       INNER JOIN snrecibo ON (snrecibo.cod_emp = snemple.cod_emp)
+                                       INNER JOIN snnomi ON (snnomi.reci_num = snrecibo.reci_num)
+
+                        WHERE
+                                       (MONTH(snrecibo.fec_emis) = 11)AND
+                                       ((@sCo_Emp_d IS NULL OR @sCo_Emp_d <= snemple.cod_emp )
+                                                                       AND (@sCo_Emp_h IS NULL OR snemple.cod_emp <= @sCo_Emp_h ))
+                                       AND (YEAR(snrecibo.fec_emis) = @iAnhio)
+
+                                       AND (snnomi.co_conce=@CodRemuneracion)
+                                       AND (@sCo_Cont is null or @sCo_Cont = snemple.co_cont)
+                                       AND (@sCo_Depart is null or @sCo_Depart = snemple.co_depart)
+
+                        GROUP BY snrecibo.cod_emp, snnomi.cod_emp,  snemple.cod_emp, snemple.nombre_completo,snemple.nac,snemple.ci,snemple.fecha_nac,direccion, telefono, estado
+
+                        union
+
+                        SELECT  snemple.cod_emp,
+                                                       snemple.nombre_completo,
+                                                       (dbo.GetPrefixId(snemple.nac)) + snemple.ci as  cedula,
+                                                       snemple.fecha_nac,
+                                                       isnull(dbo.GetValorCampoAdi('G14TEL', 'GENE'),'') AS telefono,
+                                                       isnull(dbo.GetValorCampoAdi('G10EST', 'GENE'),'') AS estado,
+                                                       isnull(dbo.GetValorCampoAdi('G12CIU', 'GENE'),'') AS ciudad,
+                                                       isnull(dbo.GetValorCampoAdi('G09DCM', 'GENE'),'') AS direccion,
+                                                       [dbo].[GetMontoConcepMensAcum] (@CodRemuneracion, snrecibo.cod_emp, 12 , @iAnhio)as RemuneracionAcumulada,
+                                                       12 as mes,
+
+                                                       max([dbo].[GetPorcentRetencion] (@CodPorcentRetencion,snnomi.reci_num)) as PorcentRetencion,
+                                                       sum([dbo].[GetMontoConceptoRecibo] (@CodRemuneracion,snnomi.reci_num)) as Remuneracion,
+
+                                                       [dbo].[GetImpuestoRetenido] (snrecibo.cod_emp,@CodPorcentRetencion,12,@iAnhio) as ImpuestoRetenido,
+                                                       [dbo].[GetMontoImpuestoRetenidoAcum](snrecibo.cod_emp, 12 ,@iAnhio )as ImpuestoRetenidoAcum
+
+                        FROM snemple
+                                       INNER JOIN snrecibo ON (snrecibo.cod_emp = snemple.cod_emp)
+                                       INNER JOIN snnomi ON (snnomi.reci_num = snrecibo.reci_num)
+
+                        WHERE
+                                       (MONTH(snrecibo.fec_emis) = 12)AND
+                                       ((@sCo_Emp_d IS NULL OR @sCo_Emp_d <= snemple.cod_emp )
+                                                                       AND (@sCo_Emp_h IS NULL OR snemple.cod_emp <= @sCo_Emp_h ))
+                                       AND (YEAR(snrecibo.fec_emis) = @iAnhio)
+                                       AND (snnomi.co_conce=@CodRemuneracion)
+                                       AND (@sCo_Cont is null or @sCo_Cont = snemple.co_cont)
+                                       AND (@sCo_Depart is null or @sCo_Depart = snemple.co_depart)
+
+                        GROUP BY snrecibo.cod_emp, snnomi.cod_emp,  snemple.cod_emp, snemple.nombre_completo,snemple.nac,snemple.ci,snemple.fecha_nac,direccion, telefono, estado
+
+        """;
 }

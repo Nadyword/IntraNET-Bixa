@@ -142,6 +142,7 @@ public class BllMappingProfile : Profile
            .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
            .ForMember(dest => dest.TipoTramiteNombre, opt => opt.MapFrom(src => src.TipoTramite != null ? src.TipoTramite.Nombre : string.Empty))
            .ForMember(dest => dest.UserNombre, opt => opt.MapFrom(src => src.User != null ? $"{src.User.FirstName} {src.User.LastName}" : null))
+           .ForMember(dest => dest.FechaSolicitud, opt => opt.MapFrom(src => src.CreatedAt))
            .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt))
            .ForMember(dest => dest.Vacaciones, opt => opt.MapFrom(src => src.SolicitudVacaciones))
            .ForMember(dest => dest.DiaEspecial, opt => opt.MapFrom(src => src.SolicitudDiasEspeciales))

@@ -18,7 +18,7 @@ interface Props {
   onSuccess?: () => void;
 }
 
-type TipoTramite = 'vacaciones' | 'diaEspecial' | 'utilidades' | 'prestamoPrestaciones' | 'constanciaTrabajo';
+type TipoTramite = 'vacaciones' | 'diaEspecial' | 'utilidades' | 'prestamoPrestaciones' | 'constanciaTrabajo' | 'ari';
 
 interface TipoConfig {
   id: TipoTramite;
@@ -33,7 +33,12 @@ const TIPOS: TipoConfig[] = [
   { id: 'utilidades',           label: 'Anticipo de Utilidades',          icon: '💳', enumId: 1 },
   { id: 'prestamoPrestaciones', label: 'Prestaciones Sociales',  icon: '💰' },
   { id: 'constanciaTrabajo',    label: 'Constancia de Trabajo',           icon: '📃', enumId: 6 },
+  { id: 'ari',                  label: 'ARI',                             icon: '🧾' },
 ];
+
+const MESES_ARI: string[] = ['Enero', 'Marzo', 'Junio', 'Septiembre', 'Diciembre'];
+
+const DESGRAVAMEN_UNICO_UT = 774;
 
 type SubTipoPrestamo = 'prestamo' | 'sociales';
 
@@ -103,6 +108,16 @@ interface FormConstanciaTrabajo {
   dirigidoA: string;
 }
 
+interface FormAri {
+  mes: string;
+  desgravamenTipo: '' | 'unico' | 'detallado';
+  institutosDocentes: string;
+  primasSeguro: string;
+  serviciosMedicos: string;
+  interesesVivienda: string;
+  cargaFamiliar: string;
+}
+
 const CUOTAS_MAXIMAS = 52;
 const ARCHIVO_MAX_BYTES = 3 * 1024 * 1024;
 const ARCHIVO_EXTENSIONES_PERMITIDAS = ['.pdf', '.jpg', '.jpeg', '.png'];
@@ -152,8 +167,19 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
   const [constanciaTrabajo, setConstanciaTrabajo] = useState<FormConstanciaTrabajo>({
     conSueldo: '', dirigidoAEspecifico: false, dirigidoA: '',
   });
+  const [ari, setAri] = useState<FormAri>({
+    mes: '', desgravamenTipo: '', institutosDocentes: '', primasSeguro: '',
+    serviciosMedicos: '', interesesVivienda: '', cargaFamiliar: '',
+  });
   const [subTipoPrestamo, setSubTipoPrestamo] = useState<SubTipoPrestamo | ''>('');
   const [destinoPrestamo, setDestinoPrestamo] = useState('');
+
+  const totalDesgravamenAri = ari.desgravamenTipo === 'unico'
+    ? DESGRAVAMEN_UNICO_UT
+    : ari.desgravamenTipo === 'detallado'
+    ? [ari.institutosDocentes, ari.primasSeguro, ari.serviciosMedicos, ari.interesesVivienda]
+        .reduce((sum, v) => sum + (Number(v) || 0), 0)
+    : 0;
 
   const [montoDisponibleUtilidades, setMontoDisponibleUtilidades] = useState<number | null>(null);
   const [utilidadesLoading, setUtilidadesLoading] = useState(false);
@@ -336,11 +362,21 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       if (!utilidades.monto || Number(utilidades.monto) <= 0) errs.monto = 'Ingresa un monto válido';
       else if (montoDisponibleUtilidades === null) errs.monto = 'No se pudo determinar el monto disponible, intenta de nuevo';
       else if (Number(utilidades.monto) > montoDisponibleUtilidades) errs.monto = `El monto no puede superar $${montoDisponibleUtilidades.toLocaleString('es-VE')}`;
-      if (!utilidades.motivo.trim()) errs.motivo = 'Requerido';
     }
     if (tipo === 'constanciaTrabajo') {
       if (!constanciaTrabajo.conSueldo) errs.conSueldo = 'Requerido';
       if (constanciaTrabajo.dirigidoAEspecifico && !constanciaTrabajo.dirigidoA.trim()) errs.dirigidoA = 'Requerido';
+    }
+    if (tipo === 'ari') {
+      if (!ari.mes) errs.mes = 'Requerido';
+      if (!ari.desgravamenTipo) errs.desgravamenTipo = 'Requerido';
+      if (ari.desgravamenTipo === 'detallado') {
+        if (!ari.institutosDocentes || Number(ari.institutosDocentes) < 0) errs.institutosDocentes = 'Ingresa un valor válido';
+        if (!ari.primasSeguro || Number(ari.primasSeguro) < 0) errs.primasSeguro = 'Ingresa un valor válido';
+        if (!ari.serviciosMedicos || Number(ari.serviciosMedicos) < 0) errs.serviciosMedicos = 'Ingresa un valor válido';
+        if (!ari.interesesVivienda || Number(ari.interesesVivienda) < 0) errs.interesesVivienda = 'Ingresa un valor válido';
+      }
+      if (!ari.cargaFamiliar || Number(ari.cargaFamiliar) < 0) errs.cargaFamiliar = 'Ingresa un valor válido';
     }
 
     setErrors(errs);
@@ -644,7 +680,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                       : utilidadesError
                       ? utilidadesError
                       : montoDisponibleUtilidades !== null
-                      ? `Monto máximo disponible: $${montoDisponibleUtilidades.toLocaleString('es-VE')}`
+                      ? `Monto máximo disponible: Bs. ${montoDisponibleUtilidades.toLocaleString('es-VE')}`
                       : ''}
                   </span>
                   {errors.monto && <span className="ns-error">{errors.monto}</span>}
@@ -717,6 +753,151 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                     {errors.dirigidoA && <span className="ns-error">{errors.dirigidoA}</span>}
                   </div>
                 )}
+              </>
+            )}
+
+            {tipo === 'ari' && (
+              <>
+                <p className="ns-hint">
+                  ⚠ Este trámite estará disponible próximamente. Por ahora puedes completar el formulario, pero aún no se puede enviar.
+                </p>
+
+                <div className="ns-field">
+                  <label>Mes <span className="ns-required">*</span></label>
+                  <select
+                    value={ari.mes}
+                    onChange={(e) => setAri((a) => ({ ...a, mes: e.target.value }))}
+                    className={errors.mes ? 'input-error' : ''}
+                  >
+                    <option value="">Selecciona un mes...</option>
+                    {MESES_ARI.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                  {errors.mes && <span className="ns-error">{errors.mes}</span>}
+                </div>
+
+                <div className="ns-field">
+                  <label>Desgravamen <span className="ns-required">*</span></label>
+                  <div className="ns-radio-group">
+                    <label className="ns-radio-option">
+                      <input
+                        type="radio"
+                        name="desgravamenTipo"
+                        checked={ari.desgravamenTipo === 'unico'}
+                        onChange={() => setAri((a) => ({ ...a, desgravamenTipo: 'unico' }))}
+                      />
+                      Desgravamen Único
+                    </label>
+                    <label className="ns-radio-option">
+                      <input
+                        type="radio"
+                        name="desgravamenTipo"
+                        checked={ari.desgravamenTipo === 'detallado'}
+                        onChange={() => setAri((a) => ({ ...a, desgravamenTipo: 'detallado' }))}
+                      />
+                      Desgravamen Detallado
+                    </label>
+                  </div>
+                  {errors.desgravamenTipo && <span className="ns-error">{errors.desgravamenTipo}</span>}
+                </div>
+
+                {ari.desgravamenTipo === 'unico' && (
+                  <div className="ns-field">
+                    <label>Valor del desgravamen único</label>
+                    <div className="ns-monto-wrapper">
+                      <input type="number" value={DESGRAVAMEN_UNICO_UT} disabled readOnly />
+                      <span className="ns-monto-suffix">U.T.</span>
+                    </div>
+                  </div>
+                )}
+
+                {ari.desgravamenTipo === 'detallado' && (
+                  <>
+                    <div className="ns-field">
+                      <label>Institutos docentes por la educación del contribuyente y descendientes no mayores de 25 años <span className="ns-required">*</span></label>
+                      <div className="ns-monto-wrapper">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={ari.institutosDocentes}
+                          onChange={(e) => setAri((a) => ({ ...a, institutosDocentes: e.target.value }))}
+                          className={errors.institutosDocentes ? 'input-error' : ''}
+                        />
+                        <span className="ns-monto-suffix">U.T.</span>
+                      </div>
+                      {errors.institutosDocentes && <span className="ns-error">{errors.institutosDocentes}</span>}
+                    </div>
+
+                    <div className="ns-field">
+                      <label>Primas de seguro de hospitalización, cirugía y maternidad <span className="ns-required">*</span></label>
+                      <div className="ns-monto-wrapper">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={ari.primasSeguro}
+                          onChange={(e) => setAri((a) => ({ ...a, primasSeguro: e.target.value }))}
+                          className={errors.primasSeguro ? 'input-error' : ''}
+                        />
+                        <span className="ns-monto-suffix">U.T.</span>
+                      </div>
+                      {errors.primasSeguro && <span className="ns-error">{errors.primasSeguro}</span>}
+                    </div>
+
+                    <div className="ns-field">
+                      <label>Servicios médicos odontológicos y de hospitalización (incluye carga familiar) <span className="ns-required">*</span></label>
+                      <div className="ns-monto-wrapper">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={ari.serviciosMedicos}
+                          onChange={(e) => setAri((a) => ({ ...a, serviciosMedicos: e.target.value }))}
+                          className={errors.serviciosMedicos ? 'input-error' : ''}
+                        />
+                        <span className="ns-monto-suffix">U.T.</span>
+                      </div>
+                      {errors.serviciosMedicos && <span className="ns-error">{errors.serviciosMedicos}</span>}
+                    </div>
+
+                    <div className="ns-field">
+                      <label>Intereses para la adquisición de la vivienda principal o de lo pagado por alquiler de la vivienda que le sirve de asiento permanente del hogar <span className="ns-required">*</span></label>
+                      <div className="ns-monto-wrapper">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={ari.interesesVivienda}
+                          onChange={(e) => setAri((a) => ({ ...a, interesesVivienda: e.target.value }))}
+                          className={errors.interesesVivienda ? 'input-error' : ''}
+                        />
+                        <span className="ns-monto-suffix">U.T.</span>
+                      </div>
+                      {errors.interesesVivienda && <span className="ns-error">{errors.interesesVivienda}</span>}
+                    </div>
+                  </>
+                )}
+
+                {ari.desgravamenTipo && (
+                  <div className="ns-dias-badge">
+                    💰 Total desgravamen: <strong>{totalDesgravamenAri.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} U.T.</strong>
+                  </div>
+                )}
+
+                <div className="ns-field">
+                  <label>Carga familiar <span className="ns-required">*</span></label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={ari.cargaFamiliar}
+                    onChange={(e) => setAri((a) => ({ ...a, cargaFamiliar: e.target.value }))}
+                    className={errors.cargaFamiliar ? 'input-error' : ''}
+                  />
+                  {errors.cargaFamiliar && <span className="ns-error">{errors.cargaFamiliar}</span>}
+                </div>
               </>
             )}
 
@@ -827,10 +1008,11 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                 disabled={
                   isLoading ||
                   (tipo === 'vacaciones' && (diasLoading || rangoInvalido)) ||
-                  (tipo === 'diaEspecial' && diaEspecialChecking)
+                  (tipo === 'diaEspecial' && diaEspecialChecking) ||
+                  tipo === 'ari'
                 }
               >
-                {isLoading ? <><ButtonSpinner /> Enviando...</> : 'Enviar solicitud'}
+                {isLoading ? <><ButtonSpinner /> Enviando...</> : tipo === 'ari' ? 'Próximamente disponible' : 'Enviar solicitud'}
               </button>
             </div>
           </form>

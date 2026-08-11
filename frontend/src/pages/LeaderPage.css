@@ -409,6 +409,12 @@
   font-size: 14px;
 }
 
+.team-hint {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin: 0 0 12px;
+}
+
 /* Alerts Section */
 .alerts-section {
   display: flex;

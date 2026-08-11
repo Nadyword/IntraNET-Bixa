@@ -8,7 +8,6 @@ public class Tramite : BaseEntities
 {
     public int TipoTramiteId { get; set; }
     public required string UserCi { get; set; }
-    public DateTime FechaSolicitud { get; } = DateTime.Now;
     public EstadoTramiteEnum Estado { get; set; }
     public string? MotivoRechazo { get; set; }
 

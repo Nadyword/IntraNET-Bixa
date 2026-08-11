@@ -237,6 +237,7 @@ export const TramitesPage: React.FC = () => {
   const [filterEstado, setFilterEstado] = useState<number | 'todos'>('todos');
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTramiteId, setSelectedTramiteId] = useState<number | null>(null);
+  const [busquedaHistorial, setBusquedaHistorial] = useState('');
 
   const user = useAuthStore(state => state.user);
   const queryClient = useQueryClient();
@@ -254,10 +255,22 @@ export const TramitesPage: React.FC = () => {
     ? tramitesEnTransito
     : tramitesEnTransito.filter(t => t.estado === filterEstado);
 
-  const filteredHistorial = (filterEstado === 'todos'
+  const filteredHistorialPorEstado = (filterEstado === 'todos'
     ? tramitesHistorial
     : tramitesHistorial.filter(t => t.estado === filterEstado)
   ).slice().sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+  const busquedaHistorialActiva = busquedaHistorial.trim() !== '';
+
+  const filteredHistorial = busquedaHistorialActiva
+    ? filteredHistorialPorEstado.filter(t =>
+        t.tipoTramiteNombre.toLowerCase().includes(busquedaHistorial.trim().toLowerCase())
+      )
+    : filteredHistorialPorEstado;
+
+  const historialMostrado = busquedaHistorialActiva
+    ? filteredHistorial
+    : filteredHistorial.slice(0, 10);
 
   const estadosConItems = ([1, 2, 3, 4, 5, 6] as number[]).filter(e =>
     allTramites.some(t => t.estado === e)
@@ -397,9 +410,25 @@ export const TramitesPage: React.FC = () => {
           <div className="tramites-section-divider" />
           <div className="tramites-section-label">Historial</div>
 
+          <div className="tramites-search-bar">
+            <input
+              type="text"
+              className="tramites-search-input"
+              placeholder="Buscar por tipo de trámite..."
+              value={busquedaHistorial}
+              onChange={e => setBusquedaHistorial(e.target.value)}
+            />
+          </div>
+
+          <p className="tramites-search-hint">
+            {busquedaHistorialActiva
+              ? `${historialMostrado.length} resultado${historialMostrado.length !== 1 ? 's' : ''} encontrado${historialMostrado.length !== 1 ? 's' : ''}`
+              : `Mostrando los ${historialMostrado.length} registros más recientes de ${filteredHistorialPorEstado.length}`}
+          </p>
+
           <div className="historial-list">
-            {filteredHistorial.length > 0 ? (
-              filteredHistorial.map(tramite => {
+            {historialMostrado.length > 0 ? (
+              historialMostrado.map(tramite => {
                 const cfg    = ESTADO_CONFIG[tramite.estado] ?? ESTADO_CONFIG[6];
                 const icon   = TIPO_TRAMITE_ICONS[tramite.tipoTramiteId] ?? '📄';
                 const detalle = getTramiteDetalle(tramite);

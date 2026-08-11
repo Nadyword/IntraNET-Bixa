@@ -11,5 +11,7 @@
         public Task<bool> SendMailSolicitudPendienteAprobacion(string destinatario);
 
         public Task<bool> SendMailSolicitudFirmadaCompleta(string destinatario);
+
+        public Task<bool> SendMailHcActualizado(string destinatario, string empleadoNombre, string empleadoCi);
     }
 }

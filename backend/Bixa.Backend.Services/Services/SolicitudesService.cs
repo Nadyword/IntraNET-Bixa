@@ -488,7 +488,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         result.EmpleadoNombre = user?.FirstName + " " + user?.LastName;
         result.EmpleadoCargo = deparmento.Value[0].Ocupacion;
         result.FechaIngreso = DateTime.Now;
-        result.FechaSolicitud = tramite.FechaSolicitud;
+        result.FechaSolicitud = tramite.CreatedAt;
         result.FechaResolucion = DateTime.Now;
         result.EmpleadoUrlFirma = user?.UrlFirma;
         result.Vacaciones = new()
@@ -533,7 +533,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         result.EmpleadoNombre = user?.FirstName + " " + user?.LastName;
         result.EmpleadoCargo = empleadoInfo.IsSuccess ? empleadoInfo.Value.DesCargo : null;
         result.EmpleadoDepartamento = empleadoInfo.IsSuccess ? empleadoInfo.Value.DesDepart : null;
-        result.FechaSolicitud = tramite.FechaSolicitud;
+        result.FechaSolicitud = tramite.CreatedAt;
         result.FechaResolucion = DateTime.Now;
         result.EmpleadoUrlFirma = user?.UrlFirma;
         result.DiaEspecial = new()
@@ -578,7 +578,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         result.EmpleadoCargo = empleadoInfo.IsSuccess ? empleadoInfo.Value.DesCargo : null;
         result.EmpleadoDepartamento = empleadoInfo.IsSuccess ? empleadoInfo.Value.DesDepart : null;
         result.FechaIngreso = empleadoInfo.IsSuccess ? empleadoInfo.Value.FechaIng : null;
-        result.FechaSolicitud = tramite.FechaSolicitud;
+        result.FechaSolicitud = tramite.CreatedAt;
         result.FechaResolucion = DateTime.Now;
         result.EmpleadoUrlFirma = user?.UrlFirma;
         result.Utilidades = new()
@@ -625,7 +625,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         result.EmpleadoCargo = empleadoInfo.IsSuccess ? empleadoInfo.Value.DesCargo : null;
         result.EmpleadoDepartamento = empleadoInfo.IsSuccess ? empleadoInfo.Value.DesDepart : null;
         result.FechaIngreso = empleadoInfo.IsSuccess ? empleadoInfo.Value.FechaIng : null;
-        result.FechaSolicitud = tramite.FechaSolicitud;
+        result.FechaSolicitud = tramite.CreatedAt;
         result.FechaResolucion = DateTime.Now;
         result.EmpleadoUrlFirma = user?.UrlFirma;
         result.Prestaciones = new()

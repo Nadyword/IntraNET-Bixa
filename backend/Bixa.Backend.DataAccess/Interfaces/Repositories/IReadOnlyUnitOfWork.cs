@@ -19,4 +19,6 @@ public interface IReadOnlyUnitOfWork : IDisposable
     IUtilidadesProfitRepository Utilidades { get; }
 
     IConsultaHcProfitRepository ConsultaHc { get; }
+
+    IConsultaArcProfitRepository ConsultaArc { get; }
 }

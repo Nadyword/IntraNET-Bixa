@@ -25,12 +25,38 @@ interface DiaEspecial {
 
 interface ConsultaHc {
   nombreCompleto: string | null;
+  parentesco: string | null;
   primaTrimBs: number | null;
   pagoBixaTrim: number | null;
   mes1E071: number | null;
   mes2E071: number | null;
   mes3E071: number | null;
 }
+
+interface HcMesRegistro {
+  ci: string;
+  nombreCompleto: string | null;
+  mes1: number;
+  mes2: number;
+  mes3: number;
+  primaTrimBs: number;
+  updatedAt: string;
+  modifiedByCi: string | null;
+}
+
+interface ConsultaArc {
+  mes: number | null;
+  remuneracion: number | null;
+  porcentRetencion: number | null;
+  impuestoRetenido: number | null;
+  remuneracionAcumulada: number | null;
+  impuestoRetenidoAcum: number | null;
+}
+
+const NOMBRES_MESES = [
+  'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+  'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE',
+];
 
 const formatFecha = (fecha: string | null): string => {
   if (!fecha) return '—';
@@ -65,10 +91,27 @@ export const ConsultasPage: React.FC = () => {
 
   // null = aún no consultado, undefined = consultado sin registros, ConsultaHc = con datos
   const [hcCobertura1, setHcCobertura1] = useState<ConsultaHc | null | undefined>(null);
-  const [hcCobertura2, setHcCobertura2] = useState<ConsultaHc | null | undefined>(null);
+  // null = aún no consultado, undefined = consultado sin registros, ConsultaHc[] = con datos (puede haber varios familiares)
+  const [hcCobertura2, setHcCobertura2] = useState<ConsultaHc[] | null | undefined>(null);
   const [loadingHc, setLoadingHc] = useState(false);
   const [modalHc, setModalHc] = useState(false);
   const [errorHc, setErrorHc] = useState<string | null>(null);
+
+  const [mes1Input, setMes1Input] = useState('');
+  const [mes2Input, setMes2Input] = useState('');
+  const [mes3Input, setMes3Input] = useState('');
+  const [hcSaving, setHcSaving] = useState(false);
+  const [hcSaveError, setHcSaveError] = useState<string | null>(null);
+  const [hcSaveSuccess, setHcSaveSuccess] = useState(false);
+
+  // null = aún no consultado, undefined = consultado sin registros, [...] = con datos
+  const [arcData, setArcData] = useState<ConsultaArc[] | null | undefined>(null);
+  const [loadingArc, setLoadingArc] = useState(false);
+  const [modalArc, setModalArc] = useState(false);
+  const [errorArc, setErrorArc] = useState<string | null>(null);
+  const [anioArc, setAnioArc] = useState(new Date().getFullYear());
+  const [descargandoArc, setDescargandoArc] = useState(false);
+  const [errorDescargaArc, setErrorDescargaArc] = useState<string | null>(null);
 
   const ultimoDisponibleReal = vacaciones !== null && vacaciones.length > 0
     ? vacaciones[vacaciones.length - 1].disponibleAcumulado
@@ -154,11 +197,14 @@ export const ConsultasPage: React.FC = () => {
     if (!profile?.ci) return;
     setLoadingHc(true);
     setErrorHc(null);
+    setHcSaveError(null);
+    setHcSaveSuccess(false);
     try {
       const normalizedCi = profile.ci;
-      const [cob1, cob2] = await Promise.allSettled([
+      const [cob1, cob2, registro] = await Promise.allSettled([
         api.get(`/usersProfit/${normalizedCi}/ConsultaHc/Cobertura1`),
         api.get(`/usersProfit/${normalizedCi}/ConsultaHc/Cobertura2`),
+        api.get(`/hc/${normalizedCi}`),
       ]);
 
       if (cob1.status === 'fulfilled' && cob1.value.data.success) {
@@ -173,11 +219,110 @@ export const ConsultasPage: React.FC = () => {
         setHcCobertura2(undefined);
       }
 
+      if (registro.status === 'fulfilled' && registro.value.data.success) {
+        const r: HcMesRegistro = registro.value.data.data;
+        setMes1Input(r.mes1 ? String(r.mes1) : '');
+        setMes2Input(r.mes2 ? String(r.mes2) : '');
+        setMes3Input(r.mes3 ? String(r.mes3) : '');
+      } else {
+        setMes1Input('');
+        setMes2Input('');
+        setMes3Input('');
+      }
+
       setModalHc(true);
     } catch {
       setErrorHc('Error al consultar HC');
     } finally {
       setLoadingHc(false);
+    }
+  };
+
+  const parseMonto = (valor: string): number => {
+    const parsed = parseFloat(valor.replace(',', '.'));
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const sumaMeses = parseMonto(mes1Input) + parseMonto(mes2Input) + parseMonto(mes3Input);
+  const primaTrimBsHc = hcCobertura1?.primaTrimBs ?? 0;
+  const sumaNoCoincideHc = sumaMeses !== primaTrimBsHc;
+
+  const handleGuardarHc = async () => {
+    if (!profile?.ci || sumaNoCoincideHc) return;
+    setHcSaving(true);
+    setHcSaveError(null);
+    setHcSaveSuccess(false);
+    try {
+      const { data } = await api.put(`/hc/${profile.ci}`, {
+        mes1: parseMonto(mes1Input),
+        mes2: parseMonto(mes2Input),
+        mes3: parseMonto(mes3Input),
+      });
+      if (data.success) {
+        setHcSaveSuccess(true);
+      } else {
+        setHcSaveError(data.message || 'No se pudo guardar la información.');
+      }
+    } catch (err: any) {
+      setHcSaveError(err.response?.data?.message || 'Error al guardar los valores.');
+    } finally {
+      setHcSaving(false);
+    }
+  };
+
+  const handleConsultarArc = async (anio: number = new Date().getFullYear()) => {
+    if (!profile?.ci) return;
+    setLoadingArc(true);
+    setErrorArc(null);
+    try {
+      const { data } = await api.get(`/usersProfit/${profile.ci}/ConsultaArc`, { params: { anio } });
+      setAnioArc(anio);
+      if (data.success) {
+        setArcData(data.data);
+        setModalArc(true);
+      } else {
+        setArcData(undefined);
+        setModalArc(true);
+      }
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        setAnioArc(anio);
+        setArcData(undefined);
+        setModalArc(true);
+      } else {
+        setErrorArc('Error al consultar ARC');
+      }
+    } finally {
+      setLoadingArc(false);
+    }
+  };
+
+  const handleToggleAnioArc = () => {
+    const anioActual = new Date().getFullYear();
+    handleConsultarArc(anioArc === anioActual ? anioActual - 1 : anioActual);
+  };
+
+  const handleDescargarArcReporte = async () => {
+    if (!profile?.ci) return;
+    setDescargandoArc(true);
+    setErrorDescargaArc(null);
+    try {
+      const response = await api.get(`/usersProfit/${profile.ci}/ConsultaArc/Reporte`, {
+        params: { anio: anioArc },
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ARC_${profile.ci}_${anioArc}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setErrorDescargaArc('Error al generar el reporte de ARC');
+    } finally {
+      setDescargandoArc(false);
     }
   };
 
@@ -268,16 +413,35 @@ export const ConsultasPage: React.FC = () => {
           <div className="stat-icon green">💰</div>
           <div className="stat-info"><h3 style={{ fontSize: '22px' }}>*En desarrollo*</h3><p>Prestaciones acumuladas</p></div>
         </div>
+        {/* Consulta ARC */}
         <div className="stat-card">
           <div className="stat-icon red">📄</div>
-          <div className="stat-info"><h3 style={{ fontSize: '22px' }}>*En desarrollo*</h3><p>ARC — Retención de ISLR:</p></div>
+          <div className="stat-info">
+            <h3 style={{ fontSize: '22px' }}>ARC</h3>
+            <p>Retención de ISLR</p>
+            <div className="stat-sub">
+              {arcData === null
+                ? 'Sin consultar'
+                : !arcData
+                ? 'Sin registros'
+                : 'Consultado'}
+            </div>
+            {errorArc && <div className="stat-error">{errorArc}</div>}
+            <button
+              className="consultar-btn"
+              onClick={() => handleConsultarArc()}
+              disabled={loadingArc}
+            >
+              {loadingArc ? 'Consultando...' : 'Consultar'}
+            </button>
+          </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon red">📈</div>
           <div className="stat-info">
             <h3>
               {typeof montoUtilidades === 'number'
-                ? `$${montoUtilidades.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                ? `Bs. ${montoUtilidades.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 : '—'}
             </h3>
             <p>Utilidades disponibles</p>
@@ -407,9 +571,36 @@ export const ConsultasPage: React.FC = () => {
                     <tr>
                       <td>{hcCobertura1.nombreCompleto ?? '—'}</td>
                       <td>{formatMonto(hcCobertura1.primaTrimBs)}</td>
-                      <td>{formatMonto(hcCobertura1.mes1E071)}</td>
-                      <td>{formatMonto(hcCobertura1.mes2E071)}</td>
-                      <td>{formatMonto(hcCobertura1.mes3E071)}</td>
+                      <td>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          className="hc-mes-input"
+                          value={mes1Input}
+                          onChange={(e) => setMes1Input(e.target.value)}
+                          placeholder="0,00"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          className="hc-mes-input"
+                          value={mes2Input}
+                          onChange={(e) => setMes2Input(e.target.value)}
+                          placeholder="0,00"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          className="hc-mes-input"
+                          value={mes3Input}
+                          onChange={(e) => setMes3Input(e.target.value)}
+                          placeholder="0,00"
+                        />
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -417,20 +608,111 @@ export const ConsultasPage: React.FC = () => {
                 <p className="stat-sub">Sin registros</p>
               )}
 
+              {hcCobertura1 && (
+                <div className="hc-mes-actions">
+                  <div className="hc-mes-summary">
+                    Suma: {formatMonto(sumaMeses)} / {formatMonto(primaTrimBsHc)}
+                    {sumaNoCoincideHc && (
+                      <span className="hc-mes-error"> — La suma debe ser igual a la Prima trim en Bs. Factura</span>
+                    )}
+                  </div>
+                  <button
+                    className="consultar-btn"
+                    onClick={handleGuardarHc}
+                    disabled={hcSaving || sumaNoCoincideHc}
+                  >
+                    {hcSaving ? 'Guardando...' : 'Guardar'}
+                  </button>
+                  {hcSaveSuccess && <span className="hc-mes-success">Guardado correctamente</span>}
+                  {hcSaveError && <span className="hc-mes-error">{hcSaveError}</span>}
+                </div>
+              )}
+
               <p className="modal-subtitle" style={{ marginTop: '20px' }}>Cobertura 2</p>
-              {hcCobertura2 ? (
+              {hcCobertura2 && hcCobertura2.length > 0 ? (
                 <table className="vacaciones-table">
                   <thead>
                     <tr>
                       <th>Nombre del asegurado</th>
+                      <th>Parentesco</th>
                       <th>Pago a Bixa Trim $</th>
                     </tr>
                   </thead>
                   <tbody>
+                    {hcCobertura2.map((f, i) => (
+                      <tr key={i}>
+                        <td>{f.nombreCompleto ?? '—'}</td>
+                        <td>{f.parentesco ?? '—'}</td>
+                        <td>{formatMonto(f.pagoBixaTrim)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="stat-sub">Sin registros</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal ARC */}
+      {modalArc && (
+        <div className="modal-overlay" onClick={() => setModalArc(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h2>ARC — Retención de ISLR ({anioArc})</h2>
+              </div>
+              <button className="modal-close" onClick={() => setModalArc(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: '12px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  className="btn-secondary"
+                  onClick={handleToggleAnioArc}
+                  disabled={loadingArc}
+                >
+                  {loadingArc
+                    ? 'Consultando...'
+                    : anioArc === new Date().getFullYear()
+                      ? 'Ver año anterior'
+                      : 'Ver año actual'}
+                </button>
+                {arcData && arcData.length > 0 && (
+                  <button
+                    className="btn-secondary"
+                    onClick={handleDescargarArcReporte}
+                    disabled={descargandoArc}
+                  >
+                    {descargandoArc ? 'Generando...' : '⬇ Descargar reporte'}
+                  </button>
+                )}
+                {errorDescargaArc && <span className="hc-mes-error">{errorDescargaArc}</span>}
+              </div>
+              {arcData && arcData.length > 0 ? (
+                <table className="vacaciones-table">
+                  <thead>
                     <tr>
-                      <td>{hcCobertura2.nombreCompleto ?? '—'}</td>
-                      <td>{formatMonto(hcCobertura2.pagoBixaTrim)}</td>
+                      <th>Meses</th>
+                      <th>Remuneraciones pagadas abonadas en cuentas</th>
+                      <th>Porcentaje de retención</th>
+                      <th>Impuesto retenido</th>
+                      <th>Remuneraciones pagadas o abonadas en cuentas acumuladas</th>
+                      <th>Impuesto retenido acumulado</th>
                     </tr>
+                  </thead>
+                  <tbody>
+                    {arcData.map((a, i) => (
+                      <tr key={i}>
+                        <td>{a.mes ? NOMBRES_MESES[a.mes - 1] : '—'}</td>
+                        <td>{formatMonto(a.remuneracion)}</td>
+                        <td>{formatMonto(a.porcentRetencion)}</td>
+                        <td>{formatMonto(a.impuestoRetenido)}</td>
+                        <td>{formatMonto(a.remuneracionAcumulada)}</td>
+                        <td>{formatMonto(a.impuestoRetenidoAcum)}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               ) : (

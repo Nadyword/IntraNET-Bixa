@@ -2,6 +2,8 @@
 using Bixa.Backend.DataAccess.Entities.DbProfit;
 using Bixa.Backend.DataAccess.Wrappers;
 using Microsoft.AspNetCore.Authorization;
+using Bixa.Backend.Models.DTOs.ReportesModelDTO;
+using Bixa.Backend.Services.Interfaces;
 using Bixa.Backend.Services.Services;
 using Microsoft.AspNetCore.Mvc;
 using Bixa.Backend.Models;
@@ -19,16 +21,25 @@ namespace Bixa.Backend.Controllers.UserApiProfitController;
 /// </remarks>
 ///<param name="IReadOnlyUnitOfWork">Read-only unit of work for data access operations.</param>
 /// <param name="mapper">AutoMapper instance for DTO conversions.</param>
-/// <param name="loggerWrapper">Logger wrapper for logging operations.</param>{
+/// <param name="loggerWrapper">Logger wrapper for logging operations.</param>
+/// <param name="reportService">Servicio de generación de reportes PDF.</param>{
 [Authorize]
 [ApiController]
 [Route("api/usersProfit")]
 public class UserApiProfitController(
     IReadOnlyUnitOfWork IReadOnlyUnitOfWork,
     IMapper mapper,
-    LoggerWrapper loggerWrapper) : BaseApiController(mapper, loggerWrapper)
+    LoggerWrapper loggerWrapper,
+    IReportService reportService) : BaseApiController(mapper, loggerWrapper)
 {
     private readonly IReadOnlyUnitOfWork _readOnlyUnitOfWork = IReadOnlyUnitOfWork ?? throw new ArgumentNullException(nameof(IReadOnlyUnitOfWork));
+    private readonly IReportService _reportService = reportService;
+
+    private static readonly string[] NombresMeses =
+    [
+        "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+        "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE",
+    ];
 
     /// <summary>
     /// Retrieves a single user by their ID.
@@ -134,19 +145,88 @@ public class UserApiProfitController(
     }
 
     /// <summary>
-    /// Consulta de HC (Cobertura 2 - 20.000,00): asegurado y pago a Bixa trimestral en $.
+    /// Consulta de HC (Cobertura 2 - 20.000,00): familiares/beneficiarios y pago a Bixa trimestral en $.
+    /// Puede devolver más de un registro (uno por cada familiar/beneficiario).
     /// </summary>
     /// <param name="ci">La cédula de identidad del empleado.</param>
-    /// <returns>API response con el registro de HC de cobertura 2.</returns>
+    /// <returns>API response con los registros de HC de cobertura 2.</returns>
     [HttpGet("{ci}/ConsultaHc/Cobertura2")]
-    [ProducesResponseType(typeof(ApiResponse<ConsultaHc>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<ConsultaHc>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetConsultaHcCobertura2(string ci)
     {
         var normalizedCi = UtilityService.NormalizeCiFormat(ci);
-        var result = await _readOnlyUnitOfWork.ConsultaHc.GetConsultaHcAsync(normalizedCi, 20000.00m);
+        var result = await _readOnlyUnitOfWork.ConsultaHc.GetConsultaHcListAsync(normalizedCi, 20000.00m);
         return HandleServiceResult(result);
+    }
+
+    /// <summary>
+    /// Consulta ARC (retención de ISLR): detalle mensual de remuneraciones e impuesto retenido del año indicado (por defecto, el año en curso).
+    /// </summary>
+    /// <param name="ci">La cédula de identidad del empleado.</param>
+    /// <param name="anio">Año a consultar. Si no se especifica, se usa el año en curso.</param>
+    /// <returns>API response con el detalle mensual de ARC.</returns>
+    [HttpGet("{ci}/ConsultaArc")]
+    [ProducesResponseType(typeof(ApiResponse<List<ConsultaArc>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetConsultaArc(string ci, [FromQuery] int? anio)
+    {
+        var normalizedCi = UtilityService.NormalizeCiFormat(ci);
+        var result = await _readOnlyUnitOfWork.ConsultaArc.GetConsultaArcAsync(normalizedCi, anio ?? DateTime.Now.Year);
+        return HandleServiceResult(result);
+    }
+
+    /// <summary>
+    /// Genera el PDF del comprobante de retención (ARC) del año indicado (por defecto, el año en curso).
+    /// </summary>
+    /// <param name="ci">La cédula de identidad del empleado.</param>
+    /// <param name="anio">Año a consultar. Si no se especifica, se usa el año en curso.</param>
+    /// <returns>Archivo PDF con el comprobante de retención.</returns>
+    [HttpGet("{ci}/ConsultaArc/Reporte")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetConsultaArcReporte(string ci, [FromQuery] int? anio)
+    {
+        var normalizedCi = UtilityService.NormalizeCiFormat(ci);
+        var year = anio ?? DateTime.Now.Year;
+
+        var empleadoResult = await _readOnlyUnitOfWork.SnEmple.GetFullInfoByCiAsync(normalizedCi);
+        if (!empleadoResult.IsSuccess) return HandleServiceResult(empleadoResult);
+
+        var arcResult = await _readOnlyUnitOfWork.ConsultaArc.GetConsultaArcAsync(normalizedCi, year);
+        if (!arcResult.IsSuccess) return HandleServiceResult(arcResult);
+
+        var empleado = empleadoResult.Value;
+        var nombreCompleto = string.Join(", ", new[] { empleado.Apellidos, empleado.Nombres }
+            .Where(n => !string.IsNullOrWhiteSpace(n)));
+
+        var model = new ArcReportModel
+        {
+            Anio = year,
+            EmpleadoNombre = nombreCompleto,
+            EmpleadoCi = $"V-{normalizedCi}",
+            EmpleadoRif = !string.IsNullOrWhiteSpace(empleado.Rif) ? empleado.Rif : normalizedCi,
+            Meses = arcResult.Value
+                .OrderBy(a => a.Mes)
+                .Select(a => new ArcMesReportModel
+                {
+                    Mes = a.Mes is >= 1 and <= 12 ? NombresMeses[a.Mes.Value - 1] : "—",
+                    Remuneracion = a.Remuneracion ?? 0,
+                    PorcentRetencion = a.PorcentRetencion,
+                    ImpuestoRetenido = a.ImpuestoRetenido,
+                    RemuneracionAcumulada = a.RemuneracionAcumulada ?? 0,
+                    ImpuestoRetenidoAcum = a.ImpuestoRetenidoAcum,
+                })
+                .ToList(),
+        };
+
+        var bytes = _reportService.GenerateArcReport(model);
+        return File(bytes, "application/pdf", $"ARC_{normalizedCi}_{year}.pdf");
     }
 }

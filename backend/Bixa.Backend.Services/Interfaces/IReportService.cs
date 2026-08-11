@@ -11,6 +11,11 @@ public interface IReportService
     byte[] GenerateTramiteReport(TramiteReportModel model, string plantilla = "Generic");
 
     /// <summary>
+    /// Genera el PDF del comprobante de retención (ARC).
+    /// </summary>
+    byte[] GenerateArcReport(ArcReportModel model);
+
+    /// <summary>
     /// Guarda una imagen en el almacén de assets de reportes y retorna su nombre de archivo.
     /// </summary>
     Task<string> SaveReportImageAsync(Stream imageStream, string fileName);
