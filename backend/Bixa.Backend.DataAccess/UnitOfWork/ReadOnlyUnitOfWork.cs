@@ -22,6 +22,7 @@ public class ReadOnlyUnitOfWork : IReadOnlyUnitOfWork
         Vacaciones = new VacacionesProfitRepository(_context);
         DiaEspeciales = new DiaEspecialesProfitRepository(_context);
         Utilidades = new UtilidadesProfitRepository(_context);
+        PrestacionesSociales = new PrestacionesSocialesProfitRepository(_context);
         ConsultaHc = new ConsultaHcProfitRepository(_context);
         ConsultaArc = new ConsultaArcProfitRepository(_context);
     }
@@ -31,6 +32,7 @@ public class ReadOnlyUnitOfWork : IReadOnlyUnitOfWork
     public IVacacionesProfitRepository Vacaciones { get; }
     public IDiaEspecialesProfitRepository DiaEspeciales { get; }
     public IUtilidadesProfitRepository Utilidades { get; }
+    public IPrestacionesSocialesProfitRepository PrestacionesSociales { get; }
     public IConsultaHcProfitRepository ConsultaHc { get; }
     public IConsultaArcProfitRepository ConsultaArc { get; }
 

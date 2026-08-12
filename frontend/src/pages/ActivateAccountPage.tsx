@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import type { ValidateTokenResponse } from '../services/authService';
 import authService from '../services/authService';
+import { PasswordInput } from '../components/ui/PasswordInput';
 import './ActivateAccountPage.css';
 
 interface FormData {
@@ -289,8 +290,7 @@ export const ActivateAccountPage: React.FC = () => {
                 Contraseña
                 <span className="required">*</span>
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 id="password"
                 name="password"
                 placeholder="Mínimo 8 caracteres"
@@ -306,8 +306,7 @@ export const ActivateAccountPage: React.FC = () => {
                 Confirmar Contraseña
                 <span className="required">*</span>
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 id="confirmPassword"
                 name="confirmPassword"
                 placeholder="Repite tu contraseña"

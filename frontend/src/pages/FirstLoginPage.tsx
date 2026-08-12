@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { useUserProfileStore } from '../store/userProfileStore';
 import { userService } from '../services/userService';
 import authService from '../services/authService';
+import { PasswordInput } from '../components/ui/PasswordInput';
 import './FirstLoginPage.css';
 
 export const FirstLoginPage: React.FC = () => {
@@ -17,7 +18,6 @@ export const FirstLoginPage: React.FC = () => {
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -88,28 +88,17 @@ export const FirstLoginPage: React.FC = () => {
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="form-label">Nueva contraseña</label>
-              <div className="password-input-wrapper">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Mínimo 8 caracteres"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  className="password-toggle-btn"
-                  onClick={() => setShowPassword((p) => !p)}
-                >
-                  {showPassword ? 'Ocultar' : 'Mostrar'}
-                </button>
-              </div>
+              <PasswordInput
+                placeholder="Mínimo 8 caracteres"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
             </div>
 
             <div className="form-group">
               <label className="form-label">Confirmar contraseña</label>
-              <input
-                type={showPassword ? 'text' : 'password'}
+              <PasswordInput
                 placeholder="Repite tu contraseña"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}

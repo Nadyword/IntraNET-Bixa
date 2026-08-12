@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { PasswordInput } from '../components/ui/PasswordInput';
 import './LoginPage.css';
 import './ResetPasswordPage.css';
 
@@ -16,7 +17,6 @@ export const ResetPasswordPage: React.FC = () => {
 
   const [NewPassword, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -125,21 +125,17 @@ export const ResetPasswordPage: React.FC = () => {
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">Nueva Contraseña</label>
-            <div className="NewPassword-input-wrapper">
-              <input
-                type={showPassword ? 'text' : 'NewPassword'}
-                placeholder="Mínimo 8 caracteres"
-                value={NewPassword}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+            <PasswordInput
+              placeholder="Mínimo 8 caracteres"
+              value={NewPassword}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </div>
 
           <div className="form-group">
             <label className="form-label">Confirmar Contraseña</label>
-            <input
-              type={showPassword ? 'text' : 'NewPassword'}
+            <PasswordInput
               placeholder="Repite la contraseña"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}

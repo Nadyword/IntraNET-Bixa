@@ -47,14 +47,14 @@ export const ForgotPasswordModal: React.FC<Props> = ({ onClose }) => {
         ) : (
           <>
             <h3>Recuperar contraseña</h3>
-            <p>Ingresa tu Cedula y te enviaremos un enlace para restablecer tu contraseña.</p>
+            <p>Ingresa tu Cédula y te enviaremos un enlace para restablecer tu contraseña.</p>
 
             <form onSubmit={handleSubmit}>
               <div className="modal-field">
                 <label>Cedula</label>
                 <input
                   type="text"
-                  placeholder="Cedula a recuperar"
+                  placeholder="Cédula a recuperar"
                   value={Ci}
                   onChange={(e) => setCi(e.target.value)}
                   required

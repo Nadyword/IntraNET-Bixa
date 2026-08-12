@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useUserProfileStore } from '../store/userProfileStore';
 import { api } from '../lib/api';
 import { ajustarSaldoVacaciones } from '../lib/vacaciones';
+import { ButtonSpinner } from '../components/ui/ButtonSpinner';
 import './ConsultasPage.css';
 
 interface Vacacion {
@@ -88,6 +89,11 @@ export const ConsultasPage: React.FC = () => {
   const [montoUtilidades, setMontoUtilidades] = useState<number | null | undefined>(null);
   const [loadingUtilidades, setLoadingUtilidades] = useState(false);
   const [errorUtilidades, setErrorUtilidades] = useState<string | null>(null);
+
+  // null = aún no consultado, undefined = consultado sin registros, number = monto disponible
+  const [montoPrestaciones, setMontoPrestaciones] = useState<number | null | undefined>(null);
+  const [loadingPrestaciones, setLoadingPrestaciones] = useState(false);
+  const [errorPrestaciones, setErrorPrestaciones] = useState<string | null>(null);
 
   // null = aún no consultado, undefined = consultado sin registros, ConsultaHc = con datos
   const [hcCobertura1, setHcCobertura1] = useState<ConsultaHc | null | undefined>(null);
@@ -190,6 +196,28 @@ export const ConsultasPage: React.FC = () => {
       }
     } finally {
       setLoadingUtilidades(false);
+    }
+  };
+
+  const handleConsultarPrestaciones = async () => {
+    if (!profile?.ci) return;
+    setLoadingPrestaciones(true);
+    setErrorPrestaciones(null);
+    try {
+      const { data } = await api.get(`/usersProfit/${profile.ci}/PrestacionesSociales`);
+      if (data.success) {
+        setMontoPrestaciones(data.data);
+      } else {
+        setErrorPrestaciones(data.message || 'No se encontró información');
+      }
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        setMontoPrestaciones(undefined);
+      } else {
+        setErrorPrestaciones('Error al consultar prestaciones sociales');
+      }
+    } finally {
+      setLoadingPrestaciones(false);
     }
   };
 
@@ -409,9 +437,32 @@ export const ConsultasPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Consulta de Prestaciones Sociales */}
         <div className="stat-card">
           <div className="stat-icon green">💰</div>
-          <div className="stat-info"><h3 style={{ fontSize: '22px' }}>*En desarrollo*</h3><p>Prestaciones acumuladas</p></div>
+          <div className="stat-info">
+            <h3>
+              {typeof montoPrestaciones === 'number'
+                ? `Bs. ${montoPrestaciones.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                : '—'}
+            </h3>
+            <p>Prestaciones acumuladas</p>
+            <div className="stat-sub">
+              {montoPrestaciones === null
+                ? 'Sin consultar'
+                : montoPrestaciones === undefined
+                ? 'Sin registros'
+                : 'Monto disponible'}
+            </div>
+            {errorPrestaciones && <div className="stat-error">{errorPrestaciones}</div>}
+            <button
+              className="consultar-btn"
+              onClick={handleConsultarPrestaciones}
+              disabled={loadingPrestaciones}
+            >
+              {loadingPrestaciones ? <><ButtonSpinner /> Consultando...</> : 'Consultar'}
+            </button>
+          </div>
         </div>
         {/* Consulta ARC */}
         <div className="stat-card">

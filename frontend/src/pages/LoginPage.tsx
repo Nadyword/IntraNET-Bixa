@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { ForgotPasswordModal } from '../components/ui/ForgotPasswordModal';
+import { PasswordInput } from '../components/ui/PasswordInput';
 import authService from '../services/authService';
 import './LoginPage.css';
 
@@ -10,7 +11,6 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuthStore();
   const [ci, setCi] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showForgot, setShowForgot] = useState(false);
@@ -83,22 +83,12 @@ export const LoginPage: React.FC = () => {
 
             <div className="form-group">
               <label className="form-label">Contraseña</label>
-              <div className="password-input-wrapper">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Clave"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  className="password-toggle-btn"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                >
-                  {showPassword ? 'Ocultar' : 'Mostrar'}
-                </button>
-              </div>
+              <PasswordInput
+                placeholder="Clave"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
 
             {error && <div className="login-error">{error}</div>}

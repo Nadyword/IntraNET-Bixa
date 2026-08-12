@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 import type { ApiResponse } from '../../services/authService';
+import { PasswordInput } from './PasswordInput';
 import './ForgotPasswordModal.css';
 import './CreateUserModal.css';
 
@@ -82,8 +83,7 @@ export const ChangePasswordModal: React.FC<Props> = ({ onClose }) => {
         <form onSubmit={handleSubmit}>
           <div className="modal-field">
             <label>Clave actual</label>
-            <input
-              type="password"
+            <PasswordInput
               placeholder="Clave actual"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
@@ -94,8 +94,7 @@ export const ChangePasswordModal: React.FC<Props> = ({ onClose }) => {
 
           <div className="modal-field">
             <label>Nueva clave</label>
-            <input
-              type="password"
+            <PasswordInput
               placeholder="Mínimo 8 caracteres"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
@@ -105,8 +104,7 @@ export const ChangePasswordModal: React.FC<Props> = ({ onClose }) => {
 
           <div className="modal-field">
             <label>Repetir nueva clave</label>
-            <input
-              type="password"
+            <PasswordInput
               placeholder="Repite la nueva clave"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}

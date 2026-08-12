@@ -62,6 +62,20 @@ public class ReportService(string reportAssetsPath, string firmasPath) : IReport
         return new ArcDocument(model).GeneratePdf();
     }
 
+    public byte[] GenerateAriReport(AriReportModel model)
+    {
+        QuestPDF.Settings.License = LicenseType.Community;
+
+        if (model.LogoEmpresa is not { Length: > 0 })
+        {
+            var logoPath = Path.Combine(_assetsPath, "Logo.webp");
+            if (File.Exists(logoPath))
+                model.LogoEmpresa = File.ReadAllBytes(logoPath);
+        }
+
+        return new AriDocument(model).GeneratePdf();
+    }
+
     public async Task<string> SaveReportImageAsync(Stream imageStream, string fileName)
     {
         Directory.CreateDirectory(_assetsPath);

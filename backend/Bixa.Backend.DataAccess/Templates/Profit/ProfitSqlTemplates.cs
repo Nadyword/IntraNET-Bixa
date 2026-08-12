@@ -813,4 +813,118 @@ internal static class ProfitSqlTemplates
                         GROUP BY snrecibo.cod_emp, snnomi.cod_emp,  snemple.cod_emp, snemple.nombre_completo,snemple.nac,snemple.ci,snemple.fecha_nac,direccion, telefono, estado
 
         """;
+
+    internal const string GetPrestacionesSociales = """
+        IF OBJECT_ID('tempdb..#temprestaIntra') IS NOT NULL
+            DROP TABLE #temprestaIntra;
+
+        IF OBJECT_ID('tempdb..#temprestaIntra2') IS NOT NULL
+            DROP TABLE #temprestaIntra2;
+          DECLARE
+
+        	@sCod_Emp_d char(17) = null,
+        	@sCod_Emp_h char(17) = null,
+        	@sdFec_Nomina_d smalldatetime = null,
+        	@sdFec_Nomina_h smalldatetime = null
+
+        	-- TOP 1 + ORDER BY: algunos empleados tienen más de un registro con la misma ci
+        	-- (reingresos). Se prioriza el registro Activo para evitar "Subquery returned more than 1 value".
+        	SET @sCod_Emp_d = (SELECT TOP 1 cod_emp FROM snemple WHERE ci = @CiEmpleado ORDER BY CASE WHEN status = 'A' THEN 0 ELSE 1 END, cod_emp DESC)
+        	SET @sCod_Emp_h = @sCod_Emp_d
+
+        	select  top(1) @sdFec_Nomina_d = fec_emis from sngennomi, par_emp where co_cont = cont_pres order by fec_emis asc
+
+        	Declare @strConceptoO004 char(12)
+        	set @strConceptoO004 =  dbo.GetConcepto('O004')
+
+        	Declare @strConceptoO005 char(12)
+        	set @strConceptoO005 = dbo.GetConcepto('O005')
+
+        	Declare @strConceptoO006 char(12)
+        	set @strConceptoO006 =  dbo.GetConcepto('O006')
+
+        	Declare @strConceptoO007 char(12)
+        	set @strConceptoO007 =  dbo.GetConcepto('O007')
+
+        	declare @strConceptoO010 char(12)
+        	set @strConceptoO010 = dbo.GetConcepto('O010')
+
+        	Declare @strConceptoO004_1 char(12)
+        	set @strConceptoO004_1 =  dbo.GetConcepto('O004_1')
+
+        	Declare @strConceptoZ015 char(12)
+        	set @strConceptoZ015 = dbo.GetConcepto('Z015')
+
+        	Declare @strConceptoO006_1 char(12)
+        	set @strConceptoO006_1 =  dbo.GetConcepto('O006_1')
+
+        	Declare @strConceptoO007_1 char(12)
+        	set @strConceptoO007_1 =  dbo.GetConcepto('O007_1')
+
+        	declare @strConceptoO010_1 char(12)
+        	set @strConceptoO010_1 = dbo.GetConcepto('O010_1')
+
+        	declare @strConceptoZ002 char(12)
+        	set @strConceptoZ002 = dbo.GetConcepto('Z002')
+
+        	declare @strConceptoZ003 char(12)
+        	set @strConceptoZ003 = dbo.GetConcepto('Z003')
+
+        	SELECT snrecibo.reci_num, Convert(smalldatetime,snrecibo.fec_emis,103) as fec_emis,
+        	CAST(MONTH(snrecibo.fec_emis) AS varchar(2))+'-'+CAST(YEAR(snrecibo.fec_emis) AS varchar(4)) as fecha,
+
+        	ISNULL((SELECT TOP(1)ISNULL(snnomi.monto,0) FROM snnomi WHERE snnomi.reci_num=snrecibo.reci_num and snnomi.cod_emp=snrecibo.cod_emp and snnomi.co_conce in (dbo.GetConcepto('O005')) order by snnomi.fec_emis),0) prest_asoc,
+
+        	ISNULL((SELECT TOP(1)ISNULL(snnomi.monto,0) FROM snnomi WHERE snnomi.reci_num=snrecibo.reci_num and snnomi.cod_emp=snrecibo.cod_emp and snnomi.co_conce in (dbo.GetConcepto('Z015')) order by snnomi.fec_emis),0) prestamo1,
+
+        	ISNULL((SELECT sum(snnomi.monto) FROM snnomi WHERE snnomi.reci_num=snrecibo.reci_num and snnomi.cod_emp=snrecibo.cod_emp and snnomi.co_conce in (dbo.GetConcepto('O006'),dbo.GetConcepto('O006_1'))),0) monto_dias_adicionales,
+
+        	ISNULL((SELECT TOP (1) ISNULL(sum(snnomi.monto),0) FROM snnomi WHERE month(snnomi.fec_emis)=month(snrecibo.fec_emis) and year(snnomi.fec_emis)=year(snrecibo.fec_emis) and snnomi.cod_emp=snemple.cod_emp and snnomi.co_conce in (dbo.GetConcepto('O007'),dbo.GetConcepto('O007_1'))),0)antic_prest_soc,
+
+        	ISNULL((SELECT TOP (1)ISNULL(val_n,0) FROM snhistor WHERE snhistor.cod_emp=snemple.cod_emp and snhistor.co_var = 'Z900'and snhistor.fecha=snrecibo.fec_emis and snhistor.co_cont=parEmp.cont_pres),0) acum_prest
+        into #temprestaIntra
+        FROM snrecibo
+        	inner join dbo.snnomi as n on snrecibo.reci_num = n.reci_num and snrecibo.cod_emp = n.cod_emp AND
+        												(@strConceptoO004 = n.co_conce OR
+        														@strConceptoO005 = n.co_conce OR
+        														@strConceptoO006 = n.co_conce OR
+        														@strConceptoO007 = n.co_conce or
+        														@strConceptoZ002 = n.co_conce OR
+        														@strConceptoZ003 = n.co_conce OR
+        														@strConceptoO010 = n.co_conce or
+        														@strConceptoO004_1 = n.co_conce OR
+        														@strConceptoZ015 = n.co_conce OR
+        														@strConceptoO006_1 = n.co_conce OR
+        														@strConceptoO007_1 = n.co_conce or
+        														@strConceptoO010_1 = n.co_conce)
+        	inner join snemple on snrecibo.cod_emp = snemple.cod_emp
+        	inner join sndepart on snemple.co_depart = sndepart.co_depart
+        	inner join sncont on snemple.co_cont = sncont.co_cont,dbo.par_emp as parEmp
+
+        	WHERE
+        		((@sCod_Emp_d IS NULL OR dbo.snrecibo.cod_emp >= @sCod_Emp_d)
+        			AND (@sCod_Emp_h IS NULL OR (@sCod_Emp_d IS NULL AND dbo.snrecibo.cod_emp IS NULL) OR dbo.snrecibo.cod_emp <= @sCod_Emp_h))
+        	AND ((@sdFec_Nomina_d IS NULL OR @sdFec_Nomina_d <= dbo.snrecibo.fec_emis )
+        			AND (@sdFec_Nomina_h IS NULL OR dbo.snrecibo.fec_emis <= @sdFec_Nomina_h ))
+        	AND ((snemple.status = 'A' or snemple.status = 'PL'))
+
+        	ORDER BY snrecibo.fec_emis, snemple.cod_emp
+
+        select
+        	distinct max(reci_num) as reci_Num,
+        	max(fec_emis) fec_emis,
+        	fecha,
+        	max(prest_asoc)prest_asoc,
+        	max(prestamo1) prestamo1,
+        	max(monto_dias_adicionales)monto_dias_adicionales,
+        	max(antic_prest_soc)antic_prest_soc
+        	INTO #temprestaIntra2
+         from #temprestaIntra
+        group by
+        fecha
+
+        SELECT  ((SUM(prest_asoc) + SUM(prestamo1) + SUM(monto_dias_adicionales)) - SUM(antic_prest_soc)) * 0.75 AS MontoDisponible  FROM #temprestaIntra2
+        drop table #temprestaIntra
+        drop table #temprestaIntra2
+        """;
 }

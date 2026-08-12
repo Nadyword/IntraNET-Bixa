@@ -16,6 +16,11 @@ public interface IReportService
     byte[] GenerateArcReport(ArcReportModel model);
 
     /// <summary>
+    /// Genera el PDF de la planilla AR-I (determinación del porcentaje de retención de I.S.L.R.).
+    /// </summary>
+    byte[] GenerateAriReport(AriReportModel model);
+
+    /// <summary>
     /// Guarda una imagen en el almacén de assets de reportes y retorna su nombre de archivo.
     /// </summary>
     Task<string> SaveReportImageAsync(Stream imageStream, string fileName);

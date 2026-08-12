@@ -72,7 +72,12 @@
       "Bash(mkdir -p \"/c/Users/samue/AppData/Local/Temp/claude/D--Proyectos-IntraNET-Bixa/13ce1590-725d-438f-b02e-cca1246342c0/scratchpad/arc-test\")",
       "Read(//c/Users/samue/AppData/Local/Temp/claude/D--Proyectos-IntraNET-Bixa/13ce1590-725d-438f-b02e-cca1246342c0/scratchpad/**)",
       "Bash(dotnet new *)",
-      "Bash(dotnet add *)"
+      "Bash(dotnet add *)",
+      "Bash(git status *)",
+      "Bash(git stash *)",
+      "Bash(python *)",
+      "Bash(pip install *)",
+      "PowerShell($excel = New-Object -ComObject Excel.Application -ErrorAction Stop; Write-Output \"Excel COM available\")"
     ]
   }
 }

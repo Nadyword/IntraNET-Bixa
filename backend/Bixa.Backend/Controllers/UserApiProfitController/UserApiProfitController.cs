@@ -7,6 +7,8 @@ using Bixa.Backend.Services.Interfaces;
 using Bixa.Backend.Services.Services;
 using Microsoft.AspNetCore.Mvc;
 using Bixa.Backend.Models;
+using Bixa.Backend.Models.Enums;
+using Bixa.Backend.Models.Response;
 using Bixa.Backend.Base;
 using AutoMapper;
 
@@ -128,6 +130,23 @@ public class UserApiProfitController(
     }
 
     /// <summary>
+    /// Monto de prestaciones sociales disponible por CI
+    /// </summary>
+    /// <param name="ci">La cédula de identidad del empleado para el que se recupera el monto disponible.</param>
+    /// <returns>API response con el monto disponible de prestaciones sociales.</returns>
+    [HttpGet("{ci}/PrestacionesSociales")]
+    [ProducesResponseType(typeof(ApiResponse<decimal?>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetPrestacionesSocialesByCi(string ci)
+    {
+        var normalizedCi = UtilityService.NormalizeCiFormat(ci);
+        var result = await _readOnlyUnitOfWork.PrestacionesSociales.GetMontoDisponibleByCiAsync(normalizedCi);
+        return HandleServiceResult(result);
+    }
+
+    /// <summary>
     /// Consulta de HC (Cobertura 1 - 10.000,00): titular, prima trimestral en Bs. y montos de nómina de los 3 meses.
     /// </summary>
     /// <param name="ci">La cédula de identidad del empleado.</param>
@@ -228,5 +247,54 @@ public class UserApiProfitController(
 
         var bytes = _reportService.GenerateArcReport(model);
         return File(bytes, "application/pdf", $"ARC_{normalizedCi}_{year}.pdf");
+    }
+
+    private static readonly string[] MesesAriValidos = ["Enero", "Marzo", "Junio", "Septiembre", "Diciembre"];
+    private static readonly string[] DesgravamenTiposValidos = ["Unico", "Detallado"];
+
+    /// <summary>
+    /// Genera el PDF de la planilla AR-I (determinación del porcentaje de retención de I.S.L.R.)
+    /// con los datos que el empleado ingresa en el formulario. Los datos de identidad (nombre,
+    /// cédula, RIF) se obtienen del registro del empleado, no del cuerpo de la solicitud.
+    /// </summary>
+    /// <param name="ci">La cédula de identidad del empleado.</param>
+    /// <param name="request">Los datos ingresados en el formulario ARI.</param>
+    /// <returns>Archivo PDF con la planilla AR-I.</returns>
+    [HttpPost("{ci}/Ari/Reporte")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAriReporte(string ci, [FromBody] AriReportRequestDTO request)
+    {
+        if (!MesesAriValidos.Contains(request.Mes))
+            return HandleServiceResult(Result.Fail<AriReportModel>("El mes indicado no es válido.", ErrorTypeEnum.Validation));
+
+        if (!DesgravamenTiposValidos.Contains(request.DesgravamenTipo))
+            return HandleServiceResult(Result.Fail<AriReportModel>("El tipo de desgravamen indicado no es válido.", ErrorTypeEnum.Validation));
+
+        if (request.ValorUT <= 0)
+            return HandleServiceResult(Result.Fail<AriReportModel>("Debe indicar el valor vigente de la Unidad Tributaria.", ErrorTypeEnum.Validation));
+
+        if (request.SueldoMensual <= 0)
+            return HandleServiceResult(Result.Fail<AriReportModel>("Debe indicar el sueldo mensual.", ErrorTypeEnum.Validation));
+
+        var normalizedCi = UtilityService.NormalizeCiFormat(ci);
+        var empleadoResult = await _readOnlyUnitOfWork.SnEmple.GetFullInfoByCiAsync(normalizedCi);
+        if (!empleadoResult.IsSuccess) return HandleServiceResult(empleadoResult);
+
+        var empleado = empleadoResult.Value;
+        var nombreCompleto = string.Join(", ", new[] { empleado.Apellidos, empleado.Nombres }
+            .Where(n => !string.IsNullOrWhiteSpace(n)));
+
+        var model = AriReportModel.Calcular(
+            request,
+            nombreCompleto,
+            $"V-{normalizedCi}",
+            !string.IsNullOrWhiteSpace(empleado.Rif) ? empleado.Rif : normalizedCi);
+
+        var bytes = _reportService.GenerateAriReport(model);
+        return File(bytes, "application/pdf", $"ARI_{normalizedCi}_{request.Anio}.pdf");
     }
 }
