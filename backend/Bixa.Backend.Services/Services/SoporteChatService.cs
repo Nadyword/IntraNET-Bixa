@@ -1,5 +1,6 @@
 ﻿using Bixa.Backend.Models.DTOs.SoporteChatModelDTO;
 using Bixa.Backend.DataAccess.Interfaces.Repositories;
+using Bixa.Backend.DataAccess.Interfaces.Repositories.Profit;
 using Bixa.Backend.Models.DTOs.FAQsDTO;
 using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.DataAccess.Models;
@@ -20,12 +21,19 @@ namespace Bixa.Backend.Services.Services;
 /// <param name="soporteChatRepository">The SoporteChat repository instance for data access.</param>
 /// /// <param name="mapper">AutoMapper instance for DTO conversions.</param>
 public class SoporteChatService(
-    ISoporteChatRepository soporteChatRepository, IMapper mapper, INotificationService notificationService, IUserRepository userRepository) : ISoporteChatService
+    ISoporteChatRepository soporteChatRepository,
+    IMapper mapper,
+    INotificationService notificationService,
+    IUserRepository userRepository,
+    ISnEmpleProfitRepository snEmpleProfitRepository,
+    ISendMailServices sendMailServices) : ISoporteChatService
 {
     private readonly ISoporteChatRepository _soporteChatRepository = soporteChatRepository;
     private readonly IMapper _mapper = mapper;
     private readonly INotificationService _notificationService = notificationService;
     private readonly IUserRepository _userRepository = userRepository;
+    private readonly ISnEmpleProfitRepository _snEmpleProfitRepository = snEmpleProfitRepository;
+    private readonly ISendMailServices _sendMailServices = sendMailServices;
 
     public async Task<Result<string>> AddNewAnswerAsync(SoporteChatRDTO soporte)
     {
@@ -56,6 +64,10 @@ public class SoporteChatService(
     public async Task<Result<string>> AddNewMessageAsync(SoporteChatMDTO soporte)
     {
         soporte.UserCi = UtilityService.NormalizeCiFormat(soporte.UserCi);
+
+        // Se determina antes de insertar: si ya tenía mensajes hoy, ya se notificó por correo.
+        var yaNotificadoHoy = await _soporteChatRepository.HasMessageTodayAsync(soporte.UserCi);
+
         SoporteChat newMensajeUser = _mapper.Map<SoporteChat>(soporte);
         string resul = await _soporteChatRepository.AddNewMessageAsync(newMensajeUser);
 
@@ -68,7 +80,37 @@ public class SoporteChatService(
         await _notificationService.NotifyRoleAsync(UserRolEnum.Administrador, "ChatMessage", "Nuevo mensaje de soporte", mensaje, "Chat");
         await _notificationService.NotifyRoleAsync(UserRolEnum.Supervisor, "ChatMessage", "Nuevo mensaje de soporte", mensaje, "Chat");
 
+        if (!yaNotificadoHoy)
+        {
+            await NotificarAdministradoresPorCorreoAsync(soporte.UserCi, nombreEmpleado);
+        }
+
         return Result<string>.Success(resul);
+    }
+
+    /// <summary>
+    /// Envía un correo a todos los administradores activos avisando de un nuevo mensaje de chat.
+    /// Correo es un efecto secundario: nunca debe tumbar la operación principal.
+    /// </summary>
+    private async Task NotificarAdministradoresPorCorreoAsync(string empleadoCi, string? empleadoNombre)
+    {
+        try
+        {
+            var nombreParaCorreo = string.IsNullOrWhiteSpace(empleadoNombre) ? empleadoCi : empleadoNombre;
+            var administradores = await _userRepository.GetActiveByRoleAsync((int)UserRolEnum.Administrador);
+            foreach (var admin in administradores)
+            {
+                var correo = await _snEmpleProfitRepository.GetEmailByCiAsync(admin.Ci);
+                if (!string.IsNullOrWhiteSpace(correo))
+                {
+                    await _sendMailServices.SendMailNuevoMensajeChat(correo, nombreParaCorreo, empleadoCi);
+                }
+            }
+        }
+        catch
+        {
+            // Correo es un efecto secundario: nunca debe tumbar la operación principal.
+        }
     }
 
     public async Task<Result<List<SolicitudesChats>>> GetChatRequests()

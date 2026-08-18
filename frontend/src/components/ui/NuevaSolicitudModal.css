@@ -124,6 +124,18 @@
   gap: 16px;
 }
 
+.ns-form fieldset {
+  display: contents;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ns-form fieldset:disabled .ns-field {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .ns-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

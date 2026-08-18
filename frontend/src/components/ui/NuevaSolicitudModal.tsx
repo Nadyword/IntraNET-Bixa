@@ -290,26 +290,35 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     setPrestacionesLoading(true);
     setPrestacionesError(null);
 
-    api.get<ApiResponse<number | null>>(`/usersProfit/${user.ci}/PrestacionesSociales`)
-      .then((res) => {
-        if (cancelado) return;
-        if (res.data.success) {
-          setMontoDisponiblePrestaciones(res.data.data ?? 0);
-        } else {
-          setPrestacionesError('No se pudo obtener el monto disponible.');
+    const consultarMonto = async () => {
+      for (let intento = 1; intento <= 2; intento++) {
+        try {
+          const res = await api.get<ApiResponse<number | null>>(`/usersProfit/${user.ci}/PrestacionesSociales`);
+          if (cancelado) return;
+          if (res.data.success) {
+            setMontoDisponiblePrestaciones(res.data.data ?? 0);
+            return;
+          }
+          if (intento === 2) {
+            setPrestacionesError('No se pudo obtener el monto disponible. Intente más tarde.');
+          }
+        } catch (err: unknown) {
+          if (cancelado) return;
+          const status = (err as { response?: { status?: number } })?.response?.status;
+          if (status === 404) {
+            setMontoDisponiblePrestaciones(0);
+            return;
+          }
+          if (intento === 2) {
+            setPrestacionesError('No se pudo obtener el monto disponible. Intente más tarde.');
+          }
         }
-      })
-      .catch((err) => {
-        if (cancelado) return;
-        if (err.response?.status === 404) {
-          setMontoDisponiblePrestaciones(0);
-        } else {
-          setPrestacionesError('No se pudo obtener el monto disponible.');
-        }
-      })
-      .finally(() => {
-        if (!cancelado) setPrestacionesLoading(false);
-      });
+      }
+    };
+
+    consultarMonto().finally(() => {
+      if (!cancelado) setPrestacionesLoading(false);
+    });
 
     return () => { cancelado = true; };
   }, [tipo, user?.ci]);
@@ -453,7 +462,9 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
           errs.cuotas = `Ingresa una cantidad de cuotas entre 1 y ${CUOTAS_MAXIMAS}`;
         }
       }
-      if (monto.archivo) {
+      if (!monto.archivo) {
+        errs.archivo = 'Requerido';
+      } else {
         const archivoError = validarArchivoAdjunto(monto.archivo);
         if (archivoError) errs.archivo = archivoError;
       }
@@ -548,7 +559,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         const payload = {
           ci: user?.ci ?? '',
           monto: Number(utilidades.monto),
-          motivo: utilidades.motivo,
+          motivo: utilidades.motivo.trim(),
         };
         await api.post('/solicitudes/Utilidades', payload);
         setEnviado(true);
@@ -840,7 +851,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                   {errors.monto && <span className="ns-error">{errors.monto}</span>}
                 </div>
                 <div className="ns-field">
-                  <label>Motivo de la solicitud <span className="ns-required">*</span></label>
+                  <label>Motivo de la solicitud (opcional)</label>
                   <textarea
                     rows={3}
                     placeholder="Describe el motivo de tu solicitud"
@@ -1210,7 +1221,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
             )}
 
             {tipo === 'prestamoPrestaciones' && (
-              <>
+              <fieldset disabled={prestacionesLoading}>
                 <div className="ns-field">
                   <label>Tipo de solicitud <span className="ns-required">*</span></label>
                   <select
@@ -1298,7 +1309,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                 </div>
 
                 <div className="ns-field">
-                  <label>Adjuntar archivo (opcional)</label>
+                  <label>Adjuntar archivo <span className="ns-required">*</span></label>
                   <input
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
@@ -1311,7 +1322,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                   <span className="ns-hint">PDF, JPG o PNG · máximo 3 MB</span>
                   {errors.archivo && <span className="ns-error">{errors.archivo}</span>}
                 </div>
-              </>
+              </fieldset>
             )}
 
             {submitError && <p className="ns-error ns-submit-error">{submitError}</p>}
@@ -1326,7 +1337,8 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                 disabled={
                   isLoading ||
                   (tipo === 'vacaciones' && (diasLoading || rangoInvalido)) ||
-                  (tipo === 'diaEspecial' && diaEspecialChecking)
+                  (tipo === 'diaEspecial' && diaEspecialChecking) ||
+                  (tipo === 'prestamoPrestaciones' && prestacionesLoading)
                 }
               >
                 {isLoading

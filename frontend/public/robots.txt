@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /login
+Disallow: /mydata
+Disallow: /consultas
+Disallow: /tramites
+Disallow: /solicitudes
+Disallow: /culture
+Disallow: /admin
+Disallow: /first-login
+Disallow: /activate
+Disallow: /reset-password
+
+Sitemap: https://comunik2.productosbixa.com/sitemap.xml

@@ -20,6 +20,14 @@ public interface IUserRepository : IRepository<Users, string>
     Task DeleteNotificationsFromUserAsync(string ci);
 
     /// <summary>
+    /// Determina si el usuario tiene aprobaciones asociadas como aprobador (FK_Aprobaciones_Users_AprobadorCi),
+    /// lo que impide su eliminación física por restricción de integridad referencial.
+    /// </summary>
+    /// <param name="ci">La cédula del usuario.</param>
+    /// <returns>True si el usuario tiene al menos una aprobación asociada.</returns>
+    Task<bool> HasAprobacionesAsync(string ci);
+
+    /// <summary>
     /// Retrieves a filtered list of entities projected as configurable Key-Value pairs.
     /// </summary>
     /// <param name="filters">An object containing filter criteria.</param>

@@ -197,11 +197,6 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             return Result.Fail<bool>($"Monto inválido: el monto solicitado no puede superar {montoDisponible:N2}.");
         }
 
-        if (string.IsNullOrWhiteSpace(solicitud.Motivo))
-        {
-            return Result.Fail<bool>("Motivo inválido: ingresa el motivo de la solicitud.");
-        }
-
         await _unitOfWork.BeginTransactionAsync();
         var tramite = _mapper.Map<Tramite>(solicitud);
 
@@ -280,16 +275,17 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             return Result.Fail<bool>($"Cantidad de cuotas inválida: debe estar entre 1 y {CuotasMaximas}.");
         }
 
-        string? archivoAdjuntoGuardado = null;
-        if (solicitud.Archivo != null)
+        if (solicitud.Archivo == null)
         {
-            var archivoResult = await _adjuntoService.ValidateAndSaveAsync(solicitud.Archivo, solicitud.Ci);
-            if (!archivoResult.IsSuccess)
-            {
-                return Result.Fail<bool>(archivoResult.Error);
-            }
-            archivoAdjuntoGuardado = archivoResult.Value;
+            return Result.Fail<bool>("Debes adjuntar un archivo de soporte para la solicitud.");
         }
+
+        var archivoResult = await _adjuntoService.ValidateAndSaveAsync(solicitud.Archivo, solicitud.Ci);
+        if (!archivoResult.IsSuccess)
+        {
+            return Result.Fail<bool>(archivoResult.Error);
+        }
+        string? archivoAdjuntoGuardado = archivoResult.Value;
 
         solicitud.Ci = UtilityService.NormalizeCiFormat(solicitud.Ci);
         await _unitOfWork.BeginTransactionAsync();

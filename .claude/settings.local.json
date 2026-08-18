@@ -77,7 +77,8 @@
       "Bash(git stash *)",
       "Bash(python *)",
       "Bash(pip install *)",
-      "PowerShell($excel = New-Object -ComObject Excel.Application -ErrorAction Stop; Write-Output \"Excel COM available\")"
+      "PowerShell($excel = New-Object -ComObject Excel.Application -ErrorAction Stop; Write-Output \"Excel COM available\")",
+      "Bash(xargs -n1 basename)"
     ]
   }
 }

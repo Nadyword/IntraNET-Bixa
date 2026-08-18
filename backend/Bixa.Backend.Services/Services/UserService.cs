@@ -8,6 +8,8 @@ using Bixa.Backend.Models.Response;
 using Bixa.Backend.Models.Utilities;
 using Bixa.Backend.Models.Enums;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using AutoMapper;
 
 namespace Bixa.Backend.Services.Services;
@@ -146,6 +148,14 @@ public class UserService(
 
             //Si es Ejecutivo, eliminarlo de todos sus planes de gastos y solicitudes
 
+            if (await _userRepository.HasAprobacionesAsync(ci))
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return Result.Fail<bool>(
+                    "No se puede eliminar el usuario: tiene aprobaciones de trámites asociadas (como aprobador). Desactívelo en lugar de eliminarlo, o reasigne dichas aprobaciones antes de continuar.",
+                    ErrorTypeEnum.Conflict);
+            }
+
             await _userRepository.DeleteNotificationsFromUserAsync(ci);
             var deletedSuccessfullyMarked = await _userRepository.DeleteAsync(ci);
             var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
@@ -161,6 +171,14 @@ public class UserService(
                 await _unitOfWork.RollbackTransactionAsync();
                 return Result.Fail<bool>("Error al eliminar el usuario", ErrorTypeEnum.General);
             }
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 547 })
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            _logger?.LogError(ex, "No se pudo eliminar el usuario con ci {Ci} por restricción de integridad referencial.", ci);
+            return Result.Fail<bool>(
+                "No se puede eliminar el usuario porque tiene registros asociados en otras tablas (por ejemplo, aprobaciones o chats de soporte). Desactívelo en lugar de eliminarlo.",
+                ErrorTypeEnum.Conflict);
         }
         catch (Exception ex)
         {

@@ -141,6 +141,31 @@ public class SendMailServices(IConfiguration configuration) : ISendMailServices
         }
     }
 
+    public async Task<bool> SendMailNuevoMensajeChat(string destinatario, string empleadoNombre, string empleadoCi)
+    {
+        const string asunto = "Nuevo mensaje en el chat de soporte";
+        var cuerpo = new NuevoMensajeChat(empleadoNombre, empleadoCi).GetBodyMail();
+        try
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress("Productos Bixa", remitente));
+            message.To.Add(new MailboxAddress("Administrador", destinatario));
+            message.Subject = asunto;
+            message.Body = new TextPart("html") { Text = cuerpo };
+
+            using var client = new SmtpClient();
+            await client.ConnectAsync(smtpHost, smtpPort, enableSsl);
+            await client.AuthenticateAsync(smtpUser, password);
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task<bool> SendMailSolicitudCorreccion(string destinatario, string empleadoNombre, string empleadoCi, string comentario)
     {
         const string asunto = "Solicitud de corrección de datos";

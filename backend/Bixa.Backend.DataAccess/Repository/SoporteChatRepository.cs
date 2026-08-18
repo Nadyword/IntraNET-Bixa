@@ -65,6 +65,12 @@ public class SoporteChatRepository(AppDbContext dbContext) : ISoporteChatReposit
         }
     }
 
+    public async Task<bool> HasMessageTodayAsync(string ci)
+    {
+        var hoyUtc = DateTime.UtcNow.Date;
+        return await _context.SoporteChats.AnyAsync(sc => sc.UserCi == ci && sc.CreatedAt >= hoyUtc);
+    }
+
     public async Task<List<SolicitudesChats>> GetChatRequests()
     {
         var adminCis = await _context.Users

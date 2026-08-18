@@ -463,8 +463,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         modelBuilder.Entity<FAQs>().HasKey(f => f.Id);
         modelBuilder.Entity<FAQs>().Property(f => f.Id).ValueGeneratedOnAdd();
-        modelBuilder.Entity<FAQs>().Property(f => f.Question).IsRequired().HasMaxLength(ModelLengths.Description);
-        modelBuilder.Entity<FAQs>().Property(f => f.Response).IsRequired().HasMaxLength(ModelLengths.Description);
+        modelBuilder.Entity<FAQs>().Property(f => f.Question).HasColumnType("nvarchar(max)");
+        modelBuilder.Entity<FAQs>().Property(f => f.Response).HasColumnType("nvarchar(max)");
 
         #endregion FAQs Entity Configuration
 

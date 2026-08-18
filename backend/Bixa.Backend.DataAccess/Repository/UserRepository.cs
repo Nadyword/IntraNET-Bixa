@@ -77,6 +77,14 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
         return true;
     }
 
+    /// <summary>
+    /// Determina si el usuario tiene aprobaciones asociadas como aprobador.
+    /// </summary>
+    /// <param name="ci">La cédula del usuario.</param>
+    /// <returns>True si el usuario tiene al menos una aprobación asociada.</returns>
+    public async Task<bool> HasAprobacionesAsync(string ci) =>
+        await _context.Aprobaciones.AnyAsync(a => a.AprobadorCi == ci);
+
     public async Task DeleteNotificationsFromUserAsync(string ci)
     {
         var notifications = await _context.Notifications.Where(x => x.User!.Ci == ci).ToListAsync();

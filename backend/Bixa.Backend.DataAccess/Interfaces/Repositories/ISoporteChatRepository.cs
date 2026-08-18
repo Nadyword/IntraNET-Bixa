@@ -12,6 +12,13 @@ public interface ISoporteChatRepository
 
     Task<string> AddNewAnswerAsync(SoporteChat soporte);
 
+    /// <summary>
+    /// Indica si el usuario ya tiene algún mensaje registrado en el día calendario actual (UTC).
+    /// </summary>
+    /// <param name="ci">El CI del usuario que envía el mensaje.</param>
+    /// <returns>True si ya existe al menos un mensaje de ese usuario hoy.</returns>
+    Task<bool> HasMessageTodayAsync(string ci);
+
     Task<SoporteChat[]> GetHistoriChat(string Ci);
 
     /// <summary>

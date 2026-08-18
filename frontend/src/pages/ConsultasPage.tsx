@@ -366,6 +366,7 @@ export const ConsultasPage: React.FC = () => {
       <div className="stats-grid-3">
         {/* Vacaciones */}
         <div className="stat-card">
+          <h4 className="stat-title">Vacaciones</h4>
           <div className="stat-icon red">🏖️</div>
           <div className="stat-info">
             <div className="stat-sub">
@@ -393,10 +394,10 @@ export const ConsultasPage: React.FC = () => {
 
         {/* Días de permiso especial */}
         <div className="stat-card">
+          <h4 className="stat-title">Días de permiso especial</h4>
           <div className="stat-icon black">🗓️</div>
           <div className="stat-info">
             <h3>{diasEspDisponibles !== null ? diasEspDisponibles : '—'}</h3>
-            <p>Días de permiso especial</p>
             <div className="stat-sub">
               {diasEspeciales === null
                 ? 'Sin consultar'
@@ -415,9 +416,9 @@ export const ConsultasPage: React.FC = () => {
 
         {/* Consulta de HC */}
         <div className="stat-card">
+          <h4 className="stat-title">HC</h4>
           <div className="stat-icon red">🏥</div>
           <div className="stat-info">
-            <h3 style={{ fontSize: '22px' }}>HC</h3>
             <p>Prima trimestral y pago a Bixa</p>
             <div className="stat-sub">
               {hcCobertura1 === null && hcCobertura2 === null
@@ -439,6 +440,7 @@ export const ConsultasPage: React.FC = () => {
 
         {/* Consulta de Prestaciones Sociales */}
         <div className="stat-card">
+          <h4 className="stat-title">Prestaciones Sociales</h4>
           <div className="stat-icon green">💰</div>
           <div className="stat-info">
             <h3>
@@ -446,7 +448,6 @@ export const ConsultasPage: React.FC = () => {
                 ? `Bs. ${montoPrestaciones.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 : '—'}
             </h3>
-            <p>Prestaciones acumuladas</p>
             <div className="stat-sub">
               {montoPrestaciones === null
                 ? 'Sin consultar'
@@ -466,9 +467,9 @@ export const ConsultasPage: React.FC = () => {
         </div>
         {/* Consulta ARC */}
         <div className="stat-card">
+          <h4 className="stat-title">ARC</h4>
           <div className="stat-icon red">📄</div>
           <div className="stat-info">
-            <h3 style={{ fontSize: '22px' }}>ARC</h3>
             <p>Retención de ISLR</p>
             <div className="stat-sub">
               {arcData === null
@@ -488,6 +489,7 @@ export const ConsultasPage: React.FC = () => {
           </div>
         </div>
         <div className="stat-card">
+          <h4 className="stat-title">Utilidades</h4>
           <div className="stat-icon red">📈</div>
           <div className="stat-info">
             <h3>
@@ -495,7 +497,6 @@ export const ConsultasPage: React.FC = () => {
                 ? `Bs. ${montoUtilidades.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 : '—'}
             </h3>
-            <p>Utilidades disponibles</p>
             <div className="stat-sub">
               {montoUtilidades === null
                 ? 'Sin consultar'

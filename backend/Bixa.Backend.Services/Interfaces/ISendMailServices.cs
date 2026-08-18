@@ -13,5 +13,7 @@
         public Task<bool> SendMailSolicitudFirmadaCompleta(string destinatario);
 
         public Task<bool> SendMailHcActualizado(string destinatario, string empleadoNombre, string empleadoCi);
+
+        public Task<bool> SendMailNuevoMensajeChat(string destinatario, string empleadoNombre, string empleadoCi);
     }
 }

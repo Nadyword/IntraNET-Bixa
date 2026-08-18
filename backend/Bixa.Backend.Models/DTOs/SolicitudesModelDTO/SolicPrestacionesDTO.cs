@@ -22,7 +22,7 @@ public class SolicPrestacionesDTO
     public int? Cuotas { get; set; }
 
     /// <summary>
-    /// Archivo de soporte opcional (PDF, JPG o PNG, máx. 3 MB).
+    /// Archivo de soporte obligatorio (PDF, JPG o PNG, máx. 3 MB).
     /// </summary>
     public IFormFile? Archivo { get; set; }
 }
