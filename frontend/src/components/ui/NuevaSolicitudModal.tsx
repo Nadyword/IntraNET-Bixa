@@ -41,54 +41,6 @@ const MESES_VARIACION_ARI: string[] = ['Marzo', 'Junio', 'Septiembre', 'Diciembr
 
 const DESGRAVAMEN_UNICO_UT = 774;
 
-// Tarifa N° 1 (Art. 50 Ley de I.S.L.R.) — tramos en U.T., límite superior inclusive, null = sin tope.
-const TARIFA_1: { limiteSuperior: number | null; porcentaje: number; sustraendo: number }[] = [
-  { limiteSuperior: 1000, porcentaje: 0.06, sustraendo: 0 },
-  { limiteSuperior: 1500, porcentaje: 0.09, sustraendo: 30 },
-  { limiteSuperior: 2000, porcentaje: 0.12, sustraendo: 75 },
-  { limiteSuperior: 2500, porcentaje: 0.16, sustraendo: 155 },
-  { limiteSuperior: 3000, porcentaje: 0.20, sustraendo: 255 },
-  { limiteSuperior: 4000, porcentaje: 0.24, sustraendo: 375 },
-  { limiteSuperior: 6000, porcentaje: 0.29, sustraendo: 575 },
-  { limiteSuperior: null, porcentaje: 0.34, sustraendo: 875 },
-];
-
-function calcularAri(ari: FormAri) {
-  const sueldoMensual = Number(ari.sueldoMensual) || 0;
-  const otrosIngresos = Number(ari.otrosIngresosMensuales) || 0;
-  const utilidades = Number(ari.utilidades) || 0;
-  const diasBono = Number(ari.diasBonoVacacional) || 0;
-  const valorUT = Number(ari.valorUT) || 0;
-  const cargaFamiliar = Number(ari.cargaFamiliar) || 0;
-  const impuestosAnteriores = Number(ari.impuestosRetenidosAnteriores) || 0;
-
-  const sueldoDiario = sueldoMensual / 30;
-  const subTotal1 = (sueldoMensual + otrosIngresos) * 12;
-  const subTotal2 = utilidades;
-  const subTotal3 = diasBono * sueldoDiario;
-  const totalA = subTotal1 + subTotal2 + subTotal3;
-
-  const totalB = valorUT > 0 ? totalA / valorUT : 0;
-
-  const totalDesgravamenDetallado = [ari.institutosDocentes, ari.primasSeguro, ari.serviciosMedicos, ari.interesesVivienda]
-    .reduce((sum, v) => sum + (Number(v) || 0), 0);
-  const desgravamenAplicado = ari.desgravamenTipo === 'unico' ? DESGRAVAMEN_UNICO_UT : totalDesgravamenDetallado;
-
-  const rentaGravable = Math.max(0, totalB - desgravamenAplicado);
-
-  const tramo = TARIFA_1.find((t) => t.limiteSuperior === null || rentaGravable <= t.limiteSuperior) ?? TARIFA_1[TARIFA_1.length - 1];
-  const impuestoG = Math.max(0, rentaGravable * tramo.porcentaje - tramo.sustraendo);
-
-  const rebajaCarga = cargaFamiliar * 10;
-  const rebajaImpuestosAnteriores = valorUT > 0 ? impuestosAnteriores / valorUT : 0;
-  const totalH = 10 + rebajaCarga + rebajaImpuestosAnteriores;
-
-  const impuestoI = Math.max(0, impuestoG - totalH);
-  const porcentajeJ = totalB > 0 ? (impuestoI / totalB) * 100 : 0;
-
-  return { totalA, totalB, desgravamenAplicado, rentaGravable, tramo, impuestoG, totalH, impuestoI, porcentajeJ };
-}
-
 type SubTipoPrestamo = 'prestamo' | 'sociales';
 
 interface SubTipoConfig {
@@ -157,23 +109,32 @@ interface FormConstanciaTrabajo {
   dirigidoA: string;
 }
 
+// El resto de la planilla (identidad, U.T., carga familiar, remuneraciones estimadas) lo
+// resuelve la consulta a Profit en el backend; aquí solo se pide lo que el empleado decide.
 interface FormAri {
-  anio: string;
   mes: string;
-  sueldoMensual: string;
-  otrosIngresosMensuales: string;
-  utilidades: string;
-  diasBonoVacacional: string;
-  valorUT: string;
   desgravamenTipo: '' | 'unico' | 'detallado';
   institutosDocentes: string;
   primasSeguro: string;
   serviciosMedicos: string;
   interesesVivienda: string;
-  cargaFamiliar: string;
-  impuestosRetenidosAnteriores: string;
-  impuestoRetenidoHastaFecha: string;
-  remuneracionesPercibidasHastaFecha: string;
+}
+
+const ARI_ERROR_GENERICO = 'Error al generar la planilla ARI. Verifica los datos e intenta de nuevo.';
+
+/**
+ * Extrae el mensaje de una respuesta de error cuyo cuerpo llegó como Blob (responseType: 'blob').
+ */
+async function leerErrorDeBlob(err: unknown): Promise<string> {
+  const data = (err as { response?: { data?: unknown } })?.response?.data;
+  if (!(data instanceof Blob)) return ARI_ERROR_GENERICO;
+
+  try {
+    const { message } = JSON.parse(await data.text());
+    return typeof message === 'string' && message ? message : ARI_ERROR_GENERICO;
+  } catch {
+    return ARI_ERROR_GENERICO;
+  }
 }
 
 const CUOTAS_MAXIMAS = 52;
@@ -226,10 +187,8 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     conSueldo: '', dirigidoAEspecifico: false, dirigidoA: '',
   });
   const [ari, setAri] = useState<FormAri>({
-    anio: String(new Date().getFullYear()), mes: '', sueldoMensual: '', otrosIngresosMensuales: '',
-    utilidades: '', diasBonoVacacional: '', valorUT: '', desgravamenTipo: '', institutosDocentes: '',
-    primasSeguro: '', serviciosMedicos: '', interesesVivienda: '', cargaFamiliar: '',
-    impuestosRetenidosAnteriores: '', impuestoRetenidoHastaFecha: '', remuneracionesPercibidasHastaFecha: '',
+    mes: '', desgravamenTipo: '', institutosDocentes: '',
+    primasSeguro: '', serviciosMedicos: '', interesesVivienda: '',
   });
   const [subTipoPrestamo, setSubTipoPrestamo] = useState<SubTipoPrestamo | ''>('');
   const [destinoPrestamo, setDestinoPrestamo] = useState('');
@@ -242,7 +201,6 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     : 0;
 
   const ariEsVariacion = MESES_VARIACION_ARI.includes(ari.mes);
-  const ariCalculo = calcularAri(ari);
 
   const [montoDisponibleUtilidades, setMontoDisponibleUtilidades] = useState<number | null>(null);
   const [utilidadesLoading, setUtilidadesLoading] = useState(false);
@@ -479,25 +437,13 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       if (constanciaTrabajo.dirigidoAEspecifico && !constanciaTrabajo.dirigidoA.trim()) errs.dirigidoA = 'Requerido';
     }
     if (tipo === 'ari') {
-      if (!ari.anio || Number(ari.anio) < 2000) errs.anio = 'Ingresa un año válido';
       if (!ari.mes) errs.mes = 'Requerido';
-      if (!ari.sueldoMensual || Number(ari.sueldoMensual) <= 0) errs.sueldoMensual = 'Ingresa un sueldo válido';
-      if (ari.otrosIngresosMensuales && Number(ari.otrosIngresosMensuales) < 0) errs.otrosIngresosMensuales = 'Ingresa un valor válido';
-      if (ari.utilidades && Number(ari.utilidades) < 0) errs.utilidades = 'Ingresa un valor válido';
-      if (ari.diasBonoVacacional && Number(ari.diasBonoVacacional) < 0) errs.diasBonoVacacional = 'Ingresa un valor válido';
-      if (!ari.valorUT || Number(ari.valorUT) <= 0) errs.valorUT = 'Ingresa el valor vigente de la U.T.';
       if (!ari.desgravamenTipo) errs.desgravamenTipo = 'Requerido';
       if (ari.desgravamenTipo === 'detallado') {
         if (!ari.institutosDocentes || Number(ari.institutosDocentes) < 0) errs.institutosDocentes = 'Ingresa un valor válido';
         if (!ari.primasSeguro || Number(ari.primasSeguro) < 0) errs.primasSeguro = 'Ingresa un valor válido';
         if (!ari.serviciosMedicos || Number(ari.serviciosMedicos) < 0) errs.serviciosMedicos = 'Ingresa un valor válido';
         if (!ari.interesesVivienda || Number(ari.interesesVivienda) < 0) errs.interesesVivienda = 'Ingresa un valor válido';
-      }
-      if (ari.cargaFamiliar && Number(ari.cargaFamiliar) < 0) errs.cargaFamiliar = 'Ingresa un valor válido';
-      if (ari.impuestosRetenidosAnteriores && Number(ari.impuestosRetenidosAnteriores) < 0) errs.impuestosRetenidosAnteriores = 'Ingresa un valor válido';
-      if (ariEsVariacion) {
-        if (!ari.impuestoRetenidoHastaFecha) errs.impuestoRetenidoHastaFecha = 'Requerido para meses de variación';
-        if (!ari.remuneracionesPercibidasHastaFecha) errs.remuneracionesPercibidasHastaFecha = 'Requerido para meses de variación';
       }
     }
 
@@ -622,36 +568,29 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     if (tipo === 'ari') {
       setIsLoading(true);
       try {
+        const esUnico = ari.desgravamenTipo === 'unico';
         const payload = {
-          anio: Number(ari.anio),
           mes: ari.mes,
-          sueldoMensual: Number(ari.sueldoMensual) || 0,
-          otrosIngresosMensuales: Number(ari.otrosIngresosMensuales) || 0,
-          utilidades: Number(ari.utilidades) || 0,
-          diasBonoVacacional: Number(ari.diasBonoVacacional) || 0,
-          valorUT: Number(ari.valorUT) || 0,
-          desgravamenTipo: ari.desgravamenTipo === 'unico' ? 'Unico' : 'Detallado',
-          institutosDocentes: Number(ari.institutosDocentes) || 0,
-          primasSeguro: Number(ari.primasSeguro) || 0,
-          serviciosMedicos: Number(ari.serviciosMedicos) || 0,
-          interesesVivienda: Number(ari.interesesVivienda) || 0,
-          cargaFamiliar: Number(ari.cargaFamiliar) || 0,
-          impuestosRetenidosAnterioresBs: Number(ari.impuestosRetenidosAnteriores) || 0,
-          impuestoRetenidoHastaFechaBs: ariEsVariacion ? (Number(ari.impuestoRetenidoHastaFecha) || 0) : null,
-          remuneracionesPercibidasHastaFechaBs: ariEsVariacion ? (Number(ari.remuneracionesPercibidasHastaFecha) || 0) : null,
+          desgravamenTipo: esUnico ? 'Unico' : 'Detallado',
+          institutosDocentes: esUnico ? 0 : Number(ari.institutosDocentes) || 0,
+          primasSeguro: esUnico ? 0 : Number(ari.primasSeguro) || 0,
+          serviciosMedicos: esUnico ? 0 : Number(ari.serviciosMedicos) || 0,
+          interesesVivienda: esUnico ? 0 : Number(ari.interesesVivienda) || 0,
         };
         const response = await api.post(`/usersProfit/${user?.ci ?? ''}/Ari/Reporte`, payload, { responseType: 'blob' });
-        const url = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+        const url = URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.ms-excel' }));
         const link = document.createElement('a');
         link.href = url;
-        link.download = `ARI_${user?.ci ?? ''}_${ari.anio}.pdf`;
+        link.download = `ARI_${user?.ci ?? ''}_${new Date().getFullYear()}.xls`;
         document.body.appendChild(link);
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
         setEnviado(true);
-      } catch {
-        setSubmitError('Error al generar la planilla ARI. Verifica los datos e intenta de nuevo.');
+      } catch (err) {
+        // Con responseType 'blob' el cuerpo del error también llega como Blob, así que hay que
+        // leerlo para poder mostrar el mensaje que devuelve el backend.
+        setSubmitError(await leerErrorDeBlob(err));
       } finally {
         setIsLoading(false);
       }
@@ -923,21 +862,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
 
             {tipo === 'ari' && (
               <>
-                <p className="ns-hint">
-                  🧾 Este formulario genera y descarga de inmediato el PDF de tu planilla AR-I. No pasa por aprobación ni requiere firma.
-                </p>
-
                 <div className="ns-row">
-                  <div className="ns-field">
-                    <label>Año gravable <span className="ns-required">*</span></label>
-                    <input
-                      type="number"
-                      value={ari.anio}
-                      onChange={(e) => setAri((a) => ({ ...a, anio: e.target.value }))}
-                      className={errors.anio ? 'input-error' : ''}
-                    />
-                    {errors.anio && <span className="ns-error">{errors.anio}</span>}
-                  </div>
                   <div className="ns-field">
                     <label>Mes <span className="ns-required">*</span></label>
                     <select
@@ -951,89 +876,8 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                       ))}
                     </select>
                     {errors.mes && <span className="ns-error">{errors.mes}</span>}
-                    <span className="ns-hint">Enero = declaración inicial. Los demás meses = variación de datos.</span>
                   </div>
                 </div>
-
-                <div className="ns-form-divider" />
-                <p className="ns-hint"><strong>A. Estimación de remuneraciones por percibir en el año gravable</strong></p>
-
-                <div className="ns-row">
-                  <div className="ns-field">
-                    <label>Sueldo mensual <span className="ns-required">*</span></label>
-                    <div className="ns-monto-wrapper">
-                      <span className="ns-monto-prefix">Bs</span>
-                      <input
-                        type="number" min="0" step="0.01"
-                        value={ari.sueldoMensual}
-                        onChange={(e) => setAri((a) => ({ ...a, sueldoMensual: e.target.value }))}
-                        className={errors.sueldoMensual ? 'input-error' : ''}
-                      />
-                    </div>
-                    {errors.sueldoMensual && <span className="ns-error">{errors.sueldoMensual}</span>}
-                  </div>
-                  <div className="ns-field">
-                    <label>Otros ingresos mensuales</label>
-                    <div className="ns-monto-wrapper">
-                      <span className="ns-monto-prefix">Bs</span>
-                      <input
-                        type="number" min="0" step="0.01"
-                        value={ari.otrosIngresosMensuales}
-                        onChange={(e) => setAri((a) => ({ ...a, otrosIngresosMensuales: e.target.value }))}
-                        className={errors.otrosIngresosMensuales ? 'input-error' : ''}
-                      />
-                    </div>
-                    {errors.otrosIngresosMensuales && <span className="ns-error">{errors.otrosIngresosMensuales}</span>}
-                  </div>
-                </div>
-
-                <div className="ns-row">
-                  <div className="ns-field">
-                    <label>Utilidades / aguinaldos estimados del año</label>
-                    <div className="ns-monto-wrapper">
-                      <span className="ns-monto-prefix">Bs</span>
-                      <input
-                        type="number" min="0" step="0.01"
-                        value={ari.utilidades}
-                        onChange={(e) => setAri((a) => ({ ...a, utilidades: e.target.value }))}
-                        className={errors.utilidades ? 'input-error' : ''}
-                      />
-                    </div>
-                    {errors.utilidades && <span className="ns-error">{errors.utilidades}</span>}
-                  </div>
-                  <div className="ns-field">
-                    <label>Días de bono vacacional</label>
-                    <input
-                      type="number" min="0" step="1"
-                      value={ari.diasBonoVacacional}
-                      onChange={(e) => setAri((a) => ({ ...a, diasBonoVacacional: e.target.value }))}
-                      className={errors.diasBonoVacacional ? 'input-error' : ''}
-                    />
-                    {errors.diasBonoVacacional && <span className="ns-error">{errors.diasBonoVacacional}</span>}
-                  </div>
-                </div>
-
-                {ari.sueldoMensual && (
-                  <div className="ns-dias-badge">
-                    💰 Total que estima percibir en el año (A): <strong>Bs. {ariCalculo.totalA.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
-                  </div>
-                )}
-
-                <div className="ns-field">
-                  <label>Valor de la Unidad Tributaria (U.T.) vigente <span className="ns-required">*</span></label>
-                  <div className="ns-monto-wrapper">
-                    <span className="ns-monto-prefix">Bs</span>
-                    <input
-                      type="number" min="0" step="0.01"
-                      value={ari.valorUT}
-                      onChange={(e) => setAri((a) => ({ ...a, valorUT: e.target.value }))}
-                      className={errors.valorUT ? 'input-error' : ''}
-                    />
-                  </div>
-                  {errors.valorUT && <span className="ns-error">{errors.valorUT}</span>}
-                </div>
-
-                <div className="ns-form-divider" />
 
                 <div className="ns-field">
                   <label>Desgravamen <span className="ns-required">*</span></label>
@@ -1065,7 +909,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                     <label>Valor del desgravamen único</label>
                     <div className="ns-monto-wrapper">
                       <input type="number" value={DESGRAVAMEN_UNICO_UT} disabled readOnly />
-                      <span className="ns-monto-suffix">U.T.</span>
+                      <span className="ns-monto-suffix">U.T</span>
                     </div>
                   </div>
                 )}
@@ -1083,7 +927,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                           onChange={(e) => setAri((a) => ({ ...a, institutosDocentes: e.target.value }))}
                           className={errors.institutosDocentes ? 'input-error' : ''}
                         />
-                        <span className="ns-monto-suffix">U.T.</span>
+                        <span className="ns-monto-suffix">Bs</span>
                       </div>
                       {errors.institutosDocentes && <span className="ns-error">{errors.institutosDocentes}</span>}
                     </div>
@@ -1099,7 +943,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                           onChange={(e) => setAri((a) => ({ ...a, primasSeguro: e.target.value }))}
                           className={errors.primasSeguro ? 'input-error' : ''}
                         />
-                        <span className="ns-monto-suffix">U.T.</span>
+                        <span className="ns-monto-suffix">Bs</span>
                       </div>
                       {errors.primasSeguro && <span className="ns-error">{errors.primasSeguro}</span>}
                     </div>
@@ -1115,7 +959,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                           onChange={(e) => setAri((a) => ({ ...a, serviciosMedicos: e.target.value }))}
                           className={errors.serviciosMedicos ? 'input-error' : ''}
                         />
-                        <span className="ns-monto-suffix">U.T.</span>
+                        <span className="ns-monto-suffix">Bs</span>
                       </div>
                       {errors.serviciosMedicos && <span className="ns-error">{errors.serviciosMedicos}</span>}
                     </div>
@@ -1131,7 +975,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                           onChange={(e) => setAri((a) => ({ ...a, interesesVivienda: e.target.value }))}
                           className={errors.interesesVivienda ? 'input-error' : ''}
                         />
-                        <span className="ns-monto-suffix">U.T.</span>
+                        <span className="ns-monto-suffix">Bs</span>
                       </div>
                       {errors.interesesVivienda && <span className="ns-error">{errors.interesesVivienda}</span>}
                     </div>
@@ -1140,83 +984,21 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
 
                 {ari.desgravamenTipo && (
                   <div className="ns-dias-badge">
-                    💰 Total desgravamen: <strong>{totalDesgravamenAri.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} U.T.</strong>
+                    💰 Total desgravamen: <strong>{totalDesgravamenAri.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {ari.desgravamenTipo === 'unico' ? 'U.T' : 'Bs'}</strong>
                   </div>
                 )}
-
-                <div className="ns-form-divider" />
-
-                <div className="ns-row">
-                  <div className="ns-field">
-                    <label>Carga familiar <span className="ns-hint">(opcional, ingrésala si ya la tienes)</span></label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="Cantidad de cargas"
-                      value={ari.cargaFamiliar}
-                      onChange={(e) => setAri((a) => ({ ...a, cargaFamiliar: e.target.value }))}
-                      className={errors.cargaFamiliar ? 'input-error' : ''}
-                    />
-                    {errors.cargaFamiliar && <span className="ns-error">{errors.cargaFamiliar}</span>}
-                  </div>
-                  <div className="ns-field">
-                    <label>Impuestos retenidos de más en años anteriores</label>
-                    <div className="ns-monto-wrapper">
-                      <span className="ns-monto-prefix">Bs</span>
-                      <input
-                        type="number" min="0" step="0.01"
-                        value={ari.impuestosRetenidosAnteriores}
-                        onChange={(e) => setAri((a) => ({ ...a, impuestosRetenidosAnteriores: e.target.value }))}
-                        className={errors.impuestosRetenidosAnteriores ? 'input-error' : ''}
-                      />
-                    </div>
-                    {errors.impuestosRetenidosAnteriores && <span className="ns-error">{errors.impuestosRetenidosAnteriores}</span>}
-                  </div>
-                </div>
 
                 {ariEsVariacion && (
                   <>
                     <div className="ns-form-divider" />
-                    <p className="ns-hint"><strong>K. Porcentaje por variación en los datos</strong></p>
-                    <div className="ns-row">
-                      <div className="ns-field">
-                        <label>Total impuesto retenido hasta la fecha <span className="ns-required">*</span></label>
-                        <div className="ns-monto-wrapper">
-                          <span className="ns-monto-prefix">Bs</span>
-                          <input
-                            type="number" min="0" step="0.01"
-                            value={ari.impuestoRetenidoHastaFecha}
-                            onChange={(e) => setAri((a) => ({ ...a, impuestoRetenidoHastaFecha: e.target.value }))}
-                            className={errors.impuestoRetenidoHastaFecha ? 'input-error' : ''}
-                          />
-                        </div>
-                        {errors.impuestoRetenidoHastaFecha && <span className="ns-error">{errors.impuestoRetenidoHastaFecha}</span>}
-                      </div>
-                      <div className="ns-field">
-                        <label>Total remuneraciones percibidas hasta la fecha <span className="ns-required">*</span></label>
-                        <div className="ns-monto-wrapper">
-                          <span className="ns-monto-prefix">Bs</span>
-                          <input
-                            type="number" min="0" step="0.01"
-                            value={ari.remuneracionesPercibidasHastaFecha}
-                            onChange={(e) => setAri((a) => ({ ...a, remuneracionesPercibidasHastaFecha: e.target.value }))}
-                            className={errors.remuneracionesPercibidasHastaFecha ? 'input-error' : ''}
-                          />
-                        </div>
-                        {errors.remuneracionesPercibidasHastaFecha && <span className="ns-error">{errors.remuneracionesPercibidasHastaFecha}</span>}
-                      </div>
-                    </div>
+                    <p className="ns-hint">
+                      <strong>K. Porcentaje por variación en los datos</strong>
+                      {' — '}la planilla no trae marcadas las casillas del impuesto retenido ni de las
+                      remuneraciones percibidas hasta la fecha, así que ese cuadro queda para completar a mano.
+                    </p>
                   </>
                 )}
 
-                {ari.sueldoMensual && ari.valorUT && ari.desgravamenTipo && (
-                  <div className="ns-dias-badge">
-                    📊 Renta gravable (F): <strong>{ariCalculo.rentaGravable.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} U.T.</strong>
-                    {' · '}Impuesto estimado (I): <strong>{ariCalculo.impuestoI.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} U.T.</strong>
-                    {' · '}% de retención inicial (J): <strong>{ariCalculo.porcentajeJ.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</strong>
-                  </div>
-                )}
               </>
             )}
 
@@ -1342,8 +1124,8 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                 }
               >
                 {isLoading
-                  ? <><ButtonSpinner /> {tipo === 'ari' ? 'Generando PDF...' : 'Enviando...'}</>
-                  : tipo === 'ari' ? 'Generar PDF' : 'Enviar solicitud'}
+                  ? <><ButtonSpinner /> {tipo === 'ari' ? 'Generando planilla...' : 'Enviando...'}</>
+                  : tipo === 'ari' ? 'Generar planilla' : 'Enviar solicitud'}
               </button>
             </div>
           </form>

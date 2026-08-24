@@ -18,6 +18,7 @@ public class ProfitDbContext(DbContextOptions<ProfitDbContext> options) : DbCont
     public virtual DbSet<EquipoSupervisor> EquipoSupervisor { get; set; }
     public virtual DbSet<ConsultaHc> ConsultaHc { get; set; }
     public virtual DbSet<ConsultaArc> ConsultaArc { get; set; }
+    public virtual DbSet<AriProfit> Ari { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -39,5 +40,6 @@ public class ProfitDbContext(DbContextOptions<ProfitDbContext> options) : DbCont
         modelBuilder.Entity<EquipoSupervisor>().HasNoKey();
         modelBuilder.Entity<ConsultaHc>().HasNoKey();
         modelBuilder.Entity<ConsultaArc>().HasNoKey();
+        modelBuilder.Entity<AriProfit>().HasNoKey();
     }
 }

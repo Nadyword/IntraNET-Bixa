@@ -66,6 +66,12 @@ public class AuthService(
                 return Result.Fail<LoginDTO>("Credenciales inválidas", ErrorTypeEnum.Unauthorized);
             }
 
+            if (!user.IsActive)
+            {
+                Logger.LogWarning("Intento de autenticación de un usuario inactivo. Ci {Ci}.", credentials.Ci);
+                return Result.Fail<LoginDTO>("El usuario se encuentra inactivo. Contacte a un administrador.", ErrorTypeEnum.Unauthorized);
+            }
+
             //If its first login, send auth for changing password and signature if necessary
             if (user.LastLogin == null)
             {
@@ -114,6 +120,12 @@ public class AuthService(
                 return Result.Fail<LoginDTO>("Credenciales inválidas", ErrorTypeEnum.Unauthorized);
             }
 
+            if (!user.IsActive)
+            {
+                Logger.LogWarning("Intento de primer inicio de sesión de un usuario inactivo. Ci {Ci}.", credentials.Ci);
+                return Result.Fail<LoginDTO>("El usuario se encuentra inactivo. Contacte a un administrador.", ErrorTypeEnum.Unauthorized);
+            }
+
             var roleValidationResult = ValidateUserRole(user);
             if (!roleValidationResult.IsSuccess)
             {
@@ -159,6 +171,12 @@ public class AuthService(
             {
                 Logger.LogWarning("Fallo en el refresco del token {RefreshToken}: Usuario no encontrado o token expirado/inválido.", refreshToken);
                 return Result.Fail<LoginDTO>("Token de refresco inválido o expirado.", ErrorTypeEnum.Unauthorized);
+            }
+
+            if (!user.IsActive)
+            {
+                Logger.LogWarning("Intento de refresco de token para un usuario inactivo. Ci {Ci}.", user.Ci);
+                return Result.Fail<LoginDTO>("El usuario se encuentra inactivo. Contacte a un administrador.", ErrorTypeEnum.Unauthorized);
             }
 
             var (token, newRefreshToken) = await GenerateAndSaveRefreshToken(user).ConfigureAwait(false);

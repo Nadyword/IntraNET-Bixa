@@ -54,10 +54,11 @@ public class UserApiController(
     }
 
     /// <summary>
-    /// Deletes a user from the system.
+    /// Desactiva un usuario del sistema (baja lógica). El usuario deja de aparecer en los listados
+    /// y no podrá iniciar sesión, pero sus datos se conservan y puede reactivarse creándolo nuevamente.
     /// DELETE /api/users/{ci}
     /// </summary>
-    /// <param name="ci">Cedula of the user to delete.</param>
+    /// <param name="ci">Cedula of the user to deactivate.</param>
     /// <returns>API response indicating the operation result.</returns>
     [HttpDelete("{ci}")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
@@ -70,7 +71,7 @@ public class UserApiController(
         if (authResult != null) return authResult;
 
         var result = await _userService.DeleteAsync(ci);
-        return HandleServiceResult(result, "Eliminación completada");
+        return HandleServiceResult(result, "Usuario desactivado exitosamente.");
     }
 
     /// <summary>

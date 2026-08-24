@@ -25,6 +25,7 @@ public class ReadOnlyUnitOfWork : IReadOnlyUnitOfWork
         PrestacionesSociales = new PrestacionesSocialesProfitRepository(_context);
         ConsultaHc = new ConsultaHcProfitRepository(_context);
         ConsultaArc = new ConsultaArcProfitRepository(_context);
+        Ari = new AriProfitRepository(_context);
     }
 
     public ISnEmpleProfitRepository SnEmple { get; }
@@ -35,6 +36,7 @@ public class ReadOnlyUnitOfWork : IReadOnlyUnitOfWork
     public IPrestacionesSocialesProfitRepository PrestacionesSociales { get; }
     public IConsultaHcProfitRepository ConsultaHc { get; }
     public IConsultaArcProfitRepository ConsultaArc { get; }
+    public IAriProfitRepository Ari { get; }
 
     public void Dispose()
     {

@@ -252,14 +252,17 @@ public class UserApiProfitController(
     private static readonly string[] MesesAriValidos = ["Enero", "Marzo", "Junio", "Septiembre", "Diciembre"];
     private static readonly string[] DesgravamenTiposValidos = ["Unico", "Detallado"];
 
+    private const string ContentTypeXls = "application/vnd.ms-excel";
+
     /// <summary>
-    /// Genera el PDF de la planilla AR-I (determinación del porcentaje de retención de I.S.L.R.)
-    /// con los datos que el empleado ingresa en el formulario. Los datos de identidad (nombre,
-    /// cédula, RIF) se obtienen del registro del empleado, no del cuerpo de la solicitud.
+    /// Genera la planilla AR-I (determinación del porcentaje de retención de I.S.L.R.) rellenando
+    /// una copia de la plantilla Excel del SENIAT. La identidad del contribuyente, el valor de la
+    /// U.T., la carga familiar y la estimación de remuneraciones por percibir provienen de la
+    /// consulta a Profit; del formulario solo se toman el mes y el desgravamen.
     /// </summary>
     /// <param name="ci">La cédula de identidad del empleado.</param>
     /// <param name="request">Los datos ingresados en el formulario ARI.</param>
-    /// <returns>Archivo PDF con la planilla AR-I.</returns>
+    /// <returns>Archivo Excel (.xls) con la planilla AR-I.</returns>
     [HttpPost("{ci}/Ari/Reporte")]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -274,27 +277,41 @@ public class UserApiProfitController(
         if (!DesgravamenTiposValidos.Contains(request.DesgravamenTipo))
             return HandleServiceResult(Result.Fail<AriReportModel>("El tipo de desgravamen indicado no es válido.", ErrorTypeEnum.Validation));
 
-        if (request.ValorUT <= 0)
-            return HandleServiceResult(Result.Fail<AriReportModel>("Debe indicar el valor vigente de la Unidad Tributaria.", ErrorTypeEnum.Validation));
-
-        if (request.SueldoMensual <= 0)
-            return HandleServiceResult(Result.Fail<AriReportModel>("Debe indicar el sueldo mensual.", ErrorTypeEnum.Validation));
-
         var normalizedCi = UtilityService.NormalizeCiFormat(ci);
-        var empleadoResult = await _readOnlyUnitOfWork.SnEmple.GetFullInfoByCiAsync(normalizedCi);
-        if (!empleadoResult.IsSuccess) return HandleServiceResult(empleadoResult);
+        var ariResult = await _readOnlyUnitOfWork.Ari.GetAriByCiAsync(normalizedCi);
+        if (!ariResult.IsSuccess) return HandleServiceResult(ariResult);
 
-        var empleado = empleadoResult.Value;
-        var nombreCompleto = string.Join(", ", new[] { empleado.Apellidos, empleado.Nombres }
-            .Where(n => !string.IsNullOrWhiteSpace(n)));
+        var datos = ariResult.Value;
 
-        var model = AriReportModel.Calcular(
-            request,
-            nombreCompleto,
-            $"V-{normalizedCi}",
-            !string.IsNullOrWhiteSpace(empleado.Rif) ? empleado.Rif : normalizedCi);
+        if (datos.UniTribu is not > 0)
+            return HandleServiceResult(Result.Fail<AriReportModel>(
+                "Profit no devolvió el valor vigente de la Unidad Tributaria.", ErrorTypeEnum.Validation));
 
-        var bytes = _reportService.GenerateAriReport(model);
-        return File(bytes, "application/pdf", $"ARI_{normalizedCi}_{request.Anio}.pdf");
+        if (datos.GranTotal is not > 0)
+            return HandleServiceResult(Result.Fail<AriReportModel>(
+                "Profit no devolvió recibos de nómina del año en curso, así que no se puede estimar las remuneraciones por percibir.",
+                ErrorTypeEnum.Validation));
+
+        var model = new AriReportModel
+        {
+            NombreEmpresa = datos.NombreEmpresa ?? string.Empty,
+            NombreCompleto = datos.NombreCompleto ?? string.Empty,
+            Ci = datos.Ci ?? normalizedCi,
+            Rif = datos.Rif ?? string.Empty,
+            AnoGravable = datos.AnoActual ?? DateTime.Now.Year,
+            UniTribu = datos.UniTribu.Value,
+            CargaFamiliar = datos.CargaFami ?? 0,
+            GranTotal = datos.GranTotal.Value,
+
+            Mes = request.Mes,
+            DesgravamenTipo = request.DesgravamenTipo,
+            InstitutosDocentes = request.InstitutosDocentes,
+            PrimasSeguro = request.PrimasSeguro,
+            ServiciosMedicos = request.ServiciosMedicos,
+            InteresesVivienda = request.InteresesVivienda,
+        };
+
+        var bytes = _reportService.GenerateAriPlanilla(model);
+        return File(bytes, ContentTypeXls, $"ARI_{normalizedCi}_{model.AnoGravable}.xls");
     }
 }

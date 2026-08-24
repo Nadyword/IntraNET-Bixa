@@ -49,7 +49,7 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
     /// <param name="adminRoleId">El ID del rol de Administrador.</param>
     /// <returns>El número total de administradores.</returns>
     public async Task<int> CountAdminUsersAsync(int adminRoleId) =>
-        await _context.Users.CountAsync(u => u.IdUserRol == adminRoleId);
+        await _context.Users.CountAsync(u => u.IdUserRol == adminRoleId && u.IsActive);
 
     /// <summary>
     /// Recupera todos los usuarios activos que poseen el rol indicado.
@@ -111,6 +111,7 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
     {
         int page = (pageNumber * pageSize) - pageSize;
         return await _context.Users
+          .Where(u => u.IsActive)
           .OrderBy(u => u.Id)
           .Skip(page)
           .Take(pageSize)

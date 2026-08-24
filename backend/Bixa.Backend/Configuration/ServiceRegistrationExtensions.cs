@@ -74,7 +74,8 @@ public static class ServiceRegistrationExtensions
             var env = sp.GetRequiredService<IWebHostEnvironment>();
             var path = Path.Combine(env.WebRootPath ?? "wwwroot", "report-assets");
             var firmasPath = Path.Combine(env.WebRootPath ?? "wwwroot", "Firmas");
-            return new ReportService(path, firmasPath);
+            var templatesPath = Path.Combine(env.WebRootPath ?? "wwwroot", "Templates");
+            return new ReportService(path, firmasPath, templatesPath);
         });
         services.AddScoped<IFirmaService>(sp =>
         {

@@ -6,10 +6,11 @@ using QuestPDF.Fluent;
 
 namespace Bixa.Backend.Services.Services;
 
-public class ReportService(string reportAssetsPath, string firmasPath) : IReportService
+public class ReportService(string reportAssetsPath, string firmasPath, string templatesPath) : IReportService
 {
     private readonly string _assetsPath = reportAssetsPath;
     private readonly string _firmasPath = firmasPath;
+    private readonly string _templatesPath = templatesPath;
 
     // ─── Generación ───────────────────────────────────────────────────────────
 
@@ -62,18 +63,10 @@ public class ReportService(string reportAssetsPath, string firmasPath) : IReport
         return new ArcDocument(model).GeneratePdf();
     }
 
-    public byte[] GenerateAriReport(AriReportModel model)
+    public byte[] GenerateAriPlanilla(AriReportModel model)
     {
-        QuestPDF.Settings.License = LicenseType.Community;
-
-        if (model.LogoEmpresa is not { Length: > 0 })
-        {
-            var logoPath = Path.Combine(_assetsPath, "Logo.webp");
-            if (File.Exists(logoPath))
-                model.LogoEmpresa = File.ReadAllBytes(logoPath);
-        }
-
-        return new AriDocument(model).GeneratePdf();
+        var plantillaPath = Path.Combine(_templatesPath, AriPlanillaExcel.NombreArchivoPlantilla);
+        return AriPlanillaExcel.Rellenar(plantillaPath, model);
     }
 
     public async Task<string> SaveReportImageAsync(Stream imageStream, string fileName)

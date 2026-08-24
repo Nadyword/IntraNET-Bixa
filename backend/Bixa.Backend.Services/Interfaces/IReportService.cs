@@ -16,9 +16,10 @@ public interface IReportService
     byte[] GenerateArcReport(ArcReportModel model);
 
     /// <summary>
-    /// Genera el PDF de la planilla AR-I (determinación del porcentaje de retención de I.S.L.R.).
+    /// Genera la planilla AR-I (determinación del porcentaje de retención de I.S.L.R.) rellenando
+    /// una copia de la plantilla Excel del SENIAT. Retorna un libro Excel 97-2003 (.xls).
     /// </summary>
-    byte[] GenerateAriReport(AriReportModel model);
+    byte[] GenerateAriPlanilla(AriReportModel model);
 
     /// <summary>
     /// Guarda una imagen en el almacén de assets de reportes y retorna su nombre de archivo.

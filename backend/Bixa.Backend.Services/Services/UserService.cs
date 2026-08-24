@@ -8,8 +8,6 @@ using Bixa.Backend.Models.Response;
 using Bixa.Backend.Models.Utilities;
 using Bixa.Backend.Models.Enums;
 using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Data.SqlClient;
 using AutoMapper;
 
 namespace Bixa.Backend.Services.Services;
@@ -53,12 +51,12 @@ public class UserService(
         try
         {
             string ciNormalized = UtilityService.NormalizeCiFormat(userDto.Ci);
-            var validationResult = await ValidateUserExistenceAsync(ciNormalized);
+            var existingUser = await _userRepository.GetUserByCiAsync(ciNormalized);
 
-            if (!validationResult.IsSuccess)
+            if (existingUser != null && existingUser.IsActive)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<string>(validationResult.Error!, ErrorTypeEnum.Conflict);
+                return Result.Fail<string>($"Ya existe un usuario con la cedula {ciNormalized}", ErrorTypeEnum.Conflict);
             }
 
             var snEmple = await _readOnlyUnitOfWork.SnEmple.GetFullInfoByCiAsync(ciNormalized);
@@ -69,9 +67,15 @@ public class UserService(
                 return Result.Fail<string>(snEmple.Error, snEmple.ErrorTypeEnum);
             }
 
-            Users userCreate = _mapper.Map<SnEmple, Users>(snEmple.Value);
+            bool isReactivation = existingUser != null;
+            Users userCreate = isReactivation ? existingUser! : _mapper.Map<SnEmple, Users>(snEmple.Value);
+
+            if (isReactivation)
+                _mapper.Map(snEmple.Value, userCreate);
+
             userCreate.IsActive = true;
             userCreate.IdUserRol = userDto.IdUserRol;
+            userCreate.LastLogin = null;
             string clave = DateUtilities.GenerateSecureRandomPassword(10);
             userCreate.PasswordHash = clave;
             userCreate.PasswordHash = CheckIfNewPassword(userCreate.PasswordHash!, string.Empty);
@@ -87,7 +91,11 @@ public class UserService(
                 userCreate.UrlFirma = firmaResult.Value!;
             }
 
-            await _userRepository.AddAsync(userCreate);
+            if (isReactivation)
+                await _userRepository.UpdateAsync(userCreate);
+            else
+                await _userRepository.AddAsync(userCreate);
+
             var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
 
             if (saveChangesSuccess)
@@ -96,7 +104,7 @@ public class UserService(
                 if (string.IsNullOrEmpty(snEmple.Value.CorreoE))
                     return Result.Success("Usuario creado exitosamente, pero no existe un correo empresarial asociado a este usuario. Es necesario registrar un correo realizar una recuperación de clave.");
                 _ = _sendMail.SendMailNewUser(snEmple.Value.CorreoE, clave);
-                return Result.Success("Usuario creado exitosamente.");
+                return Result.Success(isReactivation ? "Usuario reactivado exitosamente." : "Usuario creado exitosamente.");
             }
             else
             {
@@ -113,10 +121,10 @@ public class UserService(
     }
 
     /// <summary>
-    /// Deletes a user by their unique identifier.
+    /// Desactiva un usuario (baja lógica) por su identificador único.
     /// </summary>
-    /// <param name="ci">The cedula of the user to delete.</param>
-    /// <returns>A <see cref="Result{T}"/> indicating success or failure. True if deletion was successful, false otherwise.</returns>
+    /// <param name="ci">The cedula of the user to deactivate.</param>
+    /// <returns>A <see cref="Result{T}"/> indicating success or failure. True if deactivation was successful, false otherwise.</returns>
     public async Task<Result<bool>> DeleteAsync(string ci)
     {
         await _unitOfWork.BeginTransactionAsync();
@@ -142,49 +150,30 @@ public class UserService(
                 if (isLastAdmin)
                 {
                     await _unitOfWork.RollbackTransactionAsync();
-                    return Result.Fail<bool>("No se puede eliminar el usuario: Debe haber al menos un administrador activo en el sistema.", ErrorTypeEnum.Validation);
+                    return Result.Fail<bool>("No se puede desactivar el usuario: Debe haber al menos un administrador activo en el sistema.", ErrorTypeEnum.Validation);
                 }
             }
 
-            //Si es Ejecutivo, eliminarlo de todos sus planes de gastos y solicitudes
-
-            if (await _userRepository.HasAprobacionesAsync(ci))
-            {
-                await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>(
-                    "No se puede eliminar el usuario: tiene aprobaciones de trámites asociadas (como aprobador). Desactívelo en lugar de eliminarlo, o reasigne dichas aprobaciones antes de continuar.",
-                    ErrorTypeEnum.Conflict);
-            }
-
-            await _userRepository.DeleteNotificationsFromUserAsync(ci);
-            var deletedSuccessfullyMarked = await _userRepository.DeleteAsync(ci);
+            userToDelete.IsActive = false;
+            await _userRepository.UpdateAsync(userToDelete);
             var saveChangesSuccess = await _unitOfWork.SaveChangesAsync() > 0;
 
-            if (deletedSuccessfullyMarked && saveChangesSuccess)
+            if (saveChangesSuccess)
             {
                 await _unitOfWork.CommitTransactionAsync();
-                _firmaService.DeleteFirma(userToDelete.UrlFirma);
                 return Result.Success(true);
             }
             else
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>("Error al eliminar el usuario", ErrorTypeEnum.General);
+                return Result.Fail<bool>("Error al desactivar el usuario", ErrorTypeEnum.General);
             }
-        }
-        catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 547 })
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            _logger?.LogError(ex, "No se pudo eliminar el usuario con ci {Ci} por restricción de integridad referencial.", ci);
-            return Result.Fail<bool>(
-                "No se puede eliminar el usuario porque tiene registros asociados en otras tablas (por ejemplo, aprobaciones o chats de soporte). Desactívelo en lugar de eliminarlo.",
-                ErrorTypeEnum.Conflict);
         }
         catch (Exception ex)
         {
             await _unitOfWork.RollbackTransactionAsync();
-            _logger?.LogError(ex, "Error al eliminar usuario con ci {Ci}", ci);
-            return Result.Fail<bool>("Ocurrió un error al eliminar el usuario.", ErrorTypeEnum.Database);
+            _logger?.LogError(ex, "Error al desactivar usuario con ci {Ci}", ci);
+            return Result.Fail<bool>("Ocurrió un error al desactivar el usuario.", ErrorTypeEnum.Database);
         }
     }
 
@@ -463,24 +452,6 @@ public class UserService(
             var entity = _userRepository.GetByCiAsync(dto.Ci).Result.FirstOrDefault();
             dto.Enabled = entity?.IsActive;
         }
-    }
-
-    /// <summary>
-    /// Validates if a user with the given email or Tax ID already exists,
-    /// excluding a specific user ID for update scenarios.
-    /// </summary>
-    /// <param name="ci">The CI to check for existence.</param>
-    /// <returns>A <see cref="Result"/> indicating success if validation passes, or failure with an appropriate error.</returns>
-    private async Task<Result> ValidateUserExistenceAsync(string ci)
-    {
-        if (!string.IsNullOrEmpty(ci))
-        {
-            var existingUserByCi = await _userRepository.GetUserByCiAsync(ci);
-            if (existingUserByCi != null && existingUserByCi.Ci == ci)
-                return Result.Fail($"Ya existe un usuario con la cedula {ci}", ErrorTypeEnum.Conflict);
-        }
-
-        return Result.Success();
     }
 
     private async Task<Result<bool>> ValidateUserExistsAsync(string ci)

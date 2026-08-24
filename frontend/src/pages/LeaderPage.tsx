@@ -272,7 +272,7 @@ export const LeaderPage: React.FC = () => {
                 Crear usuario
               </button>
               <button className="tramites-nueva-btn" onClick={() => setShowDeleteUserModal(true)}>
-                Borrar usuario
+                Desactivar usuario
               </button>
               <button className="tramites-nueva-btn" onClick={() => setShowEditUserModal(true)}>
                 Editar usuario

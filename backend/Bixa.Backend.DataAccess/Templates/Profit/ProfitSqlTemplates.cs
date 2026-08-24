@@ -927,4 +927,109 @@ internal static class ProfitSqlTemplates
         drop table #temprestaIntra
         drop table #temprestaIntra2
         """;
+
+    /// <summary>
+    /// Datos base de la planilla AR-I: identidad del contribuyente, valor de la U.T., carga familiar
+    /// y la estimación de remuneraciones por percibir en el año gravable (casilla A de la planilla).
+    /// Parámetro: @ciEmplea.
+    /// </summary>
+    internal const string GetARI = """
+        IF OBJECT_ID('tempdb..#temprestaIntra') IS NOT NULL
+            DROP TABLE #temprestaIntra;
+
+        IF OBJECT_ID('tempdb..#ResultadoFinal') IS NOT NULL
+            DROP TABLE #ResultadoFinal;
+
+        DECLARE
+            @sCod_Emp_d char(17) = (SELECT cod_emp FROM snemple WHERE ci = @ciEmplea),
+            @sCod_Emp_h char(17) = (SELECT cod_emp FROM snemple WHERE ci = @ciEmplea),
+            @sdFec_Nomina_d smalldatetime = NULL,
+            @sdFec_Nomina_h smalldatetime = NULL;
+
+        SELECT TOP(1) @sdFec_Nomina_d = fec_emis
+        FROM sngennomi, par_emp
+        WHERE co_cont = cont_pres
+        ORDER BY fec_emis ASC;
+
+        DECLARE @strConceptoZ002 char(12) = dbo.GetConcepto('Z002');
+
+        SELECT snrecibo.reci_num,
+               CONVERT(smalldatetime, snrecibo.fec_emis, 103) AS fec_emis,
+               CAST(MONTH(snrecibo.fec_emis) AS varchar(2)) + '-' + CAST(YEAR(snrecibo.fec_emis) AS varchar(4)) AS fecha,
+               ISNULL((SELECT TOP(1) ISNULL(snhistor.val_n, 0)
+                       FROM snhistor
+                       WHERE MONTH(snhistor.fecha) = MONTH(snrecibo.fec_emis)
+                         AND YEAR(snhistor.fecha) = YEAR(snrecibo.fec_emis)
+                         AND snhistor.cod_emp = snemple.cod_emp
+                         AND snhistor.co_var = dbo.GetCampo('A001')
+                       ORDER BY snhistor.fecha DESC), 0) AS sueldo
+        INTO #temprestaIntra
+        FROM snrecibo
+        INNER JOIN dbo.snnomi AS n ON snrecibo.reci_num = n.reci_num AND snrecibo.cod_emp = n.cod_emp AND n.co_conce IN (@strConceptoZ002)
+        INNER JOIN snemple ON snrecibo.cod_emp = snemple.cod_emp
+        INNER JOIN sncont ON snemple.co_cont = sncont.co_cont, dbo.par_emp AS parEmp
+        WHERE ((@sCod_Emp_d IS NULL OR dbo.snrecibo.cod_emp >= @sCod_Emp_d)
+                AND (@sCod_Emp_h IS NULL OR (@sCod_Emp_d IS NULL AND dbo.snrecibo.cod_emp IS NULL) OR dbo.snrecibo.cod_emp <= @sCod_Emp_h))
+          AND ((@sdFec_Nomina_d IS NULL OR @sdFec_Nomina_d <= dbo.snrecibo.fec_emis)
+                AND (@sdFec_Nomina_h IS NULL OR dbo.snrecibo.fec_emis <= @sdFec_Nomina_h))
+          AND (snemple.status = 'A' OR snemple.status = 'PL')
+          AND YEAR(snrecibo.fec_emis) = YEAR(GETDATE());
+
+        CREATE TABLE #ResultadoFinal (
+            Mes INT,
+            fec_emis SMALLDATETIME,
+            fecha VARCHAR(10),
+            sueldo DECIMAL(18,2)
+        );
+
+        INSERT INTO #ResultadoFinal (Mes, fec_emis, fecha, sueldo)
+        SELECT MONTH(MAX(fec_emis)), MAX(fec_emis), fecha, MAX(sueldo)
+        FROM #temprestaIntra
+        GROUP BY fecha;
+
+        DECLARE @UltimoMes INT, @UltimaFecha SMALLDATETIME, @UltimoSueldo DECIMAL(18,2);
+
+        SELECT TOP 1
+            @UltimoMes = Mes,
+            @UltimaFecha = fec_emis,
+            @UltimoSueldo = sueldo
+        FROM #ResultadoFinal
+        ORDER BY Mes DESC;
+
+        -- Proyecta el último sueldo conocido hasta diciembre para completar el año gravable.
+        WHILE @UltimoMes < 12
+        BEGIN
+            SET @UltimoMes = @UltimoMes + 1;
+            SET @UltimaFecha = DATEADD(MONTH, 1, @UltimaFecha);
+
+            INSERT INTO #ResultadoFinal (Mes, fec_emis, fecha, sueldo)
+            VALUES (
+                @UltimoMes, @UltimaFecha,
+                CAST(@UltimoMes AS VARCHAR(2)) + '-' + CAST(YEAR(@UltimaFecha) AS VARCHAR(4)),
+                @UltimoSueldo
+            );
+        END;
+
+        DECLARE @SumaTotalMeses DECIMAL(18,2), @CalculoUltimoSueldo DECIMAL(18,2), @GranTotal DECIMAL(18,2);
+
+        SELECT @SumaTotalMeses = SUM(sueldo) FROM #ResultadoFinal;
+        SET @CalculoUltimoSueldo = (@UltimoSueldo / 30.0) * 100.0;
+        SET @GranTotal = @SumaTotalMeses + @CalculoUltimoSueldo;
+
+        SELECT
+            'PRODUCTOS BIXA, S.A.' AS NombreEmpresa,
+            nombre_completo AS NombreCompleto,
+            ci AS Ci,
+            rif AS Rif,
+            (CAST(CONVERT(VARCHAR(8), GETDATE(), 112) AS INT) - CAST(CONVERT(VARCHAR(8), fecha_exp, 112) AS INT)) / 10000 AS AnosExp,
+            CAST(43.3 AS DECIMAL(18,4)) AS UniTribu,
+            3 AS CargaFami,
+            @GranTotal + (@UltimoSueldo / 30) * (15 + (CAST(CONVERT(VARCHAR(8), GETDATE(), 112) AS INT) - CAST(CONVERT(VARCHAR(8), fecha_exp, 112) AS INT)) / 10000) AS GranTotal,
+            YEAR(GETDATE()) AS AnoActual
+        FROM snemple
+        WHERE ci = @ciEmplea;
+
+        DROP TABLE #temprestaIntra;
+        DROP TABLE #ResultadoFinal;
+        """;
 }

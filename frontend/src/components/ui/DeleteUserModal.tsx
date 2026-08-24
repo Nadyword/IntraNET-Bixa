@@ -28,7 +28,7 @@ export const DeleteUserModal: React.FC<Props> = ({ onClose }) => {
       setSuccess(response.data.message);
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { message?: string } } };
-      setError(axiosError?.response?.data?.message ?? 'Ocurrió un error al eliminar el usuario.');
+      setError(axiosError?.response?.data?.message ?? 'Ocurrió un error al desactivar el usuario.');
     } finally {
       setLoading(false);
     }
@@ -41,7 +41,7 @@ export const DeleteUserModal: React.FC<Props> = ({ onClose }) => {
           <button className="modal-close" onClick={onClose}>✕</button>
           <div className="modal-success">
             <div className="modal-success-icon">✓</div>
-            <h3>Usuario eliminado</h3>
+            <h3>Usuario desactivado</h3>
             <p>{success}</p>
             <button className="modal-btn-primary" onClick={onClose}>
               Aceptar
@@ -57,8 +57,8 @@ export const DeleteUserModal: React.FC<Props> = ({ onClose }) => {
       <div className="modal-box" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}>✕</button>
 
-        <h3>Borrar usuario</h3>
-        <p>Ingresa la cédula del usuario que deseas eliminar. Esta acción no se puede deshacer.</p>
+        <h3>Desactivar usuario</h3>
+        <p>Ingresa la cédula del usuario que deseas desactivar. El usuario dejará de aparecer en los listados y no podrá iniciar sesión, pero podrás reactivarlo creándolo nuevamente.</p>
 
         <form onSubmit={handleSubmit}>
           <div className="modal-field">
@@ -80,7 +80,7 @@ export const DeleteUserModal: React.FC<Props> = ({ onClose }) => {
               Cancelar
             </button>
             <button type="submit" className="modal-btn-primary" disabled={loading}>
-              {loading ? 'Eliminando...' : 'Borrar usuario'}
+              {loading ? 'Desactivando...' : 'Desactivar usuario'}
             </button>
           </div>
         </form>

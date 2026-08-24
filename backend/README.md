@@ -45,7 +45,12 @@ Bixa Backend es una solución basada en .NET 9 diseñada para gestionar y proces
        ```bash
        dotnet ef database update --context AppDbContext --project Bixa.Backend.DataAccess --startup-project Bixa.Backend --connection  'Server=localhost;Database=Bixa;User Id=sa;Password=Sa753951;TrustServerCertificate=True;'
        ```
+
+   - Dar permisos a la carpeta de adjuntos para que el servidor web pueda acceder a ella:
    ```
+        sudo chown -R www-data:www-data /var/www/IntraNET-Bixa/Publicacion/wwwroot/Adjuntos/
+        sudo chmod -R 755 /var/www/IntraNET-Bixa/Publicacion/wwwroot/Adjuntos/
+    ```
  
  ## Despliegue
   ```bash
