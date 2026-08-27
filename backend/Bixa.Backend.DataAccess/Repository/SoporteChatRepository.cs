@@ -109,6 +109,13 @@ public class SoporteChatRepository(AppDbContext dbContext) : ISoporteChatReposit
 
     public async Task<bool> CreateFAQ(FAQs fAQs)
     {
+        // Sin orden explícito la pregunta se agrega al final de la lista.
+        if (fAQs.DisplayOrder <= 0)
+        {
+            var ultimoOrden = await _context.FAQs.MaxAsync(f => (int?)f.DisplayOrder) ?? 0;
+            fAQs.DisplayOrder = ultimoOrden + 1;
+        }
+
         await _context.FAQs.AddAsync(fAQs);
         await _context.SaveChangesAsync();
         return true;
@@ -120,6 +127,9 @@ public class SoporteChatRepository(AppDbContext dbContext) : ISoporteChatReposit
         if (existingFAQ == null) return false;
         existingFAQ.Question = fAQs.Question;
         existingFAQ.Response = fAQs.Response;
+        // Un orden no especificado (0 o menos) conserva la posición actual.
+        if (fAQs.DisplayOrder > 0) existingFAQ.DisplayOrder = fAQs.DisplayOrder;
+        existingFAQ.UpdatedAt = DateTime.UtcNow;
         _context.FAQs.Update(existingFAQ);
         await _context.SaveChangesAsync();
         return true;
@@ -135,5 +145,8 @@ public class SoporteChatRepository(AppDbContext dbContext) : ISoporteChatReposit
     }
 
     public async Task<FAQs[]> GetAllFAQs() =>
-        await _context.FAQs.ToArrayAsync();
+        await _context.FAQs
+            .OrderBy(f => f.DisplayOrder)
+            .ThenBy(f => f.Id)
+            .ToArrayAsync();
 }

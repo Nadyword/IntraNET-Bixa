@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { soporteService, type FAQsDTO } from '../services/soporteService';
+import { soporteService, ordenarFAQs, type FAQsDTO } from '../services/soporteService';
 import './ChatPage.css';
 
 function normalizeCi(ci: string): string {
@@ -117,7 +117,7 @@ export const ChatPage: React.FC = () => {
   useEffect(() => {
     soporteService.getFAQs()
       .then(({ data: res }) => {
-        if (res.success) setFaqs(res.data ?? []);
+        if (res.success) setFaqs(ordenarFAQs(res.data ?? []));
       })
       .catch(() => {})
       .finally(() => setFaqsLoading(false));

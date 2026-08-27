@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useUserProfileStore } from '../store/userProfileStore';
 import { api } from '../lib/api';
 import { ajustarSaldoVacaciones } from '../lib/vacaciones';
@@ -65,6 +65,11 @@ const formatFecha = (fecha: string | null): string => {
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
+const tieneRegistrosHc = (
+  cobertura1: ConsultaHc | null | undefined,
+  cobertura2: ConsultaHc[] | null | undefined,
+): boolean => !!cobertura1 || (Array.isArray(cobertura2) && cobertura2.length > 0);
+
 const formatMonto = (monto: number | null | undefined): string =>
   typeof monto === 'number'
     ? monto.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -102,6 +107,9 @@ export const ConsultasPage: React.FC = () => {
   const [loadingHc, setLoadingHc] = useState(false);
   const [modalHc, setModalHc] = useState(false);
   const [errorHc, setErrorHc] = useState<string | null>(null);
+  // null = verificando, false = sin cobertura HC (la tarjeta no se muestra), true = tiene registros
+  const [hcDisponible, setHcDisponible] = useState<boolean | null>(null);
+  const [hcConsultado, setHcConsultado] = useState(false);
 
   const [mes1Input, setMes1Input] = useState('');
   const [mes2Input, setMes2Input] = useState('');
@@ -130,6 +138,35 @@ export const ConsultasPage: React.FC = () => {
     ? diasEspeciales.reduce((sum, d) => sum + (d.dias ?? 0), 0)
     : null;
   const diasEspDisponibles = diasEspUsados !== null ? 4 - diasEspUsados : null;
+
+  // Al entrar se verifica si el usuario tiene cobertura de HC; si no tiene, la consulta ni se muestra
+  useEffect(() => {
+    const ci = profile?.ci;
+    if (!ci) return;
+
+    let cancelado = false;
+
+    (async () => {
+      const [cob1, cob2] = await Promise.allSettled([
+        api.get(`/usersProfit/${ci}/ConsultaHc/Cobertura1`),
+        api.get(`/usersProfit/${ci}/ConsultaHc/Cobertura2`),
+      ]);
+      if (cancelado) return;
+
+      const data1: ConsultaHc | undefined =
+        cob1.status === 'fulfilled' && cob1.value.data.success ? cob1.value.data.data : undefined;
+      const data2: ConsultaHc[] | undefined =
+        cob2.status === 'fulfilled' && cob2.value.data.success ? cob2.value.data.data : undefined;
+
+      setHcCobertura1(data1);
+      setHcCobertura2(data2);
+      setHcDisponible(tieneRegistrosHc(data1, data2));
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [profile?.ci]);
 
   const handleConsultarVacaciones = async () => {
     if (!profile?.codEmp) return;
@@ -223,6 +260,7 @@ export const ConsultasPage: React.FC = () => {
 
   const handleConsultarHc = async () => {
     if (!profile?.ci) return;
+    setHcConsultado(true);
     setLoadingHc(true);
     setErrorHc(null);
     setHcSaveError(null);
@@ -414,29 +452,25 @@ export const ConsultasPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Consulta de HC */}
-        <div className="stat-card">
-          <h4 className="stat-title">HC</h4>
-          <div className="stat-icon red">🏥</div>
-          <div className="stat-info">
-            <p>Prima trimestral y pago a Bixa</p>
-            <div className="stat-sub">
-              {hcCobertura1 === null && hcCobertura2 === null
-                ? 'Sin consultar'
-                : !hcCobertura1 && !hcCobertura2
-                ? 'Sin registros'
-                : 'Consultado'}
+        {/* Consulta de HC: solo visible si el usuario tiene registros de cobertura */}
+        {hcDisponible === true && (
+          <div className="stat-card">
+            <h4 className="stat-title">HC</h4>
+            <div className="stat-icon red">🏥</div>
+            <div className="stat-info">
+              <p>Prima trimestral y pago a Bixa</p>
+              <div className="stat-sub">{hcConsultado ? 'Consultado' : 'Sin consultar'}</div>
+              {errorHc && <div className="stat-error">{errorHc}</div>}
+              <button
+                className="consultar-btn"
+                onClick={handleConsultarHc}
+                disabled={loadingHc}
+              >
+                {loadingHc ? 'Consultando...' : 'Consultar'}
+              </button>
             </div>
-            {errorHc && <div className="stat-error">{errorHc}</div>}
-            <button
-              className="consultar-btn"
-              onClick={handleConsultarHc}
-              disabled={loadingHc}
-            >
-              {loadingHc ? 'Consultando...' : 'Consultar'}
-            </button>
           </div>
-        </div>
+        )}
 
         {/* Consulta de Prestaciones Sociales */}
         <div className="stat-card">
@@ -597,7 +631,7 @@ export const ConsultasPage: React.FC = () => {
       )}
 
       {/* Modal HC */}
-      {modalHc && (hcCobertura1 || hcCobertura2) && (
+      {modalHc && tieneRegistrosHc(hcCobertura1, hcCobertura2) && (
         <div className="modal-overlay" onClick={() => setModalHc(false)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">

@@ -107,6 +107,7 @@ public class BllMappingProfile : Profile
             .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.Question, opt => opt.MapFrom(src => src.Question))
             .ForMember(dest => dest.Response, opt => opt.MapFrom(src => src.Response))
+            .ForMember(dest => dest.DisplayOrder, opt => opt.MapFrom(src => src.DisplayOrder))
             .ReverseMap();
 
         #endregion FAQs Mappings

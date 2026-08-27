@@ -3,7 +3,7 @@ import api from '../lib/api';
 import type { ApiResponse } from '../services/authService';
 import type { UserProfile } from '../store/userProfileStore';
 import { useAuthStore } from '../store/authStore';
-import { soporteService, type SolicitudChatDTO, type FAQsDTO } from '../services/soporteService';
+import { soporteService, ordenarFAQs, type SolicitudChatDTO, type FAQsDTO } from '../services/soporteService';
 import { SoporteChatAdminModal } from '../components/ui/SoporteChatAdminModal';
 import { CreateUserModal } from '../components/ui/CreateUserModal';
 import { DeleteUserModal } from '../components/ui/DeleteUserModal';
@@ -49,19 +49,33 @@ export const LeaderPage: React.FC = () => {
   const [faqSaving, setFaqSaving] = useState(false);
   const [faqExpandedId, setFaqExpandedId] = useState<number | null>(null);
   const [showFaqCreateForm, setShowFaqCreateForm] = useState(false);
-  const [faqCreateForm, setFaqCreateForm] = useState({ question: '', response: '' });
+  const [faqCreateForm, setFaqCreateForm] = useState({ question: '', response: '', displayOrder: '' });
   const [faqEditingId, setFaqEditingId] = useState<number | null>(null);
-  const [faqEditForm, setFaqEditForm] = useState({ question: '', response: '' });
+  const [faqEditForm, setFaqEditForm] = useState({ question: '', response: '', displayOrder: '' });
   const [faqDeleteConfirmId, setFaqDeleteConfirmId] = useState<number | null>(null);
+
+  // Las preguntas se muestran según el orden definido por el administrador
+  const faqsOrdenadas = ordenarFAQs(faqs);
+
+  // 0 = sin orden explícito: al crear la pregunta se coloca al final, al editar conserva su posición
+  const parseOrdenFaq = (valor: string): number => {
+    const orden = parseInt(valor, 10);
+    return Number.isFinite(orden) && orden > 0 ? orden : 0;
+  };
 
   const handleFaqCreate = async () => {
     if (!faqCreateForm.question.trim() || !faqCreateForm.response.trim()) return;
     setFaqSaving(true);
     try {
-      await soporteService.createFAQ({ id: 0, ...faqCreateForm });
+      await soporteService.createFAQ({
+        id: 0,
+        question: faqCreateForm.question,
+        response: faqCreateForm.response,
+        displayOrder: parseOrdenFaq(faqCreateForm.displayOrder),
+      });
       const res = await soporteService.getFAQs();
       setFaqs(res.data.data ?? []);
-      setFaqCreateForm({ question: '', response: '' });
+      setFaqCreateForm({ question: '', response: '', displayOrder: '' });
       setShowFaqCreateForm(false);
     } finally {
       setFaqSaving(false);
@@ -70,7 +84,11 @@ export const LeaderPage: React.FC = () => {
 
   const handleFaqEditStart = (faq: FAQsDTO) => {
     setFaqEditingId(faq.id);
-    setFaqEditForm({ question: faq.question, response: faq.response });
+    setFaqEditForm({
+      question: faq.question,
+      response: faq.response,
+      displayOrder: faq.displayOrder ? String(faq.displayOrder) : '',
+    });
     setFaqExpandedId(null);
   };
 
@@ -78,7 +96,12 @@ export const LeaderPage: React.FC = () => {
     if (!faqEditForm.question.trim() || !faqEditForm.response.trim()) return;
     setFaqSaving(true);
     try {
-      await soporteService.updateFAQ({ id: faqEditingId!, ...faqEditForm });
+      await soporteService.updateFAQ({
+        id: faqEditingId!,
+        question: faqEditForm.question,
+        response: faqEditForm.response,
+        displayOrder: parseOrdenFaq(faqEditForm.displayOrder),
+      });
       const res = await soporteService.getFAQs();
       setFaqs(res.data.data ?? []);
       setFaqEditingId(null);
@@ -438,11 +461,23 @@ export const LeaderPage: React.FC = () => {
                     onChange={(e) => setFaqCreateForm({ ...faqCreateForm, response: e.target.value })}
                   />
                 </div>
+                <div className="faq-form-field faq-form-field-order">
+                  <label>Orden</label>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    placeholder="Al final"
+                    value={faqCreateForm.displayOrder}
+                    onChange={(e) => setFaqCreateForm({ ...faqCreateForm, displayOrder: e.target.value })}
+                  />
+                  <span className="faq-form-hint">Menor número = se muestra primero. Vacío la coloca al final.</span>
+                </div>
                 <div className="faq-form-actions">
                   <button className="faq-btn-save" onClick={handleFaqCreate} disabled={faqSaving}>
                     {faqSaving ? 'Guardando...' : 'Guardar'}
                   </button>
-                  <button className="faq-btn-cancel" disabled={faqSaving} onClick={() => { setShowFaqCreateForm(false); setFaqCreateForm({ question: '', response: '' }); }}>Cancelar</button>
+                  <button className="faq-btn-cancel" disabled={faqSaving} onClick={() => { setShowFaqCreateForm(false); setFaqCreateForm({ question: '', response: '', displayOrder: '' }); }}>Cancelar</button>
                 </div>
               </div>
             )}
@@ -453,7 +488,7 @@ export const LeaderPage: React.FC = () => {
               {!faqsLoading && !faqsError && faqs.length === 0 && (
                 <div className="empty-state"><p>No hay preguntas frecuentes registradas.</p></div>
               )}
-              {!faqsLoading && !faqsError && faqs.map((faq) => (
+              {!faqsLoading && !faqsError && faqsOrdenadas.map((faq) => (
                 <div key={faq.id} className={`faq-card${faqEditingId === faq.id ? ' faq-card-form' : ''}`}>
                   {faqEditingId === faq.id ? (
                     <>
@@ -474,6 +509,18 @@ export const LeaderPage: React.FC = () => {
                           onChange={(e) => setFaqEditForm({ ...faqEditForm, response: e.target.value })}
                         />
                       </div>
+                      <div className="faq-form-field faq-form-field-order">
+                        <label>Orden</label>
+                        <input
+                          type="number"
+                          min={1}
+                          step={1}
+                          placeholder="Sin cambios"
+                          value={faqEditForm.displayOrder}
+                          onChange={(e) => setFaqEditForm({ ...faqEditForm, displayOrder: e.target.value })}
+                        />
+                        <span className="faq-form-hint">Menor número = se muestra primero.</span>
+                      </div>
                       <div className="faq-form-actions">
                         <button className="faq-btn-save" onClick={handleFaqEditSave} disabled={faqSaving}>
                           {faqSaving ? 'Guardando...' : 'Guardar'}
@@ -488,6 +535,7 @@ export const LeaderPage: React.FC = () => {
                         onClick={() => setFaqExpandedId(faqExpandedId === faq.id ? null : faq.id)}
                       >
                         <span className="faq-expand-icon">{faqExpandedId === faq.id ? '▼' : '►'}</span>
+                        <span className="faq-order-badge" title="Orden de visualización">{faq.displayOrder || '—'}</span>
                         <span className="faq-question-text">{faq.question}</span>
                         <div className="faq-actions" onClick={(e) => e.stopPropagation()}>
                           <button className="faq-action-btn faq-btn-edit" onClick={() => handleFaqEditStart(faq)}>

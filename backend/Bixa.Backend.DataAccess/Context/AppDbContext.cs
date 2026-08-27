@@ -465,6 +465,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<FAQs>().Property(f => f.Id).ValueGeneratedOnAdd();
         modelBuilder.Entity<FAQs>().Property(f => f.Question).HasColumnType("nvarchar(max)");
         modelBuilder.Entity<FAQs>().Property(f => f.Response).HasColumnType("nvarchar(max)");
+        modelBuilder.Entity<FAQs>().Property(f => f.DisplayOrder).HasDefaultValue(0);
+        modelBuilder.Entity<FAQs>().HasIndex(f => f.DisplayOrder);
 
         #endregion FAQs Entity Configuration
 

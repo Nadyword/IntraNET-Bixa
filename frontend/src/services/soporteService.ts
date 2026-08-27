@@ -5,7 +5,13 @@ export interface FAQsDTO {
   id: number;
   question: string;
   response: string;
+  /** Posición en la que se muestra la pregunta. Menor valor = se muestra primero. */
+  displayOrder: number;
 }
+
+/** Ordena las preguntas frecuentes por el orden definido en el portal del líder. */
+export const ordenarFAQs = (faqs: FAQsDTO[]): FAQsDTO[] =>
+  [...faqs].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || a.id - b.id);
 
 export interface SoporteChatMessageDTO {
   id: number;

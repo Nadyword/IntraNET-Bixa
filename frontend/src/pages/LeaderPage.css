@@ -639,6 +639,18 @@
   color: var(--black);
 }
 
+.faq-order-badge {
+  flex-shrink: 0;
+  min-width: 26px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--gray-100);
+  color: var(--gray-700);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .faq-actions {
   display: flex;
   gap: 8px;
@@ -730,6 +742,15 @@
 .faq-form-field textarea:focus {
   border-color: var(--red);
   box-shadow: 0 0 0 3px rgba(217, 26, 26, 0.10);
+}
+
+.faq-form-field-order input {
+  max-width: 140px;
+}
+
+.faq-form-hint {
+  font-size: 12px;
+  color: var(--gray-600);
 }
 
 .faq-form-actions {
