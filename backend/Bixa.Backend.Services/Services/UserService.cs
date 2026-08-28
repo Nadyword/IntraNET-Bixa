@@ -309,6 +309,10 @@ public class UserService(
 
             if (!Hasher.VerifyPassword(userEdited.Password!, user.PasswordHash!)) return Result.Fail<bool>("Contraseña actual incorrecta", ErrorTypeEnum.Validation);
 
+            // La nueva clave no puede coincidir con la clave actual
+            if (Hasher.VerifyPassword(newPassword, user.PasswordHash!))
+                return Result.Fail<bool>("La nueva clave no puede ser igual a la clave actual.", ErrorTypeEnum.Validation);
+
             // Si pasa validación, hasheamos y asignamos la nueva contraseña
             user.PasswordHash = CheckIfNewPassword(newPassword, user.PasswordHash!);
 

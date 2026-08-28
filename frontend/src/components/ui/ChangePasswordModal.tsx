@@ -37,6 +37,11 @@ export const ChangePasswordModal: React.FC<Props> = ({ onClose }) => {
       return;
     }
 
+    if (currentPassword === newPassword) {
+      setError('La nueva clave no puede ser igual a la clave actual.');
+      return;
+    }
+
     setLoading(true);
     try {
       const token = accessToken ?? sessionStorage.getItem('accessToken');

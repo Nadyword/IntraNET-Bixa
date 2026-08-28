@@ -241,6 +241,28 @@ public class AuthService(
     }
 
     /// <summary>
+    /// Determina si la clave en texto plano coincide con el hash almacenado del usuario.
+    /// </summary>
+    /// <param name="password">Clave en texto plano a comparar.</param>
+    /// <param name="storedHash">Hash almacenado del usuario.</param>
+    /// <returns>True si la clave coincide con el hash almacenado; false en caso contrario.</returns>
+    private static bool IsSamePassword(string password, string? storedHash)
+    {
+        if (string.IsNullOrEmpty(storedHash))
+            return false;
+
+        try
+        {
+            return Hasher.VerifyPassword(password, storedHash);
+        }
+        catch (FormatException)
+        {
+            // Hash almacenado con un formato no válido: no se puede comparar.
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Updates user authentication tokens and timestamps.
     /// </summary>
     /// <param name="user">The user to update.</param>
@@ -316,6 +338,12 @@ public class AuthService(
             if (errorList.Count != 0)
             {
                 return (string.Empty, string.Empty, errorList);
+            }
+
+            // La nueva clave no puede ser igual a la clave anterior
+            if (IsSamePassword(newPassword, user.PasswordHash))
+            {
+                return (string.Empty, string.Empty, ["La nueva clave no puede ser igual a la clave anterior."]);
             }
 
             var authToken = BuildAuthTokenClaims(user, argumentException);

@@ -97,6 +97,61 @@ const shouldShowDate = (messages: ChatMessage[], index: number): boolean => {
   return messages[index - 1].timestamp.toDateString() !== messages[index].timestamp.toDateString();
 };
 
+const FaqCard: React.FC<{ faq: FAQsDTO }> = ({ faq }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const questionRef = useRef<HTMLParagraphElement>(null);
+  const responseRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const checkTruncation = () => {
+      // Mientras está desplegado no hay recorte que medir: conservamos el último valor.
+      if (expanded) return;
+      const q = questionRef.current;
+      const r = responseRef.current;
+      setIsTruncated(
+        (!!q && q.scrollHeight - q.clientHeight > 1) ||
+        (!!r && r.scrollHeight - r.clientHeight > 1)
+      );
+    };
+
+    checkTruncation();
+
+    // Las fuentes web pueden cargar después del primer render y cambiar cuánto texto cabe.
+    let cancelled = false;
+    document.fonts?.ready.then(() => { if (!cancelled) checkTruncation(); }).catch(() => {});
+
+    const observer = new ResizeObserver(checkTruncation);
+    if (questionRef.current) observer.observe(questionRef.current);
+    if (responseRef.current) observer.observe(responseRef.current);
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [expanded, faq.question, faq.response]);
+
+  return (
+    <div className={`support-faq-card${expanded ? ' is-expanded' : ''}`}>
+      <p className="support-faq-question" ref={questionRef}>{faq.question}</p>
+      <p className="support-faq-response" ref={responseRef}>{faq.response}</p>
+
+      {(isTruncated || expanded) && (
+        <button
+          type="button"
+          className={`support-faq-toggle${expanded ? ' is-open' : ''}`}
+          onClick={() => setExpanded(prev => !prev)}
+          aria-expanded={expanded}
+        >
+          {expanded ? 'Ver menos' : 'Ver más'}
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+};
+
 export const ChatPage: React.FC = () => {
   const user = useAuthStore((state) => state.user);
 
@@ -237,10 +292,7 @@ export const ChatPage: React.FC = () => {
       {!faqsLoading && filteredFaqs.length > 0 && (
         <div className="support-faq-grid">
           {filteredFaqs.map((faq) => (
-            <div key={faq.id} className="support-faq-card">
-              <p className="support-faq-question">{faq.question}</p>
-              <p className="support-faq-response">{faq.response}</p>
-            </div>
+            <FaqCard key={faq.id} faq={faq} />
           ))}
         </div>
       )}
