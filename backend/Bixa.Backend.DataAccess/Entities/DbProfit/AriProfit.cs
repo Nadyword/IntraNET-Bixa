@@ -27,4 +27,13 @@ public class AriProfit
     public decimal? GranTotal { get; set; }
 
     public int? AnoActual { get; set; }
+
+    /// <summary>Fecha en la que se emite la planilla (<c>GETDATE()</c>).</summary>
+    public DateTime? FechaActual { get; set; }
+
+    /// <summary>Nombre del archivo de la firma del contribuyente dentro de la carpeta de firmas.</summary>
+    public string? FotoFirma { get; set; }
+
+    /// <summary>Ubicación del empleado (<c>snubicacion.des_ubicacion</c>), la localidad que acompaña a la fecha.</summary>
+    public string? Lugar { get; set; }
 }

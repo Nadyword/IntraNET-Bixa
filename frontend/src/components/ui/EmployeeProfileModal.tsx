@@ -11,6 +11,11 @@ interface Props {
   onClose: () => void;
 }
 
+interface PrestacionesSociales {
+  montoDisponible: number | null;
+  ultimaSolicitud: string | null;
+}
+
 interface Vacacion {
   nombre: string | null;
   desde: string | null;
@@ -187,6 +192,8 @@ export const EmployeeProfileModal: React.FC<Props> = ({ ci, onClose }) => {
   const [errorUtilidades, setErrorUtilidades] = useState<string | null>(null);
 
   const [montoPrestaciones, setMontoPrestaciones] = useState<number | null | undefined>(null);
+  // Fecha del último anticipo cobrado; null cuando el empleado nunca ha solicitado uno.
+  const [ultimaSolicitudPrestaciones, setUltimaSolicitudPrestaciones] = useState<string | null>(null);
   const [loadingPrestaciones, setLoadingPrestaciones] = useState(false);
   const [errorPrestaciones, setErrorPrestaciones] = useState<string | null>(null);
 
@@ -273,15 +280,17 @@ export const EmployeeProfileModal: React.FC<Props> = ({ ci, onClose }) => {
     setLoadingPrestaciones(true);
     setErrorPrestaciones(null);
     try {
-      const { data } = await api.get(`/usersProfit/${ci}/PrestacionesSociales`);
+      const { data } = await api.get<ApiResponse<PrestacionesSociales | null>>(`/usersProfit/${ci}/PrestacionesSociales`);
       if (data.success) {
-        setMontoPrestaciones(data.data);
+        setMontoPrestaciones(data.data?.montoDisponible ?? undefined);
+        setUltimaSolicitudPrestaciones(data.data?.ultimaSolicitud ?? null);
       } else {
         setErrorPrestaciones(data.message || 'No se encontró información');
       }
     } catch (err: unknown) {
       if (isNotFoundError(err)) {
         setMontoPrestaciones(undefined);
+        setUltimaSolicitudPrestaciones(null);
       } else {
         setErrorPrestaciones('Error al consultar prestaciones sociales');
       }
@@ -474,7 +483,16 @@ export const EmployeeProfileModal: React.FC<Props> = ({ ci, onClose }) => {
                     ? 'Sin consultar'
                     : montoPrestaciones === undefined
                     ? 'Sin registros'
-                    : formatMonto(montoPrestaciones)}
+                    : (
+                      <>
+                        {formatMonto(montoPrestaciones)}
+                        <div style={{ fontSize: '12px', color: 'var(--gray-500)', marginTop: '2px' }}>
+                          {ultimaSolicitudPrestaciones
+                            ? `Última solicitud: ${formatDate(ultimaSolicitudPrestaciones)}`
+                            : 'Sin solicitudes anteriores'}
+                        </div>
+                      </>
+                    )}
                 </ConsultaCard>
 
                 <ConsultaCard

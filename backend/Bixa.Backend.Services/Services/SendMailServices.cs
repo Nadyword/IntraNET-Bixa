@@ -190,4 +190,39 @@ public class SendMailServices(IConfiguration configuration) : ISendMailServices
             return false;
         }
     }
+
+    public async Task<bool> SendMailAriPlanilla(
+        string destinatario,
+        string empleadoNombre,
+        string empleadoCi,
+        string mes,
+        int anoGravable,
+        byte[] adjunto,
+        string nombreArchivo)
+    {
+        var asunto = $"Planilla AR-I de {empleadoNombre} ({mes} {anoGravable})";
+        var cuerpo = new AriPlanillaRecibida(empleadoNombre, empleadoCi, mes, anoGravable).GetBodyMail();
+        try
+        {
+            var builder = new BodyBuilder { HtmlBody = cuerpo };
+            builder.Attachments.Add(nombreArchivo, adjunto, ContentType.Parse("application/vnd.ms-excel"));
+
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress("Productos Bixa", remitente));
+            message.To.Add(new MailboxAddress("Administrador", destinatario));
+            message.Subject = asunto;
+            message.Body = builder.ToMessageBody();
+
+            using var client = new SmtpClient();
+            await client.ConnectAsync(smtpHost, smtpPort, enableSsl);
+            await client.AuthenticateAsync(smtpUser, password);
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

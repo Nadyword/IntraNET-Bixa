@@ -56,6 +56,24 @@ public class AriReportModel
     /// <summary>Marcador <c>#GranTotal</c>: remuneraciones estimadas por percibir en el año, en Bs.</summary>
     public decimal GranTotal { get; set; }
 
+    /// <summary>Marcador <c>#Lugar</c>: localidad desde la que se emite la planilla.</summary>
+    public string Lugar { get; set; } = string.Empty;
+
+    /// <summary>Marcador <c>#FechaActual</c>: fecha de emisión, escrita en la planilla en formato largo.</summary>
+    public DateTime FechaActual { get; set; }
+
+    /// <summary>
+    /// Nombre del archivo de la firma del contribuyente dentro de la carpeta de firmas. La imagen se
+    /// estampa sobre la celda del marcador <c>#FotoFirma</c>.
+    /// </summary>
+    public string? FotoFirma { get; set; }
+
+    /// <summary>
+    /// Contenido de la firma indicada por <see cref="FotoFirma"/>, que carga el servicio de reportes.
+    /// Queda en <c>null</c> cuando el archivo no existe: en ese caso la casilla de la firma va vacía.
+    /// </summary>
+    public byte[]? FirmaImagen { get; set; }
+
     // ─── Provenientes del formulario ─────────────────────────────────────────
 
     /// <summary>Mes al que corresponde la planilla; se marca con una X en el punto 5.</summary>

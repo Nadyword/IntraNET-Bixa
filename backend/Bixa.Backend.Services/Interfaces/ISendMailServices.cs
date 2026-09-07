@@ -15,5 +15,10 @@
         public Task<bool> SendMailHcActualizado(string destinatario, string empleadoNombre, string empleadoCi);
 
         public Task<bool> SendMailNuevoMensajeChat(string destinatario, string empleadoNombre, string empleadoCi);
+
+        /// <summary>
+        /// Envía a un administrador la planilla AR-I que generó un empleado, adjunta como archivo Excel.
+        /// </summary>
+        public Task<bool> SendMailAriPlanilla(string destinatario, string empleadoNombre, string empleadoCi, string mes, int anoGravable, byte[] adjunto, string nombreArchivo);
     }
 }

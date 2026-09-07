@@ -65,6 +65,8 @@ public class ReportService(string reportAssetsPath, string firmasPath, string te
 
     public byte[] GenerateAriPlanilla(AriReportModel model)
     {
+        model.FirmaImagen ??= LoadFirmaFile(model.FotoFirma);
+
         var plantillaPath = Path.Combine(_templatesPath, AriPlanillaExcel.NombreArchivoPlantilla);
         return AriPlanillaExcel.Rellenar(plantillaPath, model);
     }
@@ -119,6 +121,20 @@ public class ReportService(string reportAssetsPath, string firmasPath, string te
 
         if (!File.Exists(fullPath))
             fullPath = Path.Combine(_firmasPath, FirmaService.SinFirma);
+
+        return File.Exists(fullPath) ? File.ReadAllBytes(fullPath) : null;
+    }
+
+    /// <summary>
+    /// Carga la firma indicada tal cual, sin caer en SinFirma.png como hace <see cref="LoadFirmaImage"/>:
+    /// en la planilla AR-I la casilla de la firma debe quedar vacía cuando no hay firma que estampar.
+    /// </summary>
+    private byte[]? LoadFirmaFile(string? nombreArchivo)
+    {
+        if (string.IsNullOrWhiteSpace(nombreArchivo))
+            return null;
+
+        var fullPath = Path.Combine(_firmasPath, Path.GetFileName(nombreArchivo));
 
         return File.Exists(fullPath) ? File.ReadAllBytes(fullPath) : null;
     }

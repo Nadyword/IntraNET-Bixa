@@ -5,6 +5,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useUserProfileStore } from '../../store/userProfileStore';
 import { ButtonSpinner } from './ButtonSpinner';
 import { ajustarSaldoVacaciones } from '../../lib/vacaciones';
+import { ARI_FORM_INICIAL, type FormAri } from '../../lib/ari';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -16,9 +17,17 @@ interface ApiResponse<T> {
 interface Props {
   onClose: () => void;
   onSuccess?: () => void;
+  /** Formulario ARI, sostenido por la página para que persista al cerrar y reabrir el modal. */
+  ariForm: FormAri;
+  onAriFormChange: React.Dispatch<React.SetStateAction<FormAri>>;
 }
 
 type TipoTramite = 'vacaciones' | 'diaEspecial' | 'utilidades' | 'prestamoPrestaciones' | 'constanciaTrabajo' | 'ari';
+
+interface PrestacionesSociales {
+  montoDisponible: number | null;
+  ultimaSolicitud: string | null;
+}
 
 interface TipoConfig {
   id: TipoTramite;
@@ -109,18 +118,8 @@ interface FormConstanciaTrabajo {
   dirigidoA: string;
 }
 
-// El resto de la planilla (identidad, U.T., carga familiar, remuneraciones estimadas) lo
-// resuelve la consulta a Profit en el backend; aquí solo se pide lo que el empleado decide.
-interface FormAri {
-  mes: string;
-  desgravamenTipo: '' | 'unico' | 'detallado';
-  institutosDocentes: string;
-  primasSeguro: string;
-  serviciosMedicos: string;
-  interesesVivienda: string;
-}
-
 const ARI_ERROR_GENERICO = 'Error al generar la planilla ARI. Verifica los datos e intenta de nuevo.';
+const ARI_ENVIO_ERROR_GENERICO = 'No se pudo enviar la planilla ARI a los administradores. Intenta de nuevo.';
 
 /**
  * Extrae el mensaje de una respuesta de error cuyo cuerpo llegó como Blob (responseType: 'blob').
@@ -168,11 +167,14 @@ const fetchDiasHabiles = async (desde: string, hasta: string): Promise<number> =
   return res.data.data;
 };
 
-export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => {
+export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess, ariForm, onAriFormChange }) => {
   const user = useAuthStore((s) => s.user);
   const profile = useUserProfileStore((s) => s.profile);
   const [tipo, setTipo] = useState<TipoTramite | null>(null);
   const [enviado, setEnviado] = useState(false);
+  // Distingue la descarga de la planilla del envío por correo a los administradores.
+  const [ariEnviadaPorCorreo, setAriEnviadaPorCorreo] = useState(false);
+  const [confirmarEnvioAri, setConfirmarEnvioAri] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -186,10 +188,8 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
   const [constanciaTrabajo, setConstanciaTrabajo] = useState<FormConstanciaTrabajo>({
     conSueldo: '', dirigidoAEspecifico: false, dirigidoA: '',
   });
-  const [ari, setAri] = useState<FormAri>({
-    mes: '', desgravamenTipo: '', institutosDocentes: '',
-    primasSeguro: '', serviciosMedicos: '', interesesVivienda: '',
-  });
+  const ari = ariForm;
+  const setAri = onAriFormChange;
   const [subTipoPrestamo, setSubTipoPrestamo] = useState<SubTipoPrestamo | ''>('');
   const [destinoPrestamo, setDestinoPrestamo] = useState('');
 
@@ -251,10 +251,10 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     const consultarMonto = async () => {
       for (let intento = 1; intento <= 2; intento++) {
         try {
-          const res = await api.get<ApiResponse<number | null>>(`/usersProfit/${user.ci}/PrestacionesSociales`);
+          const res = await api.get<ApiResponse<PrestacionesSociales | null>>(`/usersProfit/${user.ci}/PrestacionesSociales`);
           if (cancelado) return;
           if (res.data.success) {
-            setMontoDisponiblePrestaciones(res.data.data ?? 0);
+            setMontoDisponiblePrestaciones(res.data.data?.montoDisponible ?? 0);
             return;
           }
           if (intento === 2) {
@@ -440,10 +440,18 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
       if (!ari.mes) errs.mes = 'Requerido';
       if (!ari.desgravamenTipo) errs.desgravamenTipo = 'Requerido';
       if (ari.desgravamenTipo === 'detallado') {
-        if (!ari.institutosDocentes || Number(ari.institutosDocentes) < 0) errs.institutosDocentes = 'Ingresa un valor válido';
-        if (!ari.primasSeguro || Number(ari.primasSeguro) < 0) errs.primasSeguro = 'Ingresa un valor válido';
-        if (!ari.serviciosMedicos || Number(ari.serviciosMedicos) < 0) errs.serviciosMedicos = 'Ingresa un valor válido';
-        if (!ari.interesesVivienda || Number(ari.interesesVivienda) < 0) errs.interesesVivienda = 'Ingresa un valor válido';
+        // Campos opcionales: si se dejan vacíos el valor enviado es 0.
+        const camposDesgravamen: [keyof FormAri, string][] = [
+          ['institutosDocentes', ari.institutosDocentes],
+          ['primasSeguro', ari.primasSeguro],
+          ['serviciosMedicos', ari.serviciosMedicos],
+          ['interesesVivienda', ari.interesesVivienda],
+        ];
+        camposDesgravamen.forEach(([campo, valor]) => {
+          if (valor.trim() === '') return;
+          const numero = Number(valor);
+          if (!Number.isFinite(numero) || numero < 0) errs[campo] = 'Ingresa un valor válido';
+        });
       }
     }
 
@@ -568,16 +576,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     if (tipo === 'ari') {
       setIsLoading(true);
       try {
-        const esUnico = ari.desgravamenTipo === 'unico';
-        const payload = {
-          mes: ari.mes,
-          desgravamenTipo: esUnico ? 'Unico' : 'Detallado',
-          institutosDocentes: esUnico ? 0 : Number(ari.institutosDocentes) || 0,
-          primasSeguro: esUnico ? 0 : Number(ari.primasSeguro) || 0,
-          serviciosMedicos: esUnico ? 0 : Number(ari.serviciosMedicos) || 0,
-          interesesVivienda: esUnico ? 0 : Number(ari.interesesVivienda) || 0,
-        };
-        const response = await api.post(`/usersProfit/${user?.ci ?? ''}/Ari/Reporte`, payload, { responseType: 'blob' });
+        const response = await api.post(`/usersProfit/${user?.ci ?? ''}/Ari/Reporte`, construirPayloadAri(), { responseType: 'blob' });
         const url = URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.ms-excel' }));
         const link = document.createElement('a');
         link.href = url;
@@ -598,6 +597,44 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
     }
   };
 
+  /** Arma el cuerpo que esperan los endpoints de la planilla AR-I. */
+  const construirPayloadAri = () => {
+    const esUnico = ari.desgravamenTipo === 'unico';
+    return {
+      mes: ari.mes,
+      desgravamenTipo: esUnico ? 'Unico' : 'Detallado',
+      institutosDocentes: esUnico ? 0 : Number(ari.institutosDocentes) || 0,
+      primasSeguro: esUnico ? 0 : Number(ari.primasSeguro) || 0,
+      serviciosMedicos: esUnico ? 0 : Number(ari.serviciosMedicos) || 0,
+      interesesVivienda: esUnico ? 0 : Number(ari.interesesVivienda) || 0,
+    };
+  };
+
+  /** Valida el formulario ARI antes de pedir la confirmación de envío. */
+  const handleSolicitarEnvioAri = () => {
+    setSubmitError(null);
+    if (!validate()) return;
+    setConfirmarEnvioAri(true);
+  };
+
+  const handleConfirmarEnvioAri = async () => {
+    setConfirmarEnvioAri(false);
+    setSubmitError(null);
+    setIsLoading(true);
+    try {
+      await api.post(`/usersProfit/${user?.ci ?? ''}/Ari/Enviar`, construirPayloadAri());
+      setAriEnviadaPorCorreo(true);
+      setEnviado(true);
+      // Ya llegó a los administradores: el formulario arranca limpio la próxima vez.
+      setAri(ARI_FORM_INICIAL);
+    } catch (err: unknown) {
+      const mensaje = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setSubmitError(mensaje || ARI_ENVIO_ERROR_GENERICO);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (enviado) {
     const tipoConfig = TIPOS.find((t) => t.id === tipo)!;
     const tipoLabel = tipo === 'prestamoPrestaciones'
@@ -608,10 +645,16 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
         <div className="ns-modal" onClick={(e) => e.stopPropagation()}>
           <div className="ns-success">
             <div className="ns-success-icon">✓</div>
-            <h3>{tipo === 'ari' ? 'Planilla generada' : 'Solicitud enviada'}</h3>
+            <h3>
+              {tipo === 'ari'
+                ? (ariEnviadaPorCorreo ? 'Planilla enviada' : 'Planilla generada')
+                : 'Solicitud enviada'}
+            </h3>
             <p>
               {tipo === 'ari'
-                ? 'Tu planilla AR-I fue generada y descargada correctamente.'
+                ? (ariEnviadaPorCorreo
+                  ? 'Tu planilla AR-I fue enviada por correo a los administradores.'
+                  : 'Tu planilla AR-I fue generada y descargada correctamente.')
                 : <>Tu solicitud de <strong>{tipoLabel}</strong> fue registrada y está pendiente de revisión.</>}
             </p>
             <button className="ns-btn-primary" onClick={onClose}>Entendido</button>
@@ -916,13 +959,16 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
 
                 {ari.desgravamenTipo === 'detallado' && (
                   <>
+                    <p className="ns-hint">Todos los montos son opcionales. Los que dejes vacíos se registran como 0.</p>
+
                     <div className="ns-field">
-                      <label>Institutos docentes por la educación del contribuyente y descendientes no mayores de 25 años <span className="ns-required">*</span></label>
+                      <label>Institutos docentes por la educación del contribuyente y descendientes no mayores de 25 años</label>
                       <div className="ns-monto-wrapper">
                         <input
                           type="number"
                           min="0"
                           step="0.01"
+                          placeholder="0.00"
                           value={ari.institutosDocentes}
                           onChange={(e) => setAri((a) => ({ ...a, institutosDocentes: e.target.value }))}
                           className={errors.institutosDocentes ? 'input-error' : ''}
@@ -933,12 +979,13 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                     </div>
 
                     <div className="ns-field">
-                      <label>Primas de seguro de hospitalización, cirugía y maternidad <span className="ns-required">*</span></label>
+                      <label>Primas de seguro de hospitalización, cirugía y maternidad</label>
                       <div className="ns-monto-wrapper">
                         <input
                           type="number"
                           min="0"
                           step="0.01"
+                          placeholder="0.00"
                           value={ari.primasSeguro}
                           onChange={(e) => setAri((a) => ({ ...a, primasSeguro: e.target.value }))}
                           className={errors.primasSeguro ? 'input-error' : ''}
@@ -949,12 +996,13 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                     </div>
 
                     <div className="ns-field">
-                      <label>Servicios médicos odontológicos y de hospitalización (incluye carga familiar) <span className="ns-required">*</span></label>
+                      <label>Servicios médicos odontológicos y de hospitalización (incluye carga familiar)</label>
                       <div className="ns-monto-wrapper">
                         <input
                           type="number"
                           min="0"
                           step="0.01"
+                          placeholder="0.00"
                           value={ari.serviciosMedicos}
                           onChange={(e) => setAri((a) => ({ ...a, serviciosMedicos: e.target.value }))}
                           className={errors.serviciosMedicos ? 'input-error' : ''}
@@ -965,12 +1013,13 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                     </div>
 
                     <div className="ns-field">
-                      <label>Intereses para la adquisición de la vivienda principal o de lo pagado por alquiler de la vivienda que le sirve de asiento permanente del hogar <span className="ns-required">*</span></label>
+                      <label>Intereses para la adquisición de la vivienda principal o de lo pagado por alquiler de la vivienda que le sirve de asiento permanente del hogar</label>
                       <div className="ns-monto-wrapper">
                         <input
                           type="number"
                           min="0"
                           step="0.01"
+                          placeholder="0.00"
                           value={ari.interesesVivienda}
                           onChange={(e) => setAri((a) => ({ ...a, interesesVivienda: e.target.value }))}
                           className={errors.interesesVivienda ? 'input-error' : ''}
@@ -1113,9 +1162,15 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
               <button type="button" className="ns-btn-secondary" onClick={onClose} disabled={isLoading}>
                 Cancelar
               </button>
+              {tipo === 'ari' && (
+                <button type="submit" className="ns-btn-secondary" disabled={isLoading}>
+                  Descargar planilla
+                </button>
+              )}
               <button
-                type="submit"
+                type={tipo === 'ari' ? 'button' : 'submit'}
                 className="ns-btn-primary"
+                onClick={tipo === 'ari' ? handleSolicitarEnvioAri : undefined}
                 disabled={
                   isLoading ||
                   (tipo === 'vacaciones' && (diasLoading || rangoInvalido)) ||
@@ -1124,13 +1179,34 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess }) => 
                 }
               >
                 {isLoading
-                  ? <><ButtonSpinner /> {tipo === 'ari' ? 'Generando planilla...' : 'Enviando...'}</>
-                  : tipo === 'ari' ? 'Generar planilla' : 'Enviar solicitud'}
+                  ? <><ButtonSpinner /> {tipo === 'ari' ? 'Procesando...' : 'Enviando...'}</>
+                  : tipo === 'ari' ? 'Enviar' : 'Enviar solicitud'}
               </button>
             </div>
           </form>
         )}
       </div>
+
+      {confirmarEnvioAri && (
+        <div className="ns-confirm-overlay" onClick={(e) => { e.stopPropagation(); setConfirmarEnvioAri(false); }}>
+          <div className="ns-confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="ns-confirm-icon">📨</div>
+            <h3>Confirmar envío</h3>
+            <p>
+              Se les enviará a los administradores tu planilla ARI con la información ingresada.
+              ¿Le consta que toda la información ingresada es correcta para ser enviada?
+            </p>
+            <div className="ns-confirm-actions">
+              <button type="button" className="ns-btn-secondary" onClick={() => setConfirmarEnvioAri(false)}>
+                Cancelar
+              </button>
+              <button type="button" className="ns-btn-primary" onClick={handleConfirmarEnvioAri}>
+                Sí, enviar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

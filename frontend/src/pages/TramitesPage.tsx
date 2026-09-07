@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { NuevaSolicitudModal } from '../components/ui/NuevaSolicitudModal';
+import { ARI_FORM_INICIAL, type FormAri } from '../lib/ari';
 import { useAuthStore } from '../store/authStore';
 import api, { API_ORIGIN } from '../lib/api';
 import './TramitesPage.css';
@@ -238,6 +239,9 @@ export const TramitesPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTramiteId, setSelectedTramiteId] = useState<number | null>(null);
   const [busquedaHistorial, setBusquedaHistorial] = useState('');
+  // El formulario ARI vive aquí y no en el modal para que lo escrito siga disponible al cerrarlo y
+  // volver a abrirlo. No se guarda en ningún lado: al salir de esta sección se descarta.
+  const [ariForm, setAriForm] = useState<FormAri>(ARI_FORM_INICIAL);
 
   const user = useAuthStore(state => state.user);
   const queryClient = useQueryClient();
@@ -496,6 +500,8 @@ export const TramitesPage: React.FC = () => {
         <NuevaSolicitudModal
           onClose={() => setModalOpen(false)}
           onSuccess={() => queryClient.invalidateQueries({ queryKey: ['tramites', user?.ci] })}
+          ariForm={ariForm}
+          onAriFormChange={setAriForm}
         />
       )}
     </div>

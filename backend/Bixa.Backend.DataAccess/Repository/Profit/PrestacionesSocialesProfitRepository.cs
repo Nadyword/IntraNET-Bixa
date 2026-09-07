@@ -14,11 +14,12 @@ public class PrestacionesSocialesProfitRepository(ProfitDbContext context) : IPr
     private readonly ProfitDbContext _context = context ?? throw new ArgumentNullException(nameof(context));
 
     /// <summary>
-    /// Obtiene el monto de prestaciones sociales disponible para el empleado identificado por su CI.
+    /// Obtiene las prestaciones sociales del empleado identificado por su CI: el monto disponible y
+    /// la fecha del último anticipo que solicitó.
     /// </summary>
     /// <param name="ci">La cédula de identidad del empleado.</param>
-    /// <returns>Un resultado con el monto disponible. Si no existe el registro, el resultado indica un error de tipo NotFound.</returns>
-    public async Task<Result<decimal?>> GetMontoDisponibleByCiAsync(string ci)
+    /// <returns>Un resultado con la fila de prestaciones. Si no existe el registro, el resultado indica un error de tipo NotFound.</returns>
+    public async Task<Result<PrestacionesSociales>> GetPrestacionesSocialesByCiAsync(string ci)
     {
         try
         {
@@ -30,14 +31,14 @@ public class PrestacionesSocialesProfitRepository(ProfitDbContext context) : IPr
 
             if (registro == null)
             {
-                return Result.Fail<decimal?>("Sin registros", ErrorTypeEnum.NotFound);
+                return Result.Fail<PrestacionesSociales>("Sin registros", ErrorTypeEnum.NotFound);
             }
 
-            return Result.Success(registro.MontoDisponible);
+            return Result.Success(registro);
         }
         catch (Exception ex)
         {
-            return Result.Fail<decimal?>(ex.Message, ErrorTypeEnum.Conflict);
+            return Result.Fail<PrestacionesSociales>(ex.Message, ErrorTypeEnum.Conflict);
         }
     }
 }

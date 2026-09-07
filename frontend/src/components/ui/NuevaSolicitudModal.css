@@ -397,6 +397,67 @@
   max-width: 320px;
 }
 
+/* Confirmación de envío (se monta encima del modal de solicitud) */
+.ns-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 16px;
+  animation: ns-fade-in 0.15s ease-out;
+}
+
+.ns-confirm {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+  padding: 32px;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  animation: ns-slide-up 0.2s ease-out;
+}
+
+.ns-confirm-icon {
+  width: 56px;
+  height: 56px;
+  background: #fdecea;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+
+.ns-confirm h3 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--black);
+  margin: 0;
+}
+
+.ns-confirm p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--gray-500);
+  margin: 0;
+}
+
+.ns-confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: 8px;
+}
+
 /* Animations */
 @keyframes ns-fade-in {
   from { opacity: 0; }

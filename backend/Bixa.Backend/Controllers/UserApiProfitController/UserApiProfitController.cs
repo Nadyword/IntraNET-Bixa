@@ -22,20 +22,26 @@ namespace Bixa.Backend.Controllers.UserApiProfitController;
 /// Initializes a new instance of the UserApiController.
 /// </remarks>
 ///<param name="IReadOnlyUnitOfWork">Read-only unit of work for data access operations.</param>
+/// <param name="unitOfWork">Unit of work de la BD del portal, usado para resolver los administradores activos.</param>
 /// <param name="mapper">AutoMapper instance for DTO conversions.</param>
 /// <param name="loggerWrapper">Logger wrapper for logging operations.</param>
-/// <param name="reportService">Servicio de generación de reportes PDF.</param>{
+/// <param name="reportService">Servicio de generación de reportes PDF.</param>
+/// <param name="sendMailServices">Servicio de envío de correos.</param>{
 [Authorize]
 [ApiController]
 [Route("api/usersProfit")]
 public class UserApiProfitController(
     IReadOnlyUnitOfWork IReadOnlyUnitOfWork,
+    IUnitOfWork unitOfWork,
     IMapper mapper,
     LoggerWrapper loggerWrapper,
-    IReportService reportService) : BaseApiController(mapper, loggerWrapper)
+    IReportService reportService,
+    ISendMailServices sendMailServices) : BaseApiController(mapper, loggerWrapper)
 {
     private readonly IReadOnlyUnitOfWork _readOnlyUnitOfWork = IReadOnlyUnitOfWork ?? throw new ArgumentNullException(nameof(IReadOnlyUnitOfWork));
+    private readonly IUnitOfWork _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     private readonly IReportService _reportService = reportService;
+    private readonly ISendMailServices _sendMailServices = sendMailServices ?? throw new ArgumentNullException(nameof(sendMailServices));
 
     private static readonly string[] NombresMeses =
     [
@@ -130,19 +136,19 @@ public class UserApiProfitController(
     }
 
     /// <summary>
-    /// Monto de prestaciones sociales disponible por CI
+    /// Prestaciones sociales por CI: monto disponible y fecha del último anticipo solicitado.
     /// </summary>
-    /// <param name="ci">La cédula de identidad del empleado para el que se recupera el monto disponible.</param>
-    /// <returns>API response con el monto disponible de prestaciones sociales.</returns>
+    /// <param name="ci">La cédula de identidad del empleado para el que se recuperan las prestaciones.</param>
+    /// <returns>API response con el monto disponible y la última solicitud de anticipo.</returns>
     [HttpGet("{ci}/PrestacionesSociales")]
-    [ProducesResponseType(typeof(ApiResponse<decimal?>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<PrestacionesSociales>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetPrestacionesSocialesByCi(string ci)
     {
         var normalizedCi = UtilityService.NormalizeCiFormat(ci);
-        var result = await _readOnlyUnitOfWork.PrestacionesSociales.GetMontoDisponibleByCiAsync(normalizedCi);
+        var result = await _readOnlyUnitOfWork.PrestacionesSociales.GetPrestacionesSocialesByCiAsync(normalizedCi);
         return HandleServiceResult(result);
     }
 
@@ -271,28 +277,95 @@ public class UserApiProfitController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAriReporte(string ci, [FromBody] AriReportRequestDTO request)
     {
+        var modelResult = await ConstruirModeloAriAsync(ci, request);
+        if (!modelResult.IsSuccess) return HandleServiceResult(modelResult);
+
+        var model = modelResult.Value;
+        var bytes = _reportService.GenerateAriPlanilla(model);
+        return File(bytes, ContentTypeXls, NombreArchivoAri(model));
+    }
+
+    /// <summary>
+    /// Genera la planilla AR-I con los mismos datos que <see cref="GetAriReporte"/> y la envía por
+    /// correo, como archivo adjunto, a todos los administradores activos del portal. El empleado
+    /// confirma en el frontend que la información es correcta antes de llamar a este endpoint.
+    /// </summary>
+    /// <param name="ci">La cédula de identidad del empleado.</param>
+    /// <param name="request">Los datos ingresados en el formulario ARI.</param>
+    /// <returns>Respuesta indicando a cuántos administradores se envió la planilla.</returns>
+    [HttpPost("{ci}/Ari/Enviar")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> EnviarAriPlanilla(string ci, [FromBody] AriReportRequestDTO request)
+    {
+        var modelResult = await ConstruirModeloAriAsync(ci, request);
+        if (!modelResult.IsSuccess) return HandleServiceResult(Result.Fail(modelResult.Error, modelResult.ErrorTypeEnum));
+
+        var model = modelResult.Value;
+        var bytes = _reportService.GenerateAriPlanilla(model);
+        var nombreArchivo = NombreArchivoAri(model);
+
+        var administradores = await _unitOfWork.Users.GetActiveByRoleAsync((int)UserRolEnum.Administrador);
+
+        var enviados = 0;
+        foreach (var admin in administradores)
+        {
+            var correo = await _readOnlyUnitOfWork.SnEmple.GetEmailByCiAsync(admin.Ci);
+            if (string.IsNullOrWhiteSpace(correo)) continue;
+
+            if (await _sendMailServices.SendMailAriPlanilla(
+                    correo, model.NombreCompleto, model.Ci, model.Mes, model.AnoGravable, bytes, nombreArchivo))
+            {
+                enviados++;
+            }
+        }
+
+        // A diferencia del resto de notificaciones del portal, aquí el correo ES la operación:
+        // si no llegó a ningún administrador, el empleado debe enterarse en vez de ver un mensaje de éxito.
+        if (enviados == 0)
+        {
+            _logger.LogError("No se pudo enviar la planilla AR-I de {Ci} a ningún administrador.", model.Ci);
+            return HandleServiceResult(Result.Fail(
+                "No se pudo enviar la planilla a los administradores. Intenta de nuevo más tarde.",
+                ErrorTypeEnum.General));
+        }
+
+        return HandleServiceResult(Result.Success(), $"Tu planilla AR-I fue enviada a {enviados} administrador(es).");
+    }
+
+    private static string NombreArchivoAri(AriReportModel model) => $"ARI_{model.Ci}_{model.AnoGravable}.xls";
+
+    /// <summary>
+    /// Valida el formulario AR-I y arma el modelo de la planilla combinándolo con los datos que
+    /// devuelve Profit (identidad, U.T., carga familiar y remuneraciones estimadas).
+    /// </summary>
+    private async Task<Result<AriReportModel>> ConstruirModeloAriAsync(string ci, AriReportRequestDTO request)
+    {
         if (!MesesAriValidos.Contains(request.Mes))
-            return HandleServiceResult(Result.Fail<AriReportModel>("El mes indicado no es válido.", ErrorTypeEnum.Validation));
+            return Result.Fail<AriReportModel>("El mes indicado no es válido.", ErrorTypeEnum.Validation);
 
         if (!DesgravamenTiposValidos.Contains(request.DesgravamenTipo))
-            return HandleServiceResult(Result.Fail<AriReportModel>("El tipo de desgravamen indicado no es válido.", ErrorTypeEnum.Validation));
+            return Result.Fail<AriReportModel>("El tipo de desgravamen indicado no es válido.", ErrorTypeEnum.Validation);
 
         var normalizedCi = UtilityService.NormalizeCiFormat(ci);
         var ariResult = await _readOnlyUnitOfWork.Ari.GetAriByCiAsync(normalizedCi);
-        if (!ariResult.IsSuccess) return HandleServiceResult(ariResult);
+        if (!ariResult.IsSuccess) return Result.Fail<AriReportModel>(ariResult.Error, ariResult.ErrorTypeEnum);
 
         var datos = ariResult.Value;
 
         if (datos.UniTribu is not > 0)
-            return HandleServiceResult(Result.Fail<AriReportModel>(
-                "Profit no devolvió el valor vigente de la Unidad Tributaria.", ErrorTypeEnum.Validation));
+            return Result.Fail<AriReportModel>(
+                "Profit no devolvió el valor vigente de la Unidad Tributaria.", ErrorTypeEnum.Validation);
 
         if (datos.GranTotal is not > 0)
-            return HandleServiceResult(Result.Fail<AriReportModel>(
+            return Result.Fail<AriReportModel>(
                 "Profit no devolvió recibos de nómina del año en curso, así que no se puede estimar las remuneraciones por percibir.",
-                ErrorTypeEnum.Validation));
+                ErrorTypeEnum.Validation);
 
-        var model = new AriReportModel
+        return Result.Success(new AriReportModel
         {
             NombreEmpresa = datos.NombreEmpresa ?? string.Empty,
             NombreCompleto = datos.NombreCompleto ?? string.Empty,
@@ -302,6 +375,9 @@ public class UserApiProfitController(
             UniTribu = datos.UniTribu.Value,
             CargaFamiliar = datos.CargaFami ?? 0,
             GranTotal = datos.GranTotal.Value,
+            Lugar = datos.Lugar ?? string.Empty,
+            FechaActual = datos.FechaActual ?? DateTime.Now,
+            FotoFirma = datos.FotoFirma,
 
             Mes = request.Mes,
             DesgravamenTipo = request.DesgravamenTipo,
@@ -309,9 +385,6 @@ public class UserApiProfitController(
             PrimasSeguro = request.PrimasSeguro,
             ServiciosMedicos = request.ServiciosMedicos,
             InteresesVivienda = request.InteresesVivienda,
-        };
-
-        var bytes = _reportService.GenerateAriPlanilla(model);
-        return File(bytes, ContentTypeXls, $"ARI_{normalizedCi}_{model.AnoGravable}.xls");
+        });
     }
 }

@@ -63,7 +63,7 @@ Bixa Backend es una solución basada en .NET 9 diseñada para gestionar y proces
    dotnet run --project Bixa.Backend
    ```
 2. **Accede a la API en tu navegador o cliente HTTP en:**
-   ```                                                                                                                                                                                                      i
+   ```                                                                                                                                                      
    https://localhost:7194;http://localhost:5108
    ```
 3. **Explora la documentación Swagger disponible en:**

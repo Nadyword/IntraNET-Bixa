@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useUserProfileStore } from '../store/userProfileStore';
 import { api } from '../lib/api';
+import type { ApiResponse } from '../services/authService';
 import { ajustarSaldoVacaciones } from '../lib/vacaciones';
 import { ButtonSpinner } from '../components/ui/ButtonSpinner';
 import './ConsultasPage.css';
@@ -43,6 +44,11 @@ interface HcMesRegistro {
   primaTrimBs: number;
   updatedAt: string;
   modifiedByCi: string | null;
+}
+
+interface PrestacionesSociales {
+  montoDisponible: number | null;
+  ultimaSolicitud: string | null;
 }
 
 interface ConsultaArc {
@@ -97,6 +103,8 @@ export const ConsultasPage: React.FC = () => {
 
   // null = aún no consultado, undefined = consultado sin registros, number = monto disponible
   const [montoPrestaciones, setMontoPrestaciones] = useState<number | null | undefined>(null);
+  // Fecha del último anticipo cobrado; null cuando el empleado nunca ha solicitado uno.
+  const [ultimaSolicitudPrestaciones, setUltimaSolicitudPrestaciones] = useState<string | null>(null);
   const [loadingPrestaciones, setLoadingPrestaciones] = useState(false);
   const [errorPrestaciones, setErrorPrestaciones] = useState<string | null>(null);
 
@@ -241,15 +249,17 @@ export const ConsultasPage: React.FC = () => {
     setLoadingPrestaciones(true);
     setErrorPrestaciones(null);
     try {
-      const { data } = await api.get(`/usersProfit/${profile.ci}/PrestacionesSociales`);
+      const { data } = await api.get<ApiResponse<PrestacionesSociales | null>>(`/usersProfit/${profile.ci}/PrestacionesSociales`);
       if (data.success) {
-        setMontoPrestaciones(data.data);
+        setMontoPrestaciones(data.data?.montoDisponible ?? undefined);
+        setUltimaSolicitudPrestaciones(data.data?.ultimaSolicitud ?? null);
       } else {
         setErrorPrestaciones(data.message || 'No se encontró información');
       }
     } catch (err: any) {
       if (err.response?.status === 404) {
         setMontoPrestaciones(undefined);
+        setUltimaSolicitudPrestaciones(null);
       } else {
         setErrorPrestaciones('Error al consultar prestaciones sociales');
       }
@@ -489,6 +499,13 @@ export const ConsultasPage: React.FC = () => {
                 ? 'Sin registros'
                 : 'Monto disponible'}
             </div>
+            {typeof montoPrestaciones === 'number' && (
+              <div className="stat-sub">
+                {ultimaSolicitudPrestaciones
+                  ? `Última solicitud: ${formatFecha(ultimaSolicitudPrestaciones)}`
+                  : 'Sin solicitudes anteriores'}
+              </div>
+            )}
             {errorPrestaciones && <div className="stat-error">{errorPrestaciones}</div>}
             <button
               className="consultar-btn"

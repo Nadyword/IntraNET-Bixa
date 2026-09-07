@@ -923,7 +923,9 @@ internal static class ProfitSqlTemplates
         group by
         fecha
 
-        SELECT  ((SUM(prest_asoc) + SUM(prestamo1) + SUM(monto_dias_adicionales)) - SUM(antic_prest_soc)) * 0.75 AS MontoDisponible  FROM #temprestaIntra2
+        SELECT
+            (SELECT  ((SUM(prest_asoc) + SUM(prestamo1) + SUM(monto_dias_adicionales)) - SUM(antic_prest_soc)) * 0.75 FROM #temprestaIntra2) AS MontoDisponible,
+            (SELECT TOP 1 fec_emis FROM #temprestaIntra WHERE antic_prest_soc > 0 ORDER BY fec_emis DESC) UltimaSolicitud
         drop table #temprestaIntra
         drop table #temprestaIntra2
         """;
@@ -1023,11 +1025,15 @@ internal static class ProfitSqlTemplates
             rif AS Rif,
             (CAST(CONVERT(VARCHAR(8), GETDATE(), 112) AS INT) - CAST(CONVERT(VARCHAR(8), fecha_exp, 112) AS INT)) / 10000 AS AnosExp,
             CAST(43.3 AS DECIMAL(18,4)) AS UniTribu,
-            3 AS CargaFami,
+            (SELECT COUNT(*) FROM sngru_fa WHERE cod_emp = @sCod_Emp_d AND impuesto = 1) AS CargaFami,
             @GranTotal + (@UltimoSueldo / 30) * (15 + (CAST(CONVERT(VARCHAR(8), GETDATE(), 112) AS INT) - CAST(CONVERT(VARCHAR(8), fecha_exp, 112) AS INT)) / 10000) AS GranTotal,
-            YEAR(GETDATE()) AS AnoActual
-        FROM snemple
-        WHERE ci = @ciEmplea;
+            YEAR(GETDATE()) AS AnoActual,
+            GETDATE() FechaActual,
+            CONCAT(RTRIM(ci), '.png') FotoFirma,
+            snubicacion.des_ubicacion Lugar
+            FROM snemple
+            INNER JOIN snubicacion ON snemple.co_ubicacion = snubicacion.co_ubicacion
+            WHERE ci = @ciEmplea;
 
         DROP TABLE #temprestaIntra;
         DROP TABLE #ResultadoFinal;
