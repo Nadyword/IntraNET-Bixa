@@ -17,6 +17,15 @@ public interface IUserRepository : IRepository<Users, string>
     /// <returns>A task that represents the asynchronous operation. The task result contains the list of matching users.</returns>
     Task<List<Users>> GetActiveByRoleAsync(int roleId);
 
+    /// <summary>
+    /// Busca usuarios activos por nombre, apellido o CI, limitando la cantidad de resultados.
+    /// Con una búsqueda vacía devuelve los primeros usuarios activos por nombre.
+    /// </summary>
+    /// <param name="query">Texto a buscar en nombre, apellido o CI.</param>
+    /// <param name="take">Cantidad máxima de resultados.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the list of matching users.</returns>
+    Task<List<Users>> BuscarActivosAsync(string? query, int take);
+
     Task DeleteNotificationsFromUserAsync(string ci);
 
     /// <summary>

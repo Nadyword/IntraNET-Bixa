@@ -11,6 +11,8 @@ import { EditUserModal } from '../components/ui/EditUserModal';
 import { ResendWelcomeEmailModal } from '../components/ui/ResendWelcomeEmailModal';
 import { EmployeeProfileModal } from '../components/ui/EmployeeProfileModal';
 import { HcEditModal } from '../components/ui/HcEditModal';
+import { AjustarFirmaModal } from '../components/ui/AjustarFirmaModal';
+import { firmantesService } from '../services/firmantesService';
 import './LeaderPage.css';
 
 interface HcMesRegistroAdmin {
@@ -139,6 +141,17 @@ export const LeaderPage: React.FC = () => {
   const [hcRefreshKey, setHcRefreshKey] = useState(0);
   const [hcEditRegistro, setHcEditRegistro] = useState<HcMesRegistroAdmin | null>(null);
 
+  // Estado de firma extras (ajuste de la cadena de firmantes)
+  const [firmaUsers, setFirmaUsers] = useState<UserProfile[]>([]);
+  const [firmaLoading, setFirmaLoading] = useState(false);
+  const [firmaError, setFirmaError] = useState('');
+  const [firmaPage, setFirmaPage] = useState(1);
+  const [firmaHasNextPage, setFirmaHasNextPage] = useState(false);
+  const [firmaSearchQuery, setFirmaSearchQuery] = useState('');
+  const [firmaAjustados, setFirmaAjustados] = useState<string[]>([]);
+  const [firmaSeleccionado, setFirmaSeleccionado] = useState<UserProfile | null>(null);
+  const [firmaRefreshKey, setFirmaRefreshKey] = useState(0);
+
   useEffect(() => {
     if (activeTab !== 'equipo') return;
     let cancelled = false;
@@ -228,18 +241,53 @@ export const LeaderPage: React.FC = () => {
     return () => { cancelled = true; clearTimeout(timeout); };
   }, [activeTab, isAdmin, hcSearchQuery, hcRefreshKey]);
 
+  useEffect(() => {
+    if (activeTab !== 'firmas' || !isAdmin) return;
+    let cancelled = false;
+    const load = async () => {
+      setFirmaLoading(true);
+      setFirmaError('');
+      try {
+        const [usuarios, ajustados] = await Promise.all([
+          api.get<ApiResponse<UserProfile[]>>(`/users/${firmaPage}/${PAGE_SIZE}`),
+          firmantesService.getAjustados(),
+        ]);
+        if (!cancelled) {
+          const data = usuarios.data.data ?? [];
+          setFirmaUsers(data);
+          setFirmaHasNextPage(data.length === PAGE_SIZE);
+          setFirmaAjustados(ajustados.data.data ?? []);
+        }
+      } catch (err: unknown) {
+        if (!cancelled) {
+          const axiosError = err as { response?: { data?: { message?: string } } };
+          setFirmaError(axiosError?.response?.data?.message ?? 'Error al cargar los usuarios.');
+        }
+      } finally {
+        if (!cancelled) setFirmaLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [activeTab, isAdmin, firmaPage, firmaRefreshKey]);
+
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     if (tab === 'equipo') setCurrentPage(1);
+    if (tab === 'firmas') setFirmaPage(1);
   };
 
-  const filteredUsers = teamUsers.filter((u) => {
-    const q = searchQuery.trim().toLowerCase();
+  const coincideBusqueda = (u: UserProfile, query: string): boolean => {
+    const q = query.trim().toLowerCase();
     if (!q) return true;
     const fullName = `${u.nombres ?? ''} ${u.apellidos ?? ''}`.toLowerCase();
     const ci = (u.ci ?? '').toLowerCase();
     return fullName.includes(q) || ci.includes(q);
-  });
+  };
+
+  const filteredFirmaUsers = firmaUsers.filter((u) => coincideBusqueda(u, firmaSearchQuery));
+
+  const filteredUsers = teamUsers.filter((u) => coincideBusqueda(u, searchQuery));
 
   return (
     <>
@@ -282,6 +330,14 @@ export const LeaderPage: React.FC = () => {
             onClick={() => handleTabChange('hc')}
           >
             HC
+          </button>
+        )}
+        {isAdmin && (
+          <button
+            className={`tab-btn ${activeTab === 'firmas' ? 'active' : ''}`}
+            onClick={() => handleTabChange('firmas')}
+          >
+            Firma extras
           </button>
         )}
       </div>
@@ -650,6 +706,100 @@ export const LeaderPage: React.FC = () => {
             </div>
           </div>
         )}
+        {isAdmin && activeTab === 'firmas' && (
+          <div>
+            <p className="firma-extras-intro">
+              Quienes firman las solicitudes son los supervisores que arroja Profit. Aquí se ajusta
+              esa cadena para un empleado: cambiar el orden, agregar o quitar firmantes.
+            </p>
+
+            <div className="team-search-bar">
+              <input
+                type="text"
+                className="team-search-input"
+                placeholder="Buscar por nombre o cédula..."
+                value={firmaSearchQuery}
+                onChange={(e) => setFirmaSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="team-section">
+              <table className="team-table">
+                <thead>
+                  <tr>
+                    <th>Nombre y Apellido</th>
+                    <th>CI</th>
+                    <th>Departamento</th>
+                    <th>Cargo</th>
+                    <th>Firmantes</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {firmaLoading && (
+                    <tr>
+                      <td colSpan={6} className="team-empty">Cargando usuarios...</td>
+                    </tr>
+                  )}
+                  {!firmaLoading && firmaError && (
+                    <tr>
+                      <td colSpan={6} className="team-error">{firmaError}</td>
+                    </tr>
+                  )}
+                  {!firmaLoading && !firmaError && filteredFirmaUsers.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="team-empty">
+                        {firmaSearchQuery.trim() ? 'No hay resultados para la búsqueda.' : 'No se encontraron usuarios.'}
+                      </td>
+                    </tr>
+                  )}
+                  {!firmaLoading && !firmaError && filteredFirmaUsers.map((user, i) => (
+                    <tr key={user.ci ?? i}>
+                      <td>
+                        <strong>
+                          {[user.nombres, user.apellidos].filter(Boolean).join(' ') || '—'}
+                        </strong>
+                      </td>
+                      <td>{user.ci ?? '—'}</td>
+                      <td>{user.desDepart ?? '—'}</td>
+                      <td>{user.desCargo ?? '—'}</td>
+                      <td>
+                        {user.ci && firmaAjustados.includes(user.ci)
+                          ? <span className="firma-extras-badge">Ajustada</span>
+                          : <span className="firma-extras-badge firma-extras-badge-neutro">Según Profit</span>}
+                      </td>
+                      <td>
+                        <button
+                          className="action-link-btn"
+                          onClick={() => setFirmaSeleccionado(user)}
+                          disabled={!user.ci}
+                        >
+                          Ajustar firma →
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="team-pagination">
+                <button
+                  disabled={firmaPage === 1}
+                  onClick={() => setFirmaPage((p) => p - 1)}
+                >
+                  ← Anterior
+                </button>
+                <span>Página {firmaPage}</span>
+                <button
+                  disabled={!firmaHasNextPage}
+                  onClick={() => setFirmaPage((p) => p + 1)}
+                >
+                  Siguiente →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
 
@@ -677,6 +827,14 @@ export const LeaderPage: React.FC = () => {
           nombreCompleto={hcEditRegistro.nombreCompleto}
           onClose={() => setHcEditRegistro(null)}
           onSaved={() => setHcRefreshKey((k) => k + 1)}
+        />
+      )}
+      {firmaSeleccionado?.ci && (
+        <AjustarFirmaModal
+          ci={firmaSeleccionado.ci}
+          nombreCompleto={[firmaSeleccionado.nombres, firmaSeleccionado.apellidos].filter(Boolean).join(' ')}
+          onClose={() => setFirmaSeleccionado(null)}
+          onSaved={() => setFirmaRefreshKey((k) => k + 1)}
         />
       )}
     </>

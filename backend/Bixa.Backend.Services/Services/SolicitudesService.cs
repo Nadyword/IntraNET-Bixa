@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.DataAccess.Entities.Solicitudes;
 using Bixa.Backend.DataAccess.Interfaces.Repositories;
@@ -13,7 +13,7 @@ using Bixa.Backend.Services.Interfaces;
 
 namespace Bixa.Backend.Services.Services;
 
-public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IMapper mapper, IUnitOfWork unitOfWork, ITramitesService tramitesService, IAprobacionesService aprobacionesService, IGrupoFaProfitRepository grupoFaProfitRepository, ISnEmpleProfitRepository snEmpleProfitRepository, IFechasFeriadasProfitRepository fechasFeriadasProfitRepository, IUtilidadesProfitRepository utilidadesProfitRepository, INotificationService notificationService, IAdjuntoService adjuntoService, ISendMailServices sendMailServices) : ISolicitudesService
+public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IMapper mapper, IUnitOfWork unitOfWork, ITramitesService tramitesService, IAprobacionesService aprobacionesService, IGrupoFaProfitRepository grupoFaProfitRepository, ISnEmpleProfitRepository snEmpleProfitRepository, IFechasFeriadasProfitRepository fechasFeriadasProfitRepository, IUtilidadesProfitRepository utilidadesProfitRepository, INotificationService notificationService, IAdjuntoService adjuntoService, ISendMailServices sendMailServices, IAjusteFirmantesService ajusteFirmantesService) : ISolicitudesService
 {
     private const int CuotasMaximas = 52;
 
@@ -43,10 +43,17 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
     private readonly INotificationService _notificationService = notificationService;
     private readonly IAdjuntoService _adjuntoService = adjuntoService;
     private readonly ISendMailServices _sendMailServices = sendMailServices;
+    private readonly IAjusteFirmantesService _ajusteFirmantesService = ajusteFirmantesService;
 
+    /// <summary>
+    /// Cadena de firmantes con la que se arman las aprobaciones de una solicitud: la jerarquía de
+    /// supervisores de Profit, con los ajustes manuales del empleado aplicados encima si los tiene.
+    /// </summary>
     public async Task<List<AprobadorPermisoInfo>> GetAprovadoresPermisosByCi(string ci)
     {
-        return await _solicitudesRepository.GetAprovadoresPermisosByCi(ci);
+        var firmantesProfit = await _solicitudesRepository.GetAprovadoresPermisosByCi(ci);
+
+        return await _ajusteFirmantesService.AplicarAjusteAsync(ci, firmantesProfit);
     }
 
     public async Task<Result<bool>> AddSolicitudVacaciones(SolicVacacionesDTO solicitud)

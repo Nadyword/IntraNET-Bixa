@@ -1,4 +1,4 @@
-﻿using Bixa.Backend.Models.DTOs.KeyValuePairModelDTO;
+using Bixa.Backend.Models.DTOs.KeyValuePairModelDTO;
 using Bixa.Backend.DataAccess.Interfaces.Repositories;
 using Bixa.Backend.DataAccess.Context;
 using Bixa.Backend.DataAccess.Entities;
@@ -66,6 +66,26 @@ public class UserRepository(AppDbContext dbContext) : IUserRepository
     /// </summary>
     /// <param name="ci">The CI of the user to delete.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains true if the user was found and marked for deletion, false otherwise.</returns>
+    public Task<List<Users>> BuscarActivosAsync(string? query, int take)
+    {
+        var usuarios = _context.Users.Where(u => u.IsActive);
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var q = query.Trim().ToLower();
+            usuarios = usuarios.Where(u =>
+                u.Ci.ToLower().Contains(q) ||
+                (u.FirstName != null && u.FirstName.ToLower().Contains(q)) ||
+                (u.LastName != null && u.LastName.ToLower().Contains(q)));
+        }
+
+        return usuarios
+            .OrderBy(u => u.FirstName)
+            .ThenBy(u => u.LastName)
+            .Take(take)
+            .ToListAsync();
+    }
+
     public async Task<bool> DeleteAsync(string ci)
     {
         var user = await _context.Users.Where(userAux => userAux.Ci == ci).FirstOrDefaultAsync();

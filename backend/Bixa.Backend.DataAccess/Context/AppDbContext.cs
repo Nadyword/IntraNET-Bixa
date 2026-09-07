@@ -27,6 +27,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public virtual DbSet<Users> Users { get; set; }
     public virtual DbSet<FAQs> FAQs { get; set; }
     public virtual DbSet<HcMesRegistro> HcMesRegistros { get; set; }
+    public virtual DbSet<AjusteFirmante> AjustesFirmantes { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -140,22 +141,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 IsActive = true,
                 Ci = "10.508.836",
                 IdUserRol = (int)UserRolEnum.Supervisor,
-                CreatedAt = new DateTime(2025, 1, 1),
-                UpdatedAt = new DateTime(2025, 1, 1),
-                ModifiedByCi = null,
-                RefreshToken = null,
-                RefreshTokenDate = null,
-                UrlFirma = "SinFirma.png"
-            },
-            new ()
-            {
-                Id = 3,
-                PasswordHash = Hasher.HashPassword("Sa753951."),
-                FirstName = "RICARDO",
-                LastName = "RUEDA ALONSO",
-                IsActive = true,
-                Ci = "3.666.186",
-                IdUserRol = (int)UserRolEnum.Administrador,
                 CreatedAt = new DateTime(2025, 1, 1),
                 UpdatedAt = new DateTime(2025, 1, 1),
                 ModifiedByCi = null,
@@ -493,6 +478,31 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .OnDelete(DeleteBehavior.Cascade);
 
         #endregion HcMesRegistro Entity Configuration
+
+        #region AjusteFirmante Entity Configuration
+
+        modelBuilder.Entity<AjusteFirmante>().HasKey(a => a.Id);
+        modelBuilder.Entity<AjusteFirmante>().Property(a => a.Id).ValueGeneratedOnAdd();
+        modelBuilder.Entity<AjusteFirmante>().Property(a => a.UserCi).IsRequired().HasMaxLength(ModelLengths.Ci);
+        modelBuilder.Entity<AjusteFirmante>().Property(a => a.FirmanteCi).IsRequired().HasMaxLength(ModelLengths.Ci);
+        modelBuilder.Entity<AjusteFirmante>().Property(a => a.NombreFirmante).IsRequired(false).HasMaxLength(ModelLengths.Name);
+        modelBuilder.Entity<AjusteFirmante>().Property(a => a.Accion).IsRequired().HasConversion<int>();
+        modelBuilder.Entity<AjusteFirmante>().Property(a => a.Orden).IsRequired(false);
+
+        // Un mismo firmante no puede tener dos diferencias para el mismo empleado.
+        modelBuilder.Entity<AjusteFirmante>()
+            .HasIndex(a => new { a.UserCi, a.FirmanteCi })
+            .IsUnique();
+
+        modelBuilder.Entity<AjusteFirmante>()
+            .HasOne(a => a.User)
+            .WithMany()
+            .HasForeignKey(a => a.UserCi)
+            .HasPrincipalKey(u => u.Ci)
+            .IsRequired()
+            .OnDelete(DeleteBehavior.Cascade);
+
+        #endregion AjusteFirmante Entity Configuration
 
         #region BaseEntities Relationships Configuration (Auditoría)
 

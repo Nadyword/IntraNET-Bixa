@@ -1,0 +1,204 @@
+/* Modal de ajuste de la cadena de firmantes. Complementa a ForgotPasswordModal.css,
+   de donde toma el overlay, la caja ancha, el cierre y los botones de acción. */
+
+.firma-ayuda {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-top: -8px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.firma-lista {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.firma-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius);
+}
+
+.firma-orden {
+  flex: 0 0 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--gray-900);
+  color: var(--white);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.firma-datos {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.firma-datos strong {
+  font-size: 14px;
+  color: var(--gray-900);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.firma-datos small {
+  font-size: 12px;
+  color: var(--gray-500);
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.firma-etiqueta {
+  font-family: var(--font-body);
+  font-style: normal;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--red);
+  color: var(--white);
+}
+
+.firma-acciones {
+  display: flex;
+  gap: 4px;
+}
+
+.firma-acciones button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--gray-700);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: var(--transition);
+}
+
+.firma-acciones button:hover:not(:disabled) {
+  background: var(--gray-100);
+  border-color: var(--gray-500);
+}
+
+.firma-acciones button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.firma-acciones .firma-quitar:hover:not(:disabled) {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--white);
+}
+
+.firma-agregar {
+  margin-bottom: 20px;
+}
+
+.firma-agregar label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-700);
+  margin-bottom: 6px;
+}
+
+.firma-agregar input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 14px;
+  transition: var(--transition);
+}
+
+.firma-agregar input:focus {
+  outline: none;
+  border-color: var(--gray-900);
+}
+
+.firma-candidatos {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius);
+}
+
+.firma-candidatos li + li {
+  border-top: 1px solid var(--gray-100);
+}
+
+.firma-candidatos button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: var(--transition);
+}
+
+.firma-candidatos button:hover:not(:disabled) {
+  background: var(--gray-50);
+}
+
+.firma-candidatos button strong {
+  font-size: 14px;
+  color: var(--gray-900);
+}
+
+.firma-candidatos button small {
+  font-size: 12px;
+  color: var(--gray-500);
+  font-family: var(--font-mono);
+}
+
+.firma-vacio {
+  padding: 12px;
+  font-size: 13px;
+  color: var(--gray-500);
+  text-align: center;
+}
+
+.firma-nota {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-top: -8px;
+  margin-bottom: 16px;
+}
+
+.firma-exito {
+  font-size: 13px;
+  color: #1e8449;
+  margin-top: -8px;
+  margin-bottom: 16px;
+}
