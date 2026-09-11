@@ -1,4 +1,4 @@
-namespace Bixa.Backend.DataAccess.Templates.Profit;
+﻿namespace Bixa.Backend.DataAccess.Templates.Profit;
 
 internal static class ProfitSqlTemplates
 {
@@ -42,7 +42,7 @@ internal static class ProfitSqlTemplates
             DATEDIFF(YEAR, gf.fecha_nac, GETDATE()) - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, gf.fecha_nac, GETDATE()), gf.fecha_nac) > GETDATE() THEN 1 ELSE 0 END AS edad,
             CASE WHEN gf.sexo = 'M' THEN 'Masculino' WHEN gf.sexo = 'F' THEN 'Femenino' END AS sexo,
             gf.ocupacion,
-            CASE CAST(gf.tip_gru_fa AS VARCHAR(80)) WHEN 'CO' THEN 'Cónyuge' WHEN 'E' THEN 'Esposo' WHEN 'HE' THEN 'Hermano' WHEN 'HI' THEN 'Hijo' WHEN 'P' THEN 'PADRE' ELSE 'Otros' END AS 'Parentesco'
+            CASE CAST(gf.tip_gru_fa AS VARCHAR(80)) WHEN 'CO' THEN 'Cónyuge' WHEN 'E' THEN 'Esposo' WHEN 'HE' THEN 'Hermano' WHEN 'HI' THEN 'Hijos' WHEN 'P' THEN 'Padres' ELSE 'Otros' END AS 'Parentesco'
         FROM sngru_fa AS gf
         INNER JOIN snemple AS e ON gf.cod_emp = e.cod_emp
         WHERE e.ci = @ci
@@ -141,11 +141,11 @@ internal static class ProfitSqlTemplates
 
     internal const string GetTramitesForAprobacion = """
         SELECT
-        	TramiteId, AprobadorCi, Orden, Comentario, TipoTramiteId, u.FirstName, u.LastName
+        	a.TramiteId, a.AprobadorCi, (a.Orden - t.OrdenActual + 1) AS Orden, a.Comentario, t.TipoTramiteId, u.FirstName, u.LastName
         FROM Aprobaciones a
         INNER JOIN Tramites t ON a.TramiteId = t.Id
         INNER JOIN Users u ON t.UserCi = u.Ci
-        WHERE AprobadorCi = '@ci' AND a.Estado = 1
+        WHERE a.AprobadorCi = '@ci' AND a.Estado = 1 AND a.Orden >= t.OrdenActual
     """;
 
     internal const string GetFechasFeriadas = """
@@ -954,17 +954,25 @@ internal static class ProfitSqlTemplates
         ORDER BY fec_emis ASC;
 
         DECLARE @strConceptoZ002 char(12) = dbo.GetConcepto('Z002');
+        DECLARE @strCampoSueldo char(12) = dbo.GetCampo('A001');
 
+        -- snhistor solo tiene el sueldo de los meses ya cerrados; para el mes en curso se usa
+        -- el valor vigente de la variable en snem_va.
         SELECT snrecibo.reci_num,
                CONVERT(smalldatetime, snrecibo.fec_emis, 103) AS fec_emis,
                CAST(MONTH(snrecibo.fec_emis) AS varchar(2)) + '-' + CAST(YEAR(snrecibo.fec_emis) AS varchar(4)) AS fecha,
-               ISNULL((SELECT TOP(1) ISNULL(snhistor.val_n, 0)
-                       FROM snhistor
-                       WHERE MONTH(snhistor.fecha) = MONTH(snrecibo.fec_emis)
-                         AND YEAR(snhistor.fecha) = YEAR(snrecibo.fec_emis)
-                         AND snhistor.cod_emp = snemple.cod_emp
-                         AND snhistor.co_var = dbo.GetCampo('A001')
-                       ORDER BY snhistor.fecha DESC), 0) AS sueldo
+               ISNULL(COALESCE(
+                   (SELECT TOP(1) snhistor.val_n
+                    FROM snhistor
+                    WHERE MONTH(snhistor.fecha) = MONTH(snrecibo.fec_emis)
+                      AND YEAR(snhistor.fecha) = YEAR(snrecibo.fec_emis)
+                      AND snhistor.cod_emp = snemple.cod_emp
+                      AND snhistor.co_var = @strCampoSueldo
+                    ORDER BY snhistor.fecha DESC),
+                   (SELECT TOP(1) snem_va.val_n
+                    FROM snem_va
+                    WHERE snem_va.cod_emp = snemple.cod_emp
+                      AND snem_va.co_var = @strCampoSueldo)), 0) AS sueldo
         INTO #temprestaIntra
         FROM snrecibo
         INNER JOIN dbo.snnomi AS n ON snrecibo.reci_num = n.reci_num AND snrecibo.cod_emp = n.cod_emp AND n.co_conce IN (@strConceptoZ002)

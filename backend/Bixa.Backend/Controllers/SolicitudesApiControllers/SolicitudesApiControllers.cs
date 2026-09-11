@@ -197,6 +197,44 @@ public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
         return HandleServiceResult(result);
     }
 
+    /// <summary>
+    /// Obtiene el historial de firmas del usuario autenticado: las solicitudes que ya aprobó o rechazó.
+    /// </summary>
+    /// <returns>Las firmas resueltas del aprobador, de la más reciente a la más antigua.</returns>
+    [HttpGet("MiHistorialAprobaciones")]
+    [ProducesResponseType(typeof(ApiResponse<List<HistorialAprobacionDTO>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetMiHistorialAprobaciones()
+    {
+        var authResult = RequireUserRol(UserRolEnum.Supervisor, UserRolEnum.Administrador);
+        if (authResult != null) return authResult;
+
+        var ci = User.FindFirst("ci")?.Value;
+        if (string.IsNullOrEmpty(ci))
+            return HandleServiceResult(Result.Fail<List<HistorialAprobacionDTO>>("No se pudo identificar al usuario autenticado.", ErrorTypeEnum.Unauthorized));
+
+        var result = await _solicitudesService.GetHistorialAprobacionesByCi(ci);
+        return HandleServiceResult(result);
+    }
+
+    /// <summary>
+    /// Obtiene el historial global de firmas de todos los aprobadores. Solo para administración.
+    /// </summary>
+    /// <returns>Todas las firmas resueltas, de la más reciente a la más antigua.</returns>
+    [HttpGet("HistorialAprobaciones")]
+    [ProducesResponseType(typeof(ApiResponse<List<HistorialAprobacionDTO>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetHistorialAprobaciones()
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
+        if (authResult != null) return authResult;
+
+        var result = await _solicitudesService.GetHistorialAprobaciones();
+        return HandleServiceResult(result);
+    }
+
     ///// <summary>
     ///// Aprueba un trámite específico, identificado por su ID, y registra la aprobación en el sistema.
     ///// </summary>

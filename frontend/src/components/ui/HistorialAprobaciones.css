@@ -1,0 +1,207 @@
+.hist-wrapper {
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* Toolbar */
+.hist-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.hist-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hist-filtro-btn {
+  padding: 8px 14px;
+  border: 1px solid var(--gray-100, #f0f0f0);
+  border-radius: 20px;
+  background: white;
+  color: var(--gray-500);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition, 0.2s ease);
+}
+
+.hist-filtro-btn:hover {
+  color: var(--black);
+  border-color: var(--gray-300);
+}
+
+.hist-filtro-btn.active {
+  background: var(--red);
+  border-color: var(--red);
+  color: white;
+}
+
+.hist-search {
+  flex: 1;
+  min-width: 220px;
+  max-width: 380px;
+  padding: 10px 14px;
+  border: 1px solid var(--gray-100, #e0e0e0);
+  border-radius: var(--radius, 8px);
+  font-family: inherit;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.hist-search:focus {
+  outline: none;
+  border-color: var(--red);
+}
+
+/* Table */
+.hist-table-wrapper {
+  background: white;
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.08));
+  overflow-x: auto;
+}
+
+.hist-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.hist-table th {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--gray-500);
+  background: var(--gray-50);
+  border-bottom: 2px solid var(--gray-100);
+  white-space: nowrap;
+}
+
+.hist-table td {
+  padding: 14px 16px;
+  font-size: 14px;
+  color: var(--black);
+  vertical-align: middle;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.hist-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.hist-table tbody tr:hover {
+  background: var(--gray-50);
+}
+
+.hist-td-num {
+  font-weight: 700;
+  color: var(--gray-500) !important;
+  white-space: nowrap;
+}
+
+.hist-tipo-icon {
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+.hist-nombre {
+  display: block;
+  font-weight: 600;
+}
+
+.hist-ci {
+  display: block;
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+.hist-td-fecha {
+  white-space: nowrap;
+  color: var(--gray-700) !important;
+}
+
+.hist-td-comentario {
+  max-width: 240px;
+  font-size: 13px;
+  color: var(--gray-700) !important;
+}
+
+.hist-td-comentario span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hist-vacio {
+  color: var(--gray-300);
+}
+
+/* Badges */
+.hist-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.hist-badge--aprobado {
+  background: #eafaf1;
+  color: #1e8449;
+}
+
+.hist-badge--rechazado {
+  background: #fdedec;
+  color: #c0392b;
+}
+
+.hist-estado-tramite {
+  font-size: 13px;
+  color: var(--gray-500);
+  white-space: nowrap;
+}
+
+.hist-count {
+  margin: 12px 4px 0;
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+/* Empty / loading */
+.hist-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 20px;
+  color: var(--gray-500);
+}
+
+.hist-empty-icon {
+  font-size: 48px;
+}
+
+.hist-empty p {
+  font-size: 16px;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .hist-search {
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+  }
+}

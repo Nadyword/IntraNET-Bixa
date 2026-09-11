@@ -38,7 +38,7 @@ Bixa Backend es una solución basada en .NET 9 diseñada para gestionar y proces
 
      - Para crear una nueva migración:
        ```bash
-       dotnet ef migrations add MigrationV37P --context AppDbContext -p Bixa.Backend.DataAccess -s Bixa.Backend
+       dotnet ef migrations add MigrationV38P --context AppDbContext -p Bixa.Backend.DataAccess -s Bixa.Backend
        ```
 
      - Para aplicar las migraciones y actualizar la base de datos:
@@ -50,6 +50,8 @@ Bixa Backend es una solución basada en .NET 9 diseñada para gestionar y proces
    ```
         sudo chown -R www-data:www-data /var/www/IntraNET-Bixa/Publicacion/wwwroot/Adjuntos/
         sudo chmod -R 755 /var/www/IntraNET-Bixa/Publicacion/wwwroot/Adjuntos/
+        cd /var/www/IntraNET-Bixa/Publicacion/
+        chmod +x ./Bixa.Backend
     ```
  
  ## Despliegue

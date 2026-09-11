@@ -10,6 +10,8 @@ public interface IAprobacionesRepository
 
     Task<List<PorAprobar>> GetTramitesForAprobacion(string ci);
 
+    Task<List<HistorialAprobacionDTO>> GetHistorialAprobaciones(string? aprobadorCi);
+
     Task<bool> AprobarTramite(AprobarTramiteDTO aprobarTramiteDTO);
 
     Task<bool> AprobarTramite(int tramiteId);

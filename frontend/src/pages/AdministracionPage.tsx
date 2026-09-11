@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api, { API_ORIGIN } from '../lib/api';
 import { ButtonSpinner } from '../components/ui/ButtonSpinner';
+import { HistorialAprobaciones } from '../components/ui/HistorialAprobaciones';
 import './AdministracionPage.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -528,7 +529,7 @@ const TramiteTable: React.FC<{ tramites: TramiteDTO[]; emptyText: string }> = ({
 };
 
 export const AdministracionPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'solicitudes' | 'finalizados'>('solicitudes');
+  const [activeTab, setActiveTab] = useState<'solicitudes' | 'finalizados' | 'historial'>('solicitudes');
 
   const [busquedaFinalizados, setBusquedaFinalizados] = useState('');
   const [mostrarBusquedaAvanzada, setMostrarBusquedaAvanzada] = useState(false);
@@ -618,23 +619,36 @@ export const AdministracionPage: React.FC = () => {
             <span className="adm-tab-badge adm-tab-badge--finalizados">{finalizados.length}</span>
           )}
         </button>
+        <button
+          className={`adm-tab-btn ${activeTab === 'historial' ? 'active' : ''}`}
+          onClick={() => setActiveTab('historial')}
+        >
+          Historial de firmas
+        </button>
       </div>
 
-      {isLoading && (
+      {activeTab === 'historial' && (
+        <div className="adm-tab-content">
+          <div className="adm-section-label">Historial de firmas</div>
+          <HistorialAprobaciones scope="global" />
+        </div>
+      )}
+
+      {activeTab !== 'historial' && isLoading && (
         <div className="adm-empty">
           <span className="adm-empty-icon">⏳</span>
           <p>Cargando registros...</p>
         </div>
       )}
 
-      {isError && (
+      {activeTab !== 'historial' && isError && (
         <div className="adm-empty">
           <span className="adm-empty-icon">⚠️</span>
           <p>Error al cargar los registros.</p>
         </div>
       )}
 
-      {!isLoading && !isError && (
+      {activeTab !== 'historial' && !isLoading && !isError && (
         <div className="adm-tab-content">
           {activeTab === 'solicitudes' && (
             <>

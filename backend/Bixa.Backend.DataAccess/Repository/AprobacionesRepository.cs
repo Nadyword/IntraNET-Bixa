@@ -5,9 +5,7 @@ using Bixa.Backend.DataAccess.Models;
 using Bixa.Backend.DataAccess.Templates.Profit;
 using Bixa.Backend.Models.DTOs.SolicitudesModelDTO;
 using Bixa.Backend.Models.Enums;
-using Bixa.Backend.Models.Response;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Win32;
 
 namespace Bixa.Backend.DataAccess.Repository;
 
@@ -31,6 +29,51 @@ public class AprobacionesRepository(AppDbContext dbContext) : IAprobacionesRepos
             .ToListAsync();
     }
 
+    /// <summary>
+    /// Historial de firmas ya resueltas (aprobadas o rechazadas). Los registros nunca se borran, así que
+    /// esta consulta alimenta tanto el historial del firmante como el global del administrador.
+    /// </summary>
+    /// <param name="aprobadorCi">CI del firmante; si es nulo o vacío devuelve el historial global.</param>
+    public async Task<List<HistorialAprobacionDTO>> GetHistorialAprobaciones(string? aprobadorCi)
+    {
+        var query = _context.Aprobaciones
+            .AsNoTracking()
+            .Include(a => a.Aprobador)
+            .Include(a => a.Tramite!).ThenInclude(t => t.User)
+            .Include(a => a.Tramite!).ThenInclude(t => t.TipoTramite)
+            .Where(a => a.Estado == EstadoAprobacionEnum.Aprobado || a.Estado == EstadoAprobacionEnum.Rechazado);
+
+        if (!string.IsNullOrWhiteSpace(aprobadorCi))
+        {
+            query = query.Where(a => a.AprobadorCi == aprobadorCi);
+        }
+
+        return await query
+            .OrderByDescending(a => a.FechaRespuesta ?? a.UpdatedAt)
+            .Select(a => new HistorialAprobacionDTO
+            {
+                TramiteId = a.TramiteId,
+                TipoTramiteId = (TipoTramiteEnum)a.Tramite!.TipoTramiteId,
+                TipoTramiteNombre = a.Tramite.TipoTramite != null ? a.Tramite.TipoTramite.Nombre : null,
+                SolicitanteCi = a.Tramite.UserCi,
+                SolicitanteNombre = a.Tramite.User != null
+                    ? (a.Tramite.User.FirstName + " " + a.Tramite.User.LastName).Trim()
+                    : null,
+                AprobadorCi = a.AprobadorCi,
+                AprobadorNombre = a.Aprobador != null
+                    ? (a.Aprobador.FirstName + " " + a.Aprobador.LastName).Trim()
+                    : a.Nombre,
+                Orden = a.Orden,
+                Estado = a.Estado,
+                Comentario = a.Comentario,
+                FechaRespuesta = a.FechaRespuesta ?? a.UpdatedAt,
+                FechaSolicitud = a.Tramite.CreatedAt,
+                EstadoTramite = a.Tramite.Estado,
+                MotivoRechazo = a.Tramite.MotivoRechazo,
+            })
+            .ToListAsync();
+    }
+
     public async Task<bool> AprobarTramite(int tramiteId)
     {
         return await _context.Tramites
@@ -43,25 +86,28 @@ public class AprobacionesRepository(AppDbContext dbContext) : IAprobacionesRepos
         var tramite = await _context.Tramites.FirstOrDefaultAsync(t => t.Id == aprobarTramiteDTO.TramiteId);
         if (tramite == null)
         {
-            return Result.Fail("Trámite no encontrado").IsSuccess;
+            return false;
         }
 
-        if (aprobarTramiteDTO.Estado > 2)
-        {
-            return await FirmaRechazo(tramite, aprobarTramiteDTO);
-        }
+        List<Aprobacion> aprobaciones = await _context.Aprobaciones
+            .Where(a => a.TramiteId == aprobarTramiteDTO.TramiteId)
+            .ToListAsync();
 
-        List<Aprobacion> aprobacion = await _context.Aprobaciones.Where(a => a.TramiteId == aprobarTramiteDTO.TramiteId).ToListAsync();
-        Aprobacion? registro = aprobacion.FirstOrDefault(a => a.AprobadorCi.Trim() == aprobarTramiteDTO!.Ci!.Trim());
-
+        Aprobacion? registro = BuscarFirmaPendiente(aprobaciones, aprobarTramiteDTO.Ci);
         if (registro == null)
         {
-            return Result.Fail("No se encontró la aprobación para el usuario actual").IsSuccess;
+            return false;
         }
 
-        return await FirmaAprobacion(registro, aprobacion, aprobarTramiteDTO, tramite);
+        return aprobarTramiteDTO.Estado > (int)EstadoAprobacionEnum.Aprobado
+            ? await FirmaRechazo(registro, aprobaciones, aprobarTramiteDTO, tramite)
+            : await FirmaAprobacion(registro, aprobaciones, aprobarTramiteDTO, tramite);
     }
 
+    /// <summary>
+    /// Rechazo desde el panel de administración: no hay firma que registrar, así que solo se anulan las
+    /// firmas que quedaron pendientes. Las ya resueltas se conservan intactas para el historial.
+    /// </summary>
     public async Task<bool> RechazarTramite(int tramiteId, string razon)
     {
         var tramite = await _context.Tramites.FirstOrDefaultAsync(t => t.Id == tramiteId);
@@ -69,57 +115,77 @@ public class AprobacionesRepository(AppDbContext dbContext) : IAprobacionesRepos
         {
             return false;
         }
-        var aprobacion = await _context.Aprobaciones.Where(a => a.TramiteId == tramiteId).ExecuteDeleteAsync();
+
+        var aprobaciones = await _context.Aprobaciones.Where(a => a.TramiteId == tramiteId).ToListAsync();
+        AnularPendientes(aprobaciones);
+
         tramite.Estado = EstadoTramiteEnum.Rechazado;
         tramite.MotivoRechazo = razon;
-        _context.Update(tramite);
+
+        _context.Aprobaciones.UpdateRange(aprobaciones);
+        _context.Tramites.Update(tramite);
         await _context.SaveChangesAsync();
         return true;
     }
 
-    private async Task<bool> FirmaRechazo(Tramite tramite, AprobarTramiteDTO aprobarTramiteDTO)
+    /// <summary>
+    /// Localiza la firma pendiente del usuario dentro de la cadena. Filtrar por Pendiente evita que un
+    /// firmante vuelva a actuar sobre un trámite que ya resolvió.
+    /// </summary>
+    private static Aprobacion? BuscarFirmaPendiente(List<Aprobacion> aprobaciones, string? ci)
     {
+        return aprobaciones
+            .Where(a => a.Estado == EstadoAprobacionEnum.Pendiente && a.AprobadorCi.Trim() == ci?.Trim())
+            .OrderBy(a => a.Orden)
+            .FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Marca como Anulado las firmas que ya no se van a solicitar porque el trámite se cortó antes de
+    /// llegar a ellas. No se les asigna fecha de respuesta: el firmante nunca llegó a responder.
+    /// </summary>
+    private static void AnularPendientes(IEnumerable<Aprobacion> aprobaciones, int exceptoId = 0)
+    {
+        foreach (var pendiente in aprobaciones.Where(a => a.Id != exceptoId && a.Estado == EstadoAprobacionEnum.Pendiente))
+        {
+            pendiente.Estado = EstadoAprobacionEnum.Anulado;
+        }
+    }
+
+    private async Task<bool> FirmaRechazo(Aprobacion registro, List<Aprobacion> aprobaciones, AprobarTramiteDTO aprobarTramiteDTO, Tramite tramite)
+    {
+        registro.Estado = EstadoAprobacionEnum.Rechazado;
+        registro.Comentario = aprobarTramiteDTO.Motivo;
+        registro.FechaRespuesta = DateTime.UtcNow;
+
+        AnularPendientes(aprobaciones, registro.Id);
+
         tramite.Estado = EstadoTramiteEnum.Rechazado;
         tramite.MotivoRechazo = aprobarTramiteDTO.Motivo;
-        await _context.Aprobaciones.Where(a => a.TramiteId == aprobarTramiteDTO.TramiteId).ExecuteDeleteAsync();
-        _context.Update(tramite);
+
+        _context.Aprobaciones.UpdateRange(aprobaciones);
+        _context.Tramites.Update(tramite);
         await _context.SaveChangesAsync();
         return true;
     }
 
-    private async Task<bool> FirmaAprobacion(Aprobacion registro, List<Aprobacion> aprobacion, AprobarTramiteDTO aprobarTramiteDTO, Tramite tramite)
+    private async Task<bool> FirmaAprobacion(Aprobacion registro, List<Aprobacion> aprobaciones, AprobarTramiteDTO aprobarTramiteDTO, Tramite tramite)
     {
-        List<int> EstadoTramite = [];
-        if (registro != null)
+        registro.Estado = EstadoAprobacionEnum.Aprobado;
+        registro.FechaRespuesta = DateTime.UtcNow;
+        if (!string.IsNullOrWhiteSpace(aprobarTramiteDTO.Motivo))
         {
-            registro.Estado = (EstadoAprobacionEnum)aprobarTramiteDTO.Estado;
-            foreach (var item in aprobacion)
-            {
-                item.Orden--;
-                EstadoTramite.Add(item.Orden);
-            }
-        }
-        else
-        {
-            return Result.Fail("No se encontró la aprobación para el usuario actual").IsSuccess;
+            registro.Comentario = aprobarTramiteDTO.Motivo;
         }
 
-        if (aprobacion.Any(a => a.Orden >= 1))
-        {
-            tramite.Estado = EstadoTramiteEnum.Revision;
-        }
-        else
-        {
-            tramite.Estado = EstadoTramiteEnum.Firmado;
-        }
+        // El turno avanza en el trámite; el Orden de cada firma queda como se creó la cadena.
+        tramite.OrdenActual = registro.Orden + 1;
+        tramite.Estado = aprobaciones.Any(a => a.Orden > registro.Orden && a.Estado == EstadoAprobacionEnum.Pendiente)
+            ? EstadoTramiteEnum.Revision
+            : EstadoTramiteEnum.Firmado;
 
-        _ = _context.Update(tramite);
-
-        if (registro != null)
-        {
-            _context.Aprobaciones.Update(registro);
-        }
-        _context.Aprobaciones.UpdateRange(aprobacion);
+        _context.Aprobaciones.Update(registro);
+        _context.Tramites.Update(tramite);
         await _context.SaveChangesAsync();
         return true;
     }

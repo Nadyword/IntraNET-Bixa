@@ -32,7 +32,7 @@ export const CulturePage: React.FC = () => {
     },
     {
       title: 'Bonificación y Permiso por Muerte de Familiar',
-      detail: 'Pago = 45 días de sueldo. Permiso 7 días continuos (Trabajador, Cónyuge, Padres e Hijos), Contribución por cumpleaños.',
+      detail: 'Pago = 45 días de sueldo. Permiso 7 días continuos (Trabajador, Cónyuge, Padres e Hijos).',
     },
     {
       title: 'Bonificación y Permiso por Nacimiento de Hijos',

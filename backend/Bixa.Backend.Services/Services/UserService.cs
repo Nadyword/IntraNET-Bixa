@@ -71,7 +71,14 @@ public class UserService(
             Users userCreate = isReactivation ? existingUser! : _mapper.Map<SnEmple, Users>(snEmple.Value);
 
             if (isReactivation)
-                _mapper.Map(snEmple.Value, userCreate);
+            {
+                // No se usa el mapper sobre la entidad rastreada: sobrescribiría Ci (clave primaria) con el
+                // valor crudo de Profit, que puede diferir en formato/espacios y hace fallar a EF.
+                userCreate.FirstName = snEmple.Value.Nombres?.Trim();
+                userCreate.LastName = snEmple.Value.Apellidos?.Trim();
+                userCreate.RefreshToken = null;
+                userCreate.RefreshTokenDate = null;
+            }
 
             userCreate.IsActive = true;
             userCreate.IdUserRol = userDto.IdUserRol;

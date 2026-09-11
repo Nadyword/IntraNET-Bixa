@@ -15,6 +15,11 @@ public class AprobacionesService(IAprobacionesRepository aprobacionesRepository)
         return await _aprobacionesRepository.GetAprobacionesByTramiteId(tramiteId);
     }
 
+    public async Task<List<HistorialAprobacionDTO>> GetHistorialAprobaciones(string? aprobadorCi)
+    {
+        return await _aprobacionesRepository.GetHistorialAprobaciones(aprobadorCi);
+    }
+
     public async Task<List<PorAprobar>> GetTramitesForAprobacion(string ci)
     {
         return await _aprobacionesRepository.GetTramitesForAprobacion(ci);

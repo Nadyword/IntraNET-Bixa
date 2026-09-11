@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
 import api, { API_ORIGIN } from '../lib/api';
 import { ButtonSpinner } from '../components/ui/ButtonSpinner';
+import { HistorialAprobaciones } from '../components/ui/HistorialAprobaciones';
 import './SolicitudesPage.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -25,7 +26,7 @@ interface ApiResponse<T> {
   statusCode: number;
 }
 
-type TabType = 'porAprobar' | 'enEspera';
+type TabType = 'porAprobar' | 'enEspera' | 'historial';
 
 interface AccionModal {
   item: PorAprobarAPI;
@@ -210,6 +211,7 @@ export const SolicitudesPage: React.FC = () => {
     mutationFn: aprobarTramite,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['porAprobar', ci] });
+      queryClient.invalidateQueries({ queryKey: ['historialAprobaciones'] });
       setAccionModal(null);
       setComentario('');
       setApiError(null);
@@ -278,23 +280,38 @@ export const SolicitudesPage: React.FC = () => {
             <span className="tab-count muted">{enEspera.length}</span>
           )}
         </button>
+        <button
+          className={`sol-tab ${activeTab === 'historial' ? 'active' : ''}`}
+          onClick={() => setActiveTab('historial')}
+        >
+          Historial
+        </button>
       </div>
 
-      {isLoading && (
+      {activeTab === 'historial' && (
+        <div className="sol-section">
+          <p className="sol-section-desc">
+            Solicitudes que ya aprobaste o rechazaste, de la más reciente a la más antigua.
+          </p>
+          <HistorialAprobaciones scope="propio" />
+        </div>
+      )}
+
+      {activeTab !== 'historial' && isLoading && (
         <div className="sol-empty">
           <span className="sol-empty-icon">⏳</span>
           <p>Cargando solicitudes...</p>
         </div>
       )}
 
-      {isError && (
+      {activeTab !== 'historial' && isError && (
         <div className="sol-empty">
           <span className="sol-empty-icon">⚠️</span>
           <p>Error al cargar las solicitudes.</p>
         </div>
       )}
 
-      {!isLoading && !isError && (
+      {activeTab !== 'historial' && !isLoading && !isError && (
         <>
           {activeTab === 'porAprobar' && (
             <div className="sol-section">

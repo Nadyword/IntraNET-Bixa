@@ -3,6 +3,7 @@ import { useUserProfileStore } from '../store/userProfileStore';
 import { api } from '../lib/api';
 import type { ApiResponse } from '../services/authService';
 import { ajustarSaldoVacaciones } from '../lib/vacaciones';
+import { formatMontoInputVE, montosIguales, parseMontoVE as parseMonto } from '../lib/montos';
 import { ButtonSpinner } from '../components/ui/ButtonSpinner';
 import './ConsultasPage.css';
 
@@ -297,9 +298,9 @@ export const ConsultasPage: React.FC = () => {
 
       if (registro.status === 'fulfilled' && registro.value.data.success) {
         const r: HcMesRegistro = registro.value.data.data;
-        setMes1Input(r.mes1 ? String(r.mes1) : '');
-        setMes2Input(r.mes2 ? String(r.mes2) : '');
-        setMes3Input(r.mes3 ? String(r.mes3) : '');
+        setMes1Input(formatMontoInputVE(r.mes1));
+        setMes2Input(formatMontoInputVE(r.mes2));
+        setMes3Input(formatMontoInputVE(r.mes3));
       } else {
         setMes1Input('');
         setMes2Input('');
@@ -314,14 +315,9 @@ export const ConsultasPage: React.FC = () => {
     }
   };
 
-  const parseMonto = (valor: string): number => {
-    const parsed = parseFloat(valor.replace(',', '.'));
-    return Number.isFinite(parsed) ? parsed : 0;
-  };
-
   const sumaMeses = parseMonto(mes1Input) + parseMonto(mes2Input) + parseMonto(mes3Input);
   const primaTrimBsHc = hcCobertura1?.primaTrimBs ?? 0;
-  const sumaNoCoincideHc = sumaMeses !== primaTrimBsHc;
+  const sumaNoCoincideHc = !montosIguales(sumaMeses, primaTrimBsHc);
 
   const handleGuardarHc = async () => {
     if (!profile?.ci || sumaNoCoincideHc) return;

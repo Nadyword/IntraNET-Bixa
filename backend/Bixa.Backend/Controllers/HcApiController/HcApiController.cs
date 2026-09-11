@@ -96,8 +96,10 @@ public class HcApiController(
         if (_unitOfWork.GetCurrentUserRol() == UserRolEnum.Administrador)
             return null;
 
+        // El claim "ci" trae el CI tal como está en Users (p. ej. "V-12345678"), así que se normaliza
+        // igual que el de la ruta; si no, el propio empleado nunca coincide consigo mismo.
         var normalizedRequestedCi = UtilityService.NormalizeCiFormat(ci);
-        var currentUserCi = _unitOfWork.GetCurrentUserCi();
+        var currentUserCi = UtilityService.NormalizeCiFormat(_unitOfWork.GetCurrentUserCi() ?? string.Empty);
 
         if (!string.IsNullOrEmpty(currentUserCi) && currentUserCi == normalizedRequestedCi)
             return null;

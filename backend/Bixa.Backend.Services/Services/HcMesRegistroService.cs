@@ -51,7 +51,7 @@ public class HcMesRegistroService(
         var primaTrimBs = primaResult.Value.PrimaTrimBs ?? 0;
         var suma = dto.Mes1 + dto.Mes2 + dto.Mes3;
 
-        if (suma != primaTrimBs)
+        if (decimal.Round(suma, 2) != decimal.Round(primaTrimBs, 2))
         {
             return Result.Fail<HcMesRegistroDTO>(
                 $"La suma de Mes 1 + Mes 2 + Mes 3 ({suma:N2}) debe ser igual a la Prima trim en Bs. Factura ({primaTrimBs:N2}).",
@@ -60,7 +60,7 @@ public class HcMesRegistroService(
 
         try
         {
-            var esAutoservicio = _unitOfWork.GetCurrentUserCi() == normalizedCi;
+            var esAutoservicio = UtilityService.NormalizeCiFormat(_unitOfWork.GetCurrentUserCi() ?? string.Empty) == normalizedCi;
 
             var registro = await _hcMesRegistroRepository.UpsertAsync(normalizedCi, dto.Mes1, dto.Mes2, dto.Mes3, primaTrimBs);
             await _unitOfWork.SaveChangesAsync();

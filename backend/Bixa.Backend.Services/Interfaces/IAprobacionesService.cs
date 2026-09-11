@@ -9,6 +9,8 @@ public interface IAprobacionesService
 {
     Task<List<Aprobacion>> GetAprobacionesByTramiteId(int tramiteId);
 
+    Task<List<HistorialAprobacionDTO>> GetHistorialAprobaciones(string? aprobadorCi);
+
     Task<List<PorAprobar>> GetTramitesForAprobacion(string ci);
 
     Task<bool> AprobarTramite(AprobarTramiteDTO aprobarTramiteDTO);

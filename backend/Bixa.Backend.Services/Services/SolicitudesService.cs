@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using Bixa.Backend.DataAccess.Entities;
 using Bixa.Backend.DataAccess.Entities.Solicitudes;
 using Bixa.Backend.DataAccess.Interfaces.Repositories;
@@ -422,6 +422,19 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         return Result.Success(tramites);
     }
 
+    public async Task<Result<List<HistorialAprobacionDTO>>> GetHistorialAprobacionesByCi(string ci)
+    {
+        ci = UtilityService.NormalizeCiFormat(ci);
+        var historial = await _aprobacionesService.GetHistorialAprobaciones(ci);
+        return Result.Success(historial);
+    }
+
+    public async Task<Result<List<HistorialAprobacionDTO>>> GetHistorialAprobaciones()
+    {
+        var historial = await _aprobacionesService.GetHistorialAprobaciones(null);
+        return Result.Success(historial);
+    }
+
     public async Task<Result<bool>> AprobarTramite(AprobarTramiteDTO aprobarTramiteDTO)
     {
         if (aprobarTramiteDTO.Estado == (int)EstadoAprobacionEnum.Rechazado)
@@ -434,11 +447,13 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         }
 
         var result = await _aprobacionesService.AprobarTramite(aprobarTramiteDTO);
-        if (result)
+        if (!result)
         {
-            await NotifyCambioEstadoAsync(aprobarTramiteDTO.TramiteId);
-            await NotificarSiguientePasoAsync(aprobarTramiteDTO.TramiteId);
+            return Result.Fail<bool>("No se encontró una firma pendiente tuya para este trámite. Es posible que ya lo hayas respondido.");
         }
+
+        await NotifyCambioEstadoAsync(aprobarTramiteDTO.TramiteId);
+        await NotificarSiguientePasoAsync(aprobarTramiteDTO.TramiteId);
         return Result.Success(result);
     }
 
@@ -502,14 +517,16 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             Observaciones = solicitudVacaciones.Observaciones
         };
 
-        foreach (var aprobacion in aprobaciones)
+        // Solo las firmas efectivamente otorgadas: las rechazadas y anuladas se conservan para el
+        // historial, pero no representan una firma sobre el documento.
+        foreach (var aprobacion in aprobaciones.Where(a => a.Estado == EstadoAprobacionEnum.Aprobado))
         {
             result.Aprobaciones.Add(new AprobacionReportModel
             {
                 AprobadorCi = aprobacion.AprobadorCi,
                 AprobadorNombre = aprobacion.Nombre ?? "Sin datos",
                 Accion = aprobacion.Estado.ToString(),
-                Fecha = aprobacion.UpdatedAt,
+                Fecha = aprobacion.FechaRespuesta ?? aprobacion.UpdatedAt,
                 UrlFirma = aprobacion.Aprobador?.UrlFirma
             });
         }
@@ -545,14 +562,16 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             Motivo = solicitudDiaEspecial.Motivo
         };
 
-        foreach (var aprobacion in aprobaciones)
+        // Solo las firmas efectivamente otorgadas: las rechazadas y anuladas se conservan para el
+        // historial, pero no representan una firma sobre el documento.
+        foreach (var aprobacion in aprobaciones.Where(a => a.Estado == EstadoAprobacionEnum.Aprobado))
         {
             result.Aprobaciones.Add(new AprobacionReportModel
             {
                 AprobadorCi = aprobacion.AprobadorCi,
                 AprobadorNombre = aprobacion.Nombre ?? "Sin datos",
                 Accion = aprobacion.Estado.ToString(),
-                Fecha = aprobacion.UpdatedAt,
+                Fecha = aprobacion.FechaRespuesta ?? aprobacion.UpdatedAt,
                 UrlFirma = aprobacion.Aprobador?.UrlFirma
             });
         }
@@ -591,14 +610,16 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             TotalUtilidadesDisponible = montoDisponibleResult.IsSuccess ? (montoDisponibleResult.Value ?? 0) : 0
         };
 
-        foreach (var aprobacion in aprobaciones)
+        // Solo las firmas efectivamente otorgadas: las rechazadas y anuladas se conservan para el
+        // historial, pero no representan una firma sobre el documento.
+        foreach (var aprobacion in aprobaciones.Where(a => a.Estado == EstadoAprobacionEnum.Aprobado))
         {
             result.Aprobaciones.Add(new AprobacionReportModel
             {
                 AprobadorCi = aprobacion.AprobadorCi,
                 AprobadorNombre = aprobacion.Nombre ?? "Sin datos",
                 Accion = aprobacion.Estado.ToString(),
-                Fecha = aprobacion.UpdatedAt,
+                Fecha = aprobacion.FechaRespuesta ?? aprobacion.UpdatedAt,
                 UrlFirma = aprobacion.Aprobador?.UrlFirma
             });
         }
@@ -643,14 +664,16 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
                 : null
         };
 
-        foreach (var aprobacion in aprobaciones)
+        // Solo las firmas efectivamente otorgadas: las rechazadas y anuladas se conservan para el
+        // historial, pero no representan una firma sobre el documento.
+        foreach (var aprobacion in aprobaciones.Where(a => a.Estado == EstadoAprobacionEnum.Aprobado))
         {
             result.Aprobaciones.Add(new AprobacionReportModel
             {
                 AprobadorCi = aprobacion.AprobadorCi,
                 AprobadorNombre = aprobacion.Nombre ?? "Sin datos",
                 Accion = aprobacion.Estado.ToString(),
-                Fecha = aprobacion.UpdatedAt,
+                Fecha = aprobacion.FechaRespuesta ?? aprobacion.UpdatedAt,
                 UrlFirma = aprobacion.Aprobador?.UrlFirma
             });
         }

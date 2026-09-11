@@ -1,4 +1,4 @@
-using Bixa.Backend.DataAccess.Entities.Solicitudes;
+﻿using Bixa.Backend.DataAccess.Entities.Solicitudes;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Bixa.Backend.Models.Configurations;
 using Bixa.Backend.DataAccess.Entities;
@@ -305,6 +305,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Tramite>().Property(t => t.UserCi).IsRequired().HasMaxLength(ModelLengths.Ci);
         modelBuilder.Entity<Tramite>().Property(t => t.Estado).IsRequired().HasConversion<int>();
         modelBuilder.Entity<Tramite>().Property(t => t.MotivoRechazo).IsRequired(false).HasMaxLength(ModelLengths.Observation);
+        modelBuilder.Entity<Tramite>().Property(t => t.OrdenActual).IsRequired().HasDefaultValue(1);
 
         modelBuilder.Entity<Tramite>()
             .HasOne(t => t.TipoTramite)

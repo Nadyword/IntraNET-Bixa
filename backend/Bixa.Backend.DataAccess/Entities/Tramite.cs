@@ -1,4 +1,4 @@
-using Bixa.Backend.DataAccess.Models;
+﻿using Bixa.Backend.DataAccess.Models;
 using Bixa.Backend.DataAccess.Entities.Solicitudes;
 using Bixa.Backend.Models.Enums;
 
@@ -10,6 +10,12 @@ public class Tramite : BaseEntities
     public required string UserCi { get; set; }
     public EstadoTramiteEnum Estado { get; set; }
     public string? MotivoRechazo { get; set; }
+
+    /// <summary>
+    /// Orden de la firma que le toca al trámite. Avanza con cada aprobación y sustituye al antiguo
+    /// decremento de <see cref="Aprobacion.Orden"/>, que destruía el orden original de la cadena.
+    /// </summary>
+    public int OrdenActual { get; set; } = 1;
 
     /*-----------------------*/
     public virtual TipoTramite? TipoTramite { get; set; }

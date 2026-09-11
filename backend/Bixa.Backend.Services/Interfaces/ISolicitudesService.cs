@@ -78,6 +78,19 @@ public interface ISolicitudesService
     Task<Result<List<PorAprobar>>> GetTramitesForAprobacion(string ci);
 
     /// <summary>
+    /// Obtiene el historial de firmas ya resueltas de un aprobador: las solicitudes que aprobó o rechazó.
+    /// </summary>
+    /// <param name="ci">El CI del aprobador.</param>
+    /// <returns>Una lista de DTOs con las firmas resueltas del aprobador, de la más reciente a la más antigua.</returns>
+    Task<Result<List<HistorialAprobacionDTO>>> GetHistorialAprobacionesByCi(string ci);
+
+    /// <summary>
+    /// Obtiene el historial global de firmas resueltas de todos los aprobadores.
+    /// </summary>
+    /// <returns>Una lista de DTOs con todas las firmas resueltas, de la más reciente a la más antigua.</returns>
+    Task<Result<List<HistorialAprobacionDTO>>> GetHistorialAprobaciones();
+
+    /// <summary>
     /// Aprueba un trámite específico, identificado por su ID.
     /// </summary>
     /// <param name="aprobarTramiteDTO">El DTO que contiene la información necesaria para aprobar el trámite, incluyendo el ID del trámite, el CI del aprobador y el estado de la aprobación.</param>

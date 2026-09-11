@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../lib/api';
 import type { ApiResponse } from '../../services/authService';
+import { formatMontoInputVE, montosIguales, parseMontoVE as parseMonto } from '../../lib/montos';
 import './ForgotPasswordModal.css';
 
 interface HcMesRegistroDTO {
@@ -24,11 +25,6 @@ interface Props {
 const formatMonto = (n: number): string =>
   n.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const parseMonto = (v: string): number => {
-  const n = parseFloat(v.replace(',', '.'));
-  return Number.isFinite(n) ? n : 0;
-};
-
 export const HcEditModal: React.FC<Props> = ({ ci, nombreCompleto, onClose, onSaved }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -49,9 +45,9 @@ export const HcEditModal: React.FC<Props> = ({ ci, nombreCompleto, onClose, onSa
         if (!cancelled && res.data.success) {
           const r = res.data.data;
           setPrimaTrimBs(r.primaTrimBs);
-          setMes1(r.mes1 ? String(r.mes1) : '');
-          setMes2(r.mes2 ? String(r.mes2) : '');
-          setMes3(r.mes3 ? String(r.mes3) : '');
+          setMes1(formatMontoInputVE(r.mes1));
+          setMes2(formatMontoInputVE(r.mes2));
+          setMes3(formatMontoInputVE(r.mes3));
         }
       } catch {
         if (!cancelled) setError('No se pudo cargar el registro.');
@@ -64,7 +60,7 @@ export const HcEditModal: React.FC<Props> = ({ ci, nombreCompleto, onClose, onSa
   }, [ci]);
 
   const suma = parseMonto(mes1) + parseMonto(mes2) + parseMonto(mes3);
-  const noCoincide = suma !== primaTrimBs;
+  const noCoincide = !montosIguales(suma, primaTrimBs);
 
   const handleSave = async () => {
     if (noCoincide) return;
