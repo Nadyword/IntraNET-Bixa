@@ -997,19 +997,18 @@ internal static class ProfitSqlTemplates
         FROM #temprestaIntra
         GROUP BY fecha;
 
-        DECLARE @UltimoMes INT, @UltimaFecha SMALLDATETIME, @UltimoSueldo DECIMAL(18,2);
+        DECLARE @UltimoMes INT;
+        DECLARE @UltimaFecha DATE;
+        DECLARE @UltimoSueldo DECIMAL(18,2);
 
-        SELECT TOP 1
-            @UltimoMes = Mes,
-            @UltimaFecha = fec_emis,
-            @UltimoSueldo = sueldo
-        FROM #ResultadoFinal
-        ORDER BY Mes DESC;
+        SET @UltimoMes = MONTH(GETDATE());
+        SET @UltimaFecha = CAST(GETDATE() AS DATE);
+        SET @UltimoSueldo = (SELECT val_n FROM snem_va a INNER JOIN snemple b ON a.cod_emp = b.cod_emp WHERE a.co_var = 'A001' AND b.ci = @ciEmplea);
 
         -- Proyecta el último sueldo conocido hasta diciembre para completar el año gravable.
-        WHILE @UltimoMes < 12
+        WHILE @UltimoMes <= 12
         BEGIN
-            SET @UltimoMes = @UltimoMes + 1;
+
             SET @UltimaFecha = DATEADD(MONTH, 1, @UltimaFecha);
 
             INSERT INTO #ResultadoFinal (Mes, fec_emis, fecha, sueldo)
@@ -1018,6 +1017,7 @@ internal static class ProfitSqlTemplates
                 CAST(@UltimoMes AS VARCHAR(2)) + '-' + CAST(YEAR(@UltimaFecha) AS VARCHAR(4)),
                 @UltimoSueldo
             );
+            SET @UltimoMes = @UltimoMes + 1;
         END;
 
         DECLARE @SumaTotalMeses DECIMAL(18,2), @CalculoUltimoSueldo DECIMAL(18,2), @GranTotal DECIMAL(18,2);
