@@ -1020,21 +1020,27 @@ internal static class ProfitSqlTemplates
             SET @UltimoMes = @UltimoMes + 1;
         END;
 
-        DECLARE @SumaTotalMeses DECIMAL(18,2), @CalculoUltimoSueldo DECIMAL(18,2), @GranTotal DECIMAL(18,2);
+        DECLARE @SumaTotalMeses DECIMAL(18,2), @CalculoUltimoSueldo DECIMAL(18,2), @GranTotal DECIMAL(18,2), @DiasExtraPorAno INT, @UnidadTribu DECIMAL(18,4);
 
         SELECT @SumaTotalMeses = SUM(sueldo) FROM #ResultadoFinal;
+        SET @UnidadTribu = (SELECT TOP 1 valor FROM snuni_trib ORDER BY co_fec DESC)
         SET @CalculoUltimoSueldo = (@UltimoSueldo / 30.0) * 100.0;
         SET @GranTotal = @SumaTotalMeses + @CalculoUltimoSueldo;
+        SET @DiasExtraPorAno =  (14 + (CAST(CONVERT(VARCHAR(8), GETDATE(), 112) AS INT) - CAST(CONVERT(VARCHAR(8), (SELECT fecha_ing FROM snemple WHERE ci = @ciEmplea), 112) AS INT)) / 10000);
+        IF @DiasExtraPorAno > 30
+        BEGIN
+         SET @DiasExtraPorAno = 30;
+        END
 
         SELECT
             'PRODUCTOS BIXA, S.A.' AS NombreEmpresa,
             nombre_completo AS NombreCompleto,
             ci AS Ci,
             rif AS Rif,
-            (CAST(CONVERT(VARCHAR(8), GETDATE(), 112) AS INT) - CAST(CONVERT(VARCHAR(8), fecha_exp, 112) AS INT)) / 10000 AS AnosExp,
-            CAST(43.3 AS DECIMAL(18,4)) AS UniTribu,
+            (CAST(CONVERT(VARCHAR(8), GETDATE(), 112) AS INT) - CAST(CONVERT(VARCHAR(8), fecha_ing, 112) AS INT)) / 10000 AS AnosExp,
+            @UnidadTribu AS UniTribu,
             (SELECT COUNT(*) FROM sngru_fa WHERE cod_emp = @sCod_Emp_d AND impuesto = 1) AS CargaFami,
-            @GranTotal + (@UltimoSueldo / 30) * (15 + (CAST(CONVERT(VARCHAR(8), GETDATE(), 112) AS INT) - CAST(CONVERT(VARCHAR(8), fecha_exp, 112) AS INT)) / 10000) AS GranTotal,
+            @GranTotal + (@UltimoSueldo / 30) * @DiasExtraPorAno AS GranTotal,
             YEAR(GETDATE()) AS AnoActual,
             GETDATE() FechaActual,
             CONCAT(RTRIM(ci), '.png') FotoFirma,
