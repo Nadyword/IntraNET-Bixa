@@ -68,7 +68,7 @@ public class ReportService(string reportAssetsPath, string firmasPath, string te
         model.FirmaImagen ??= LoadFirmaFile(model.FotoFirma);
 
         var plantillaPath = Path.Combine(_templatesPath, AriPlanillaExcel.NombreArchivoPlantilla);
-        return AriPlanillaExcel.Rellenar(plantillaPath, model);
+        return AriPlanillaExcel.Rellenar(plantillaPath, model, CargarFirmaPorCi);
     }
 
     public async Task<string> SaveReportImageAsync(Stream imageStream, string fileName)
@@ -124,6 +124,14 @@ public class ReportService(string reportAssetsPath, string firmasPath, string te
 
         return File.Exists(fullPath) ? File.ReadAllBytes(fullPath) : null;
     }
+
+    /// <summary>
+    /// Firma guardada para una cédula, como la piden los marcadores <c>#Firma&lt;cédula&gt;</c> de la
+    /// planilla AR-I. Los archivos de firmas llevan por nombre la cédula con su formato de puntos
+    /// (<c>10.486.165.png</c>), así que se normaliza lo que venga escrito en el marcador.
+    /// </summary>
+    private byte[]? CargarFirmaPorCi(string ci) =>
+        LoadFirmaFile(UtilityService.NormalizeCiFormat(ci) + ".png");
 
     /// <summary>
     /// Carga la firma indicada tal cual, sin caer en SinFirma.png como hace <see cref="LoadFirmaImage"/>:

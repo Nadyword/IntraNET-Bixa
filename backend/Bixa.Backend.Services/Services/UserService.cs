@@ -79,6 +79,16 @@ public class UserService(
                 userCreate.RefreshToken = null;
                 userCreate.RefreshTokenDate = null;
             }
+            else
+            {
+                // El Ci de Profit viene de una columna char() con relleno de espacios. Si se guarda tal cual,
+                // las tablas que referencian al usuario (HC, trámites, notificaciones) guardan el Ci normalizado
+                // y EF no logra resolver la navegación: SQL Server ignora los espacios finales al comparar, pero
+                // el fix-up de EF compara las claves en memoria de forma ordinal y deja la navegación en null.
+                userCreate.Ci = ciNormalized;
+                userCreate.FirstName = userCreate.FirstName?.Trim();
+                userCreate.LastName = userCreate.LastName?.Trim();
+            }
 
             userCreate.IsActive = true;
             userCreate.IdUserRol = userDto.IdUserRol;

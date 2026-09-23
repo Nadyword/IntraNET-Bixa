@@ -23,6 +23,13 @@ public static class AriPlanillaExcel
     /// <summary>Marcador sobre cuya celda se estampa la firma del contribuyente.</summary>
     private const string MarcadorFirma = "#FotoFirma";
 
+    /// <summary>
+    /// Prefijo de los marcadores que estampan la firma de una persona identificada por su cédula,
+    /// escrita justo después: <c>#Firma10486165</c> y <c>#Firma10.486.165</c> apuntan los dos a la
+    /// firma guardada para la cédula 10.486.165.
+    /// </summary>
+    private const string PrefijoMarcadorFirmaCi = "#Firma";
+
     /// <summary>Fracciones en las que Excel divide el ancho de una columna al anclar un dibujo.</summary>
     private const int UnidadesColumna = 1024;
 
@@ -42,7 +49,11 @@ public static class AriPlanillaExcel
     /// </summary>
     private const string CeldaDesgravamenUnico = "O38";
 
-    public static byte[] Rellenar(string plantillaPath, AriReportModel model)
+    /// <param name="cargarFirmaPorCi">
+    /// Resuelve la firma guardada para una cédula, que es lo que piden los marcadores
+    /// <c>#Firma&lt;cédula&gt;</c>. Sin él esas casillas quedan vacías.
+    /// </param>
+    public static byte[] Rellenar(string plantillaPath, AriReportModel model, Func<string, byte[]?>? cargarFirmaPorCi = null)
     {
         if (!File.Exists(plantillaPath))
             throw new FileNotFoundException($"No se encontró la plantilla de la planilla AR-I en '{plantillaPath}'.", plantillaPath);
@@ -52,8 +63,8 @@ public static class AriPlanillaExcel
         var libro = new HSSFWorkbook(plantilla);
         var hoja = libro.GetSheetAt(0);
 
-        // Antes de sustituir los marcadores: la firma se ubica por el texto de su propia celda.
-        InsertarFirma(libro, hoja, model.FirmaImagen);
+        // Antes de sustituir los marcadores: las firmas se ubican por el texto de su propia celda.
+        InsertarFirmas(libro, hoja, model.FirmaImagen, cargarFirmaPorCi);
 
         SustituirMarcadores(hoja, ConstruirMarcadores(model));
         MarcarMes(hoja, model.Mes);
@@ -122,15 +133,24 @@ public static class AriPlanillaExcel
     }
 
     /// <summary>
-    /// Estampa la firma del contribuyente sobre la celda marcada con <c>#FotoFirma</c>, ajustada al
-    /// recuadro de la planilla sin deformarla. El marcador se borra siempre, de modo que cuando el
-    /// empleado no tiene una firma cargada la casilla simplemente queda vacía.
+    /// Estampa cada firma sobre la celda de su marcador: <c>#FotoFirma</c> lleva la del contribuyente
+    /// y <c>#Firma&lt;cédula&gt;</c> la de la persona indicada, que resuelve
+    /// <paramref name="cargarFirmaPorCi"/>. El marcador se borra siempre, de modo que cuando no hay
+    /// una firma que estampar la casilla simplemente queda vacía.
     /// </summary>
-    private static void InsertarFirma(IWorkbook libro, ISheet hoja, byte[]? imagen)
+    private static void InsertarFirmas(IWorkbook libro, ISheet hoja, byte[]? firmaContribuyente, Func<string, byte[]?>? cargarFirmaPorCi)
     {
-        var celda = BuscarMarcador(hoja, MarcadorFirma);
-        if (celda is null) return;
+        foreach (var (celda, ci) in BuscarMarcadoresFirma(hoja))
+        {
+            Estampar(libro, hoja, celda, ci is null ? firmaContribuyente : cargarFirmaPorCi?.Invoke(ci));
+        }
+    }
 
+    /// <summary>
+    /// Borra el marcador y ajusta la imagen al recuadro de la planilla sin deformarla.
+    /// </summary>
+    private static void Estampar(IWorkbook libro, ISheet hoja, ICell celda, byte[]? imagen)
+    {
         celda.SetCellValue(string.Empty);
 
         if (imagen is not { Length: > 0 }) return;
@@ -142,8 +162,15 @@ public static class AriPlanillaExcel
         hoja.CreateDrawingPatriarch().CreatePicture(ancla, indice);
     }
 
-    private static ICell? BuscarMarcador(ISheet hoja, string marcador)
+    /// <summary>
+    /// Celdas de la hoja que piden una firma, junto a la cédula de quien firma; la cédula va en
+    /// <c>null</c> cuando el marcador es el del contribuyente. La hoja se recorre una sola vez porque
+    /// la plantilla puede traer varias casillas de firma.
+    /// </summary>
+    private static List<(ICell Celda, string? Ci)> BuscarMarcadoresFirma(ISheet hoja)
     {
+        var marcadores = new List<(ICell, string?)>();
+
         for (var f = hoja.FirstRowNum; f <= hoja.LastRowNum; f++)
         {
             var fila = hoja.GetRow(f);
@@ -151,15 +178,35 @@ public static class AriPlanillaExcel
 
             foreach (var celda in fila.Cells)
             {
-                if (celda.CellType == CellType.String &&
-                    string.Equals(celda.StringCellValue.Trim(), marcador, StringComparison.OrdinalIgnoreCase))
-                {
-                    return celda;
-                }
+                if (celda.CellType != CellType.String) continue;
+
+                var texto = celda.StringCellValue.Trim();
+
+                if (string.Equals(texto, MarcadorFirma, StringComparison.OrdinalIgnoreCase))
+                    marcadores.Add((celda, null));
+                else if (EsMarcadorFirmaPorCi(texto, out var ci))
+                    marcadores.Add((celda, ci));
             }
         }
 
-        return null;
+        return marcadores;
+    }
+
+    /// <summary>
+    /// Reconoce <c>#Firma</c> seguido de una cédula: solo dígitos y los separadores con los que se
+    /// suele escribir, así que un texto cualquiera que empiece por el prefijo no se toma por uno.
+    /// </summary>
+    private static bool EsMarcadorFirmaPorCi(string texto, out string ci)
+    {
+        ci = string.Empty;
+
+        if (!texto.StartsWith(PrefijoMarcadorFirmaCi, StringComparison.OrdinalIgnoreCase)) return false;
+
+        var cedula = texto[PrefijoMarcadorFirmaCi.Length..];
+        if (!cedula.Any(char.IsDigit) || !cedula.All(c => char.IsDigit(c) || c is '.' or '-' or ' ')) return false;
+
+        ci = cedula;
+        return true;
     }
 
     /// <summary>

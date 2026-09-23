@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { Fragment, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../lib/api';
 import './HistorialAprobaciones.css';
@@ -87,9 +87,13 @@ const formatDateTime = (iso?: string) => {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+/** Identifica una firma: un mismo trámite tiene un registro por cada paso de la cadena. */
+const registroKey = (r: HistorialAprobacionAPI) => `${r.tramiteId}-${r.aprobadorCi}-${r.orden}`;
+
 export const HistorialAprobaciones: React.FC<HistorialAprobacionesProps> = ({ scope }) => {
   const [filtro, setFiltro] = useState<FiltroAccion>('todos');
   const [busqueda, setBusqueda] = useState('');
+  const [detalleAbierto, setDetalleAbierto] = useState<string | null>(null);
 
   const { data: registros = [], isLoading, isError } = useQuery({
     queryKey: ['historialAprobaciones', scope],
@@ -191,13 +195,17 @@ export const HistorialAprobaciones: React.FC<HistorialAprobacionesProps> = ({ sc
                   <th>Fecha</th>
                   <th>Comentario</th>
                   <th>Estado del trámite</th>
+                  <th className="hist-th-detalle"><span className="hist-sr-only">Detalle</span></th>
                 </tr>
               </thead>
               <tbody>
                 {registrosFiltrados.map(r => {
                   const accion = ACCION_INFO[r.estado];
+                  const key = registroKey(r);
+                  const abierto = detalleAbierto === key;
                   return (
-                    <tr key={`${r.tramiteId}-${r.aprobadorCi}-${r.orden}`}>
+                    <Fragment key={key}>
+                    <tr className={`hist-row ${abierto ? 'hist-row--abierta' : ''}`}>
                       <td className="hist-td-num">#{r.tramiteId}</td>
                       <td>
                         <span className="hist-tipo-icon">{TIPO_TRAMITE_ICON[r.tipoTramiteId] ?? '📄'}</span>
@@ -227,7 +235,82 @@ export const HistorialAprobaciones: React.FC<HistorialAprobacionesProps> = ({ sc
                           {ESTADO_TRAMITE_LABEL[r.estadoTramite] ?? '—'}
                         </span>
                       </td>
+                      <td className="hist-td-detalle">
+                        <button
+                          type="button"
+                          className="hist-detalle-btn"
+                          aria-expanded={abierto}
+                          aria-label={abierto ? 'Ocultar detalle' : 'Ver detalle'}
+                          onClick={() => setDetalleAbierto(abierto ? null : key)}
+                        >
+                          {abierto ? '▲' : '▼'}
+                        </button>
+                      </td>
                     </tr>
+
+                    {abierto && (
+                      <tr className="hist-detalle-row">
+                        <td colSpan={scope === 'global' ? 9 : 8}>
+                          <div className="hist-detalle">
+                            <div className="hist-detalle-grid">
+                              <div className="hist-detalle-field hist-detalle-field--principal">
+                                <span className="hist-detalle-label">Solicitante</span>
+                                <span className="hist-detalle-value">{r.solicitanteNombre ?? '—'}</span>
+                                {r.solicitanteCi && (
+                                  <span className="hist-detalle-sub">CI {r.solicitanteCi}</span>
+                                )}
+                              </div>
+                              <div className="hist-detalle-field">
+                                <span className="hist-detalle-label">N° Trámite</span>
+                                <span className="hist-detalle-value">#{r.tramiteId}</span>
+                              </div>
+                              <div className="hist-detalle-field">
+                                <span className="hist-detalle-label">Tipo de trámite</span>
+                                <span className="hist-detalle-value">
+                                  {TIPO_TRAMITE_ICON[r.tipoTramiteId] ?? '📄'} {r.tipoTramiteNombre ?? 'Trámite'}
+                                </span>
+                              </div>
+                              <div className="hist-detalle-field">
+                                <span className="hist-detalle-label">Fecha de solicitud</span>
+                                <span className="hist-detalle-value">{formatDateTime(r.fechaSolicitud)}</span>
+                              </div>
+                              <div className="hist-detalle-field">
+                                <span className="hist-detalle-label">Firmante</span>
+                                <span className="hist-detalle-value">{r.aprobadorNombre ?? r.aprobadorCi}</span>
+                                <span className="hist-detalle-sub">Paso {r.orden}</span>
+                              </div>
+                              <div className="hist-detalle-field">
+                                <span className="hist-detalle-label">Fecha de la firma</span>
+                                <span className="hist-detalle-value">{formatDateTime(r.fechaRespuesta)}</span>
+                              </div>
+                              <div className="hist-detalle-field">
+                                <span className="hist-detalle-label">Acción</span>
+                                <span className={`hist-badge ${accion.className}`}>{accion.label}</span>
+                              </div>
+                              <div className="hist-detalle-field">
+                                <span className="hist-detalle-label">Estado del trámite</span>
+                                <span className="hist-detalle-value">
+                                  {ESTADO_TRAMITE_LABEL[r.estadoTramite] ?? '—'}
+                                </span>
+                              </div>
+                              <div className="hist-detalle-field hist-detalle-field--full">
+                                <span className="hist-detalle-label">Comentario de la firma</span>
+                                <span className="hist-detalle-value">
+                                  {r.comentario ? `"${r.comentario}"` : 'Sin comentario'}
+                                </span>
+                              </div>
+                              {r.motivoRechazo && (
+                                <div className="hist-detalle-field hist-detalle-field--full">
+                                  <span className="hist-detalle-label">Motivo de rechazo del trámite</span>
+                                  <span className="hist-detalle-value">{r.motivoRechazo}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   );
                 })}
               </tbody>

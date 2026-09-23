@@ -110,7 +110,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             }
 
             await _unitOfWork.CommitTransactionAsync();
-            await NotificarPrimerAprobadorAsync(aprobadores);
+            await NotificarFirmanteDeTurnoAsync(tramiteId);
             return Result.Success(true);
         }
         catch (Exception ex)
@@ -177,7 +177,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             }
 
             await _unitOfWork.CommitTransactionAsync();
-            await NotificarPrimerAprobadorAsync(aprobadores);
+            await NotificarFirmanteDeTurnoAsync(tramiteId);
             return Result.Success(true);
         }
         catch (Exception ex)
@@ -248,7 +248,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             }
 
             await _unitOfWork.CommitTransactionAsync();
-            await NotificarPrimerAprobadorAsync(aprobadores);
+            await NotificarFirmanteDeTurnoAsync(tramiteId);
             return Result.Success(true);
         }
         catch (Exception ex)
@@ -341,7 +341,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             }
 
             await _unitOfWork.CommitTransactionAsync();
-            await NotificarPrimerAprobadorAsync(aprobadores);
+            await NotificarFirmanteDeTurnoAsync(tramiteId);
             return Result.Success(true);
         }
         catch (Exception ex)
@@ -754,13 +754,38 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         }
     }
 
-    private async Task NotificarPrimerAprobadorAsync(List<AprobadorPermisoInfo> aprobadores)
+    /// <summary>
+    /// Avisa por correo al firmante que tiene el turno del trámite. El turno se resuelve sobre las
+    /// aprobaciones ya guardadas, que son la cadena del empleado con sus ajustes aplicados (firmantes
+    /// agregados, excluidos o reubicados): mirar la jerarquía de Profit o dar por hecho que el turno
+    /// es el primer paso le mandaría el correo a quien no firma.
+    /// </summary>
+    private async Task NotificarFirmanteDeTurnoAsync(int tramiteId)
     {
-        var primero = aprobadores.FirstOrDefault();
-        if (primero == null) return;
+        try
+        {
+            var tramite = await _tramitesService.GetTramiteById(tramiteId);
+            var aprobaciones = await _aprobacionesService.GetAprobacionesByTramiteId(tramiteId);
 
-        await EnviarCorreoAprobadorAsync(primero.Ci);
+            var turno = FirmanteDeTurno(aprobaciones, tramite.OrdenActual);
+            if (turno != null)
+                await EnviarCorreoAprobadorAsync(turno.AprobadorCi);
+        }
+        catch
+        {
+            // Correo es un efecto secundario: nunca debe tumbar la operación principal.
+        }
     }
+
+    /// <summary>
+    /// Firma a la que le toca: la pendiente de menor orden desde el turno del trámite. Recién creado
+    /// el trámite el turno es 1, y cada firma lo adelanta al orden siguiente.
+    /// </summary>
+    private static Aprobacion? FirmanteDeTurno(List<Aprobacion> aprobaciones, int ordenActual) =>
+        aprobaciones
+            .Where(a => a.Estado == EstadoAprobacionEnum.Pendiente && a.Orden >= ordenActual)
+            .OrderBy(a => a.Orden)
+            .FirstOrDefault();
 
     private async Task NotificarSiguientePasoAsync(int tramiteId)
     {
@@ -774,12 +799,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             }
             else if (tramite.Estado == EstadoTramiteEnum.Revision)
             {
-                var aprobaciones = await _aprobacionesService.GetAprobacionesByTramiteId(tramiteId);
-                var siguiente = aprobaciones.FirstOrDefault(a => a.Orden == 1 && a.Estado == EstadoAprobacionEnum.Pendiente);
-                if (siguiente != null)
-                {
-                    await EnviarCorreoAprobadorAsync(siguiente.AprobadorCi);
-                }
+                await NotificarFirmanteDeTurnoAsync(tramiteId);
             }
         }
         catch
