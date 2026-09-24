@@ -1,6 +1,6 @@
 import React, { Fragment, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '../../lib/api';
+import api, { API_ORIGIN } from '../../lib/api';
 import './HistorialAprobaciones.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -30,6 +30,39 @@ interface ApiResponse<T> {
   message: string;
   data: T;
   statusCode: number;
+}
+
+/** Datos propios de la solicitud según su tipo, devueltos por `/solicitudes/Detalle/{id}`. */
+interface TramiteDetalleAPI {
+  id: number;
+  vacaciones?: {
+    desde: string;
+    hasta: string;
+    diasTotales: number;
+    observaciones?: string;
+  };
+  diaEspecial?: {
+    fecha: string;
+    motivo: string;
+  };
+  utilidades?: {
+    monto: number;
+    motivo: string;
+  };
+  prestaciones?: {
+    esPrestamo: boolean;
+    monto: number;
+    destino: string;
+    observaciones?: string;
+    cuotas?: number;
+    montoCuota?: number;
+    archivoAdjuntoUrl?: string;
+  };
+  constanciaTrabajo?: {
+    conSueldo: boolean;
+    dirigidoAEspecifico: boolean;
+    dirigidoA?: string;
+  };
 }
 
 interface HistorialAprobacionesProps {
@@ -74,6 +107,11 @@ const fetchHistorial = async (scope: 'propio' | 'global'): Promise<HistorialApro
   return res.data.data;
 };
 
+const fetchTramiteDetalle = async (tramiteId: number): Promise<TramiteDetalleAPI> => {
+  const res = await api.get<ApiResponse<TramiteDetalleAPI>>(`/solicitudes/Detalle/${tramiteId}`);
+  return res.data.data;
+};
+
 const formatDateTime = (iso?: string) => {
   if (!iso) return '—';
   return new Date(iso).toLocaleString('es-VE', {
@@ -83,6 +121,138 @@ const formatDateTime = (iso?: string) => {
     hour: '2-digit',
     minute: '2-digit',
   });
+};
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('es-VE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+
+const formatMonto = (monto: number) =>
+  monto.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// ─── Detalle de la solicitud ──────────────────────────────────────────────────
+
+interface CampoProps {
+  label: string;
+  full?: boolean;
+  highlight?: boolean;
+  children: React.ReactNode;
+}
+
+const Campo: React.FC<CampoProps> = ({ label, full, highlight, children }) => (
+  <div className={`hist-detalle-field ${full ? 'hist-detalle-field--full' : ''}`}>
+    <span className="hist-detalle-label">{label}</span>
+    <span className={`hist-detalle-value ${highlight ? 'hist-detalle-value--highlight' : ''}`}>{children}</span>
+  </div>
+);
+
+/** Datos específicos de la solicitud (fechas, días, montos...), cargados al expandir la fila. */
+const DetalleSolicitud: React.FC<{ tramiteId: number }> = ({ tramiteId }) => {
+  const { data: detalle, isLoading, isError } = useQuery({
+    queryKey: ['tramiteDetalle', tramiteId],
+    queryFn: () => fetchTramiteDetalle(tramiteId),
+    retry: false,
+  });
+
+  if (isLoading) {
+    return <p className="hist-detalle-solicitud-estado">Cargando datos de la solicitud...</p>;
+  }
+
+  if (isError || !detalle) {
+    return <p className="hist-detalle-solicitud-estado">No se pudieron cargar los datos de la solicitud.</p>;
+  }
+
+  const { vacaciones, diaEspecial, utilidades, prestaciones, constanciaTrabajo } = detalle;
+
+  let titulo: string;
+  let campos: React.ReactNode;
+
+  if (vacaciones) {
+    titulo = 'Vacaciones solicitadas';
+    campos = (
+      <>
+        <Campo label="Desde">{formatDate(vacaciones.desde)}</Campo>
+        <Campo label="Hasta">{formatDate(vacaciones.hasta)}</Campo>
+        <Campo label="Días solicitados" highlight>
+          {vacaciones.diasTotales} día{vacaciones.diasTotales !== 1 ? 's' : ''}
+        </Campo>
+        {vacaciones.observaciones && (
+          <Campo label="Observaciones" full>{vacaciones.observaciones}</Campo>
+        )}
+      </>
+    );
+  } else if (diaEspecial) {
+    titulo = 'Día especial solicitado';
+    campos = (
+      <>
+        <Campo label="Día solicitado" highlight>{formatDate(diaEspecial.fecha)}</Campo>
+        <Campo label="Motivo" full>{diaEspecial.motivo}</Campo>
+      </>
+    );
+  } else if (utilidades) {
+    titulo = 'Anticipo de utilidades solicitado';
+    campos = (
+      <>
+        <Campo label="Monto solicitado" highlight>${formatMonto(utilidades.monto)}</Campo>
+        <Campo label="Motivo" full>{utilidades.motivo}</Campo>
+      </>
+    );
+  } else if (prestaciones) {
+    titulo = prestaciones.esPrestamo
+      ? 'Préstamo sobre prestaciones sociales solicitado'
+      : 'Anticipo de prestaciones sociales solicitado';
+    campos = (
+      <>
+        <Campo label="Monto solicitado" highlight>Bs {formatMonto(prestaciones.monto)}</Campo>
+        <Campo label="Destino">{prestaciones.destino}</Campo>
+        {prestaciones.esPrestamo && prestaciones.cuotas && (
+          <Campo label="Cuotas">
+            {prestaciones.cuotas}
+            {prestaciones.montoCuota != null && ` de Bs ${formatMonto(prestaciones.montoCuota)} c/u`}
+          </Campo>
+        )}
+        {prestaciones.observaciones && (
+          <Campo label="Observaciones" full>{prestaciones.observaciones}</Campo>
+        )}
+        {prestaciones.archivoAdjuntoUrl && (
+          <Campo label="Archivo adjunto" full>
+            <a
+              className="hist-detalle-adjunto"
+              href={`${API_ORIGIN}${prestaciones.archivoAdjuntoUrl}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              📎 Ver adjunto
+            </a>
+          </Campo>
+        )}
+      </>
+    );
+  } else if (constanciaTrabajo) {
+    titulo = 'Constancia de trabajo solicitada';
+    campos = (
+      <>
+        <Campo label="Con sueldo">{constanciaTrabajo.conSueldo ? 'Sí' : 'No'}</Campo>
+        <Campo label="Dirigida a">
+          {constanciaTrabajo.dirigidoAEspecifico && constanciaTrabajo.dirigidoA
+            ? constanciaTrabajo.dirigidoA
+            : 'A quien pueda interesar'}
+        </Campo>
+      </>
+    );
+  } else {
+    return <p className="hist-detalle-solicitud-estado">Esta solicitud no tiene datos adicionales.</p>;
+  }
+
+  return (
+    <div className="hist-detalle-solicitud">
+      <h4 className="hist-detalle-titulo">{titulo}</h4>
+      <div className="hist-detalle-grid">{campos}</div>
+    </div>
+  );
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -252,6 +422,8 @@ export const HistorialAprobaciones: React.FC<HistorialAprobacionesProps> = ({ sc
                       <tr className="hist-detalle-row">
                         <td colSpan={scope === 'global' ? 9 : 8}>
                           <div className="hist-detalle">
+                            <DetalleSolicitud tramiteId={r.tramiteId} />
+                            <h4 className="hist-detalle-titulo">Firma y trámite</h4>
                             <div className="hist-detalle-grid">
                               <div className="hist-detalle-field hist-detalle-field--principal">
                                 <span className="hist-detalle-label">Solicitante</span>

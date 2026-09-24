@@ -305,6 +305,45 @@
   align-self: flex-start;
 }
 
+/* Datos de la solicitud dentro del detalle */
+.hist-detalle-solicitud {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  background: white;
+  border: 1px solid var(--gray-100, #f0f0f0);
+  border-radius: var(--radius, 8px);
+}
+
+.hist-detalle-titulo {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--red);
+}
+
+.hist-detalle-solicitud-estado {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.hist-detalle-value--highlight {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.hist-detalle-adjunto {
+  color: var(--red);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.hist-detalle-adjunto:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 768px) {
   .hist-search {
     max-width: none;

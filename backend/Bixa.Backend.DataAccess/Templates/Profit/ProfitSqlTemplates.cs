@@ -1044,7 +1044,7 @@ internal static class ProfitSqlTemplates
             YEAR(GETDATE()) AS AnoActual,
             GETDATE() FechaActual,
             CONCAT(RTRIM(ci), '.png') FotoFirma,
-            snubicacion.des_ubicacion Lugar
+            CASE snubicacion.des_ubicacion WHEN 'PLANTA' THEN 'SANTA LUCIA' ELSE snubicacion.des_ubicacion  END Lugar
             FROM snemple
             INNER JOIN snubicacion ON snemple.co_ubicacion = snubicacion.co_ubicacion
             WHERE ci = @ciEmplea;
