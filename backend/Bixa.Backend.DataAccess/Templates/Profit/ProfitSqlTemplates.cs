@@ -28,7 +28,7 @@ internal static class ProfitSqlTemplates
             e.cta_banc1 AS 'CuentaBanc1'
         FROM dbo.snemple AS E
         INNER JOIN dbo.sncargo AS C ON e.co_cargo = c.co_cargo
-        INNER JOIN dbo.sndepart AS D ON c.co_depart = d.co_depart
+        INNER JOIN dbo.sndepart AS D ON e.co_depart = d.co_depart
         INNER JOIN dbo.sncont AS S ON e.co_cont = s.co_cont
         INNER JOIN dbo.snubicacion AS U ON e.co_ubicacion = u.co_ubicacion
         WHERE e.ci IN (@ci)

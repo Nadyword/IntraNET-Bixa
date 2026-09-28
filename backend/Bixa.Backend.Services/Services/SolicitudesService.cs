@@ -699,6 +699,11 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             return Result.Fail<bool>("No se puede rechazar una solicitud de Constancia de Trabajo.");
         }
 
+        if (tramite.Estado is EstadoTramiteEnum.Tramitando or EstadoTramiteEnum.Rechazado)
+        {
+            return Result.Fail<bool>("El trámite ya fue finalizado y no se puede rechazar.");
+        }
+
         var result = await _aprobacionesService.RechazarTramite(tramiteId, razon);
         if (result)
         {

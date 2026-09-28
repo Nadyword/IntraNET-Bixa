@@ -193,26 +193,35 @@ public class PrestacionesDocument(TramiteReportModel model) : IDocument
 
     // ─── Firmas ───────────────────────────────────────────────────────────────
 
+    private const int FirmasPorFila = 3;
+
     private void ComposeFirmas(IContainer container)
     {
-        string supNombre = model.Aprobaciones.Count > 0 ? model.Aprobaciones[0].AprobadorNombre : "";
-        string supFecha = model.Aprobaciones.Count > 0 ? model.Aprobaciones[0].Fecha.ToString("dd/MM/yyyy") : "___/___/___";
-        byte[]? supFirma = model.Aprobaciones.Count > 0 ? model.Aprobaciones[0].FirmaImagen : null;
-        string rrhNombre = model.Aprobaciones.Count > 1 ? model.Aprobaciones[^1].AprobadorNombre : "";
-        string rrhFecha = model.Aprobaciones.Count > 1 ? model.Aprobaciones[^1].Fecha.ToString("dd/MM/yyyy") : "___/___/___";
-        byte[]? rrhFirma = model.Aprobaciones.Count > 1 ? model.Aprobaciones[^1].FirmaImagen : null;
+        // Solicitante + todos los firmantes de la cadena; la cantidad varía, así que se reparten en
+        // filas de ancho fijo para que las firmas no se compriman cuando son muchas.
+        var firmas = new List<Action<IContainer>>
+        {
+            c => SignatureBox(c, "SOLICITANTE", model.EmpleadoNombre, model.FechaSolicitud.ToString("dd/MM/yyyy"), model.EmpleadoFirmaImagen)
+        };
+        firmas.AddRange(model.Aprobaciones.Select(aprobacion => (Action<IContainer>)(c =>
+            SignatureBox(c, aprobacion.AprobadorNombre, string.Empty, aprobacion.Fecha.ToString("dd/MM/yyyy"), aprobacion.FirmaImagen))));
 
         container.Column(col =>
         {
             col.Item().Element(SectionTitle("FIRMAS"));
-            col.Item().PaddingTop(20).Row(row =>
+
+            foreach (var fila in firmas.Chunk(FirmasPorFila))
             {
-                row.RelativeItem().PaddingRight(20)
-                   .Element(c => SignatureBox(c, "SOLICITANTE", model.EmpleadoNombre, model.FechaSolicitud.ToString("dd/MM/yyyy"), model.EmpleadoFirmaImagen));
-                row.RelativeItem().PaddingRight(20)
-                   .Element(c => SignatureBox(c, "SUPERVISOR", supNombre, supFecha, supFirma));
-                row.RelativeItem();
-            });
+                col.Item().PaddingTop(20).ShowEntire().Row(row =>
+                {
+                    for (int i = 0; i < FirmasPorFila; i++)
+                    {
+                        var item = row.RelativeItem();
+                        if (i < FirmasPorFila - 1) item = item.PaddingRight(20);
+                        if (i < fila.Length) item.Element(fila[i]);
+                    }
+                });
+            }
         });
     }
 }

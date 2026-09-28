@@ -218,10 +218,19 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
               >
                 {loading ? '⏳ Generando...' : '📄 Planilla'}
               </button>
+              {esTramitando && tramite.tipoTramiteId !== 6 && (
+                <button
+                  className="adm-btn adm-btn-rechazar"
+                  disabled={archivando || rechazando}
+                  onClick={() => setShowRechazarModal(true)}
+                >
+                  {rechazando ? <><ButtonSpinner /> Rechazando...</> : '✕ Rechazar'}
+                </button>
+              )}
               {esTramitando && (
                 <button
                   className="adm-btn adm-btn-archivar"
-                  disabled={archivando}
+                  disabled={archivando || rechazando}
                   onClick={() => archivar()}
                 >
                   {archivando ? '⏳ Archivando...' : '📦 Archivar'}
