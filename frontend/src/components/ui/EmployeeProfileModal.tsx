@@ -457,7 +457,12 @@ export const EmployeeProfileModal: React.FC<Props> = ({ ci, onClose }) => {
                     ? 'Sin consultar'
                     : vacaciones.length === 0
                     ? 'Sin registros'
-                    : `${ultimoDisponible} días disponibles`}
+                    : (
+                      <>
+                        <div>Días de vacaciones disponibles: <strong>{ultimoDisponibleReal ?? '—'}</strong></div>
+                        <div>Días disponibles menos vacaciones colectivas: <strong>{ultimoDisponible ?? '—'}</strong></div>
+                      </>
+                    )}
                 </ConsultaCard>
 
                 <ConsultaCard
