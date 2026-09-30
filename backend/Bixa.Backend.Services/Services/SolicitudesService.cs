@@ -56,6 +56,48 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         return await _ajusteFirmantesService.AplicarAjusteAsync(ci, firmantesProfit);
     }
 
+    /// <summary>
+    /// Guarda el trámite junto con su cadena de firmas pendientes. Si el empleado no tiene firmantes
+    /// (sin supervisor en Profit ni ajustes manuales) no hay a quién pedir la firma, así que el trámite
+    /// nace Aprobado y pasa directo al administrador para su tramitación y archivo.
+    /// Debe llamarse dentro de la transacción del llamador, que es quien hace el rollback si falla.
+    /// </summary>
+    private async Task<Result<int>> RegistrarTramiteConAprobacionesAsync(Tramite tramite)
+    {
+        List<AprobadorPermisoInfo> aprobadores = await GetAprovadoresPermisosByCi(tramite.UserCi);
+
+        if (aprobadores.Count == 0)
+        {
+            tramite.Estado = EstadoTramiteEnum.Aprobado;
+        }
+
+        int tramiteId = await _solicitudesRepository.AddNewTramite(tramite);
+        if (tramiteId < 1)
+        {
+            return Result.Fail<int>("Error al guardar el trámite");
+        }
+
+        for (int i = 0; i < aprobadores.Count; i++)
+        {
+            AprobadorPermisoInfo aprobador = aprobadores[i];
+            int result = await _solicitudesRepository.AddAprobaciones(new Aprobacion
+            {
+                TramiteId = tramiteId,
+                Nombre = aprobador.Nombre,
+                AprobadorCi = aprobador.Ci,
+                Orden = i + 1,
+                Estado = EstadoAprobacionEnum.Pendiente
+            });
+
+            if (result < 1)
+            {
+                return Result.Fail<int>($"Error al guardar la aprobación para el aprobador {aprobador.Nombre} ({aprobador.Ci})");
+            }
+        }
+
+        return Result.Success(tramiteId);
+    }
+
     public async Task<Result<bool>> AddSolicitudVacaciones(SolicVacacionesDTO solicitud)
     {
         if (!(solicitud.FechaFin >= solicitud.FechaInicio) || !(solicitud.FechaInicio >= DateTime.Now.Date))
@@ -69,35 +111,14 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
 
         try
         {
-            int tramiteId = await _solicitudesRepository.AddNewTramite(tramite);
-
-            if (tramiteId < 1)
+            var registro = await RegistrarTramiteConAprobacionesAsync(tramite);
+            if (!registro.IsSuccess)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>("Error al guardar el trámite");
+                return Result.Fail<bool>(registro.Error);
             }
 
-            List<AprobadorPermisoInfo> aprobadores = await GetAprovadoresPermisosByCi(solicitud.Ci);
-
-            List<Aprobacion> aprobaciones = [];
-
-            foreach (AprobadorPermisoInfo aprobador in aprobadores)
-            {
-                int result = await _solicitudesRepository.AddAprobaciones(new Aprobacion
-                {
-                    TramiteId = tramiteId,
-                    Nombre = aprobador.Nombre,
-                    AprobadorCi = aprobador.Ci,
-                    Orden = aprobadores.IndexOf(aprobador) + 1,
-                    Estado = EstadoAprobacionEnum.Pendiente
-                });
-
-                if (result < 1)
-                {
-                    await _unitOfWork.RollbackTransactionAsync();
-                    return Result.Fail<bool>($"Error al guardar la aprobación para el aprobador {aprobador.Nombre} ({aprobador.Ci})");
-                }
-            }
+            int tramiteId = registro.Value;
 
             SolicitudVacaciones SVacacion = _mapper.Map<SolicitudVacaciones>(solicitud);
             SVacacion.TramiteId = tramiteId;
@@ -110,7 +131,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             }
 
             await _unitOfWork.CommitTransactionAsync();
-            await NotificarFirmanteDeTurnoAsync(tramiteId);
+            await NotificarTramiteCreadoAsync(tramiteId);
             return Result.Success(true);
         }
         catch (Exception ex)
@@ -138,33 +159,14 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
 
         try
         {
-            int tramiteId = await _solicitudesRepository.AddNewTramite(tramite);
-
-            if (tramiteId < 1)
+            var registro = await RegistrarTramiteConAprobacionesAsync(tramite);
+            if (!registro.IsSuccess)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>("Error al guardar el trámite");
+                return Result.Fail<bool>(registro.Error);
             }
 
-            List<AprobadorPermisoInfo> aprobadores = await GetAprovadoresPermisosByCi(solicitud.Ci);
-
-            foreach (AprobadorPermisoInfo aprobador in aprobadores)
-            {
-                int result = await _solicitudesRepository.AddAprobaciones(new Aprobacion
-                {
-                    TramiteId = tramiteId,
-                    Nombre = aprobador.Nombre,
-                    AprobadorCi = aprobador.Ci,
-                    Orden = aprobadores.IndexOf(aprobador) + 1,
-                    Estado = EstadoAprobacionEnum.Pendiente
-                });
-
-                if (result < 1)
-                {
-                    await _unitOfWork.RollbackTransactionAsync();
-                    return Result.Fail<bool>($"Error al guardar la aprobación para el aprobador {aprobador.Nombre} ({aprobador.Ci})");
-                }
-            }
+            int tramiteId = registro.Value;
 
             SolicitudDiasEspeciales sDiaEspecial = _mapper.Map<SolicitudDiasEspeciales>(solicitud);
             sDiaEspecial.TramiteId = tramiteId;
@@ -177,7 +179,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             }
 
             await _unitOfWork.CommitTransactionAsync();
-            await NotificarFirmanteDeTurnoAsync(tramiteId);
+            await NotificarTramiteCreadoAsync(tramiteId);
             return Result.Success(true);
         }
         catch (Exception ex)
@@ -209,33 +211,14 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
 
         try
         {
-            int tramiteId = await _solicitudesRepository.AddNewTramite(tramite);
-
-            if (tramiteId < 1)
+            var registro = await RegistrarTramiteConAprobacionesAsync(tramite);
+            if (!registro.IsSuccess)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>("Error al guardar el trámite");
+                return Result.Fail<bool>(registro.Error);
             }
 
-            List<AprobadorPermisoInfo> aprobadores = await GetAprovadoresPermisosByCi(solicitud.Ci);
-
-            foreach (AprobadorPermisoInfo aprobador in aprobadores)
-            {
-                int result = await _solicitudesRepository.AddAprobaciones(new Aprobacion
-                {
-                    TramiteId = tramiteId,
-                    Nombre = aprobador.Nombre,
-                    AprobadorCi = aprobador.Ci,
-                    Orden = aprobadores.IndexOf(aprobador) + 1,
-                    Estado = EstadoAprobacionEnum.Pendiente
-                });
-
-                if (result < 1)
-                {
-                    await _unitOfWork.RollbackTransactionAsync();
-                    return Result.Fail<bool>($"Error al guardar la aprobación para el aprobador {aprobador.Nombre} ({aprobador.Ci})");
-                }
-            }
+            int tramiteId = registro.Value;
 
             SolicitudUtilidades sUtilidades = _mapper.Map<SolicitudUtilidades>(solicitud);
             sUtilidades.TramiteId = tramiteId;
@@ -248,7 +231,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             }
 
             await _unitOfWork.CommitTransactionAsync();
-            await NotificarFirmanteDeTurnoAsync(tramiteId);
+            await NotificarTramiteCreadoAsync(tramiteId);
             return Result.Success(true);
         }
         catch (Exception ex)
@@ -300,33 +283,14 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
 
         try
         {
-            int tramiteId = await _solicitudesRepository.AddNewTramite(tramite);
-
-            if (tramiteId < 1)
+            var registro = await RegistrarTramiteConAprobacionesAsync(tramite);
+            if (!registro.IsSuccess)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                return Result.Fail<bool>("Error al guardar el trámite");
+                return Result.Fail<bool>(registro.Error);
             }
 
-            List<AprobadorPermisoInfo> aprobadores = await GetAprovadoresPermisosByCi(solicitud.Ci);
-
-            foreach (AprobadorPermisoInfo aprobador in aprobadores)
-            {
-                int result = await _solicitudesRepository.AddAprobaciones(new Aprobacion
-                {
-                    TramiteId = tramiteId,
-                    Nombre = aprobador.Nombre,
-                    AprobadorCi = aprobador.Ci,
-                    Orden = aprobadores.IndexOf(aprobador) + 1,
-                    Estado = EstadoAprobacionEnum.Pendiente
-                });
-
-                if (result < 1)
-                {
-                    await _unitOfWork.RollbackTransactionAsync();
-                    return Result.Fail<bool>($"Error al guardar la aprobación para el aprobador {aprobador.Nombre} ({aprobador.Ci})");
-                }
-            }
+            int tramiteId = registro.Value;
 
             SolicitudPrestaciones sPrestaciones = _mapper.Map<SolicitudPrestaciones>(solicitud);
             sPrestaciones.TramiteId = tramiteId;
@@ -341,7 +305,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             }
 
             await _unitOfWork.CommitTransactionAsync();
-            await NotificarFirmanteDeTurnoAsync(tramiteId);
+            await NotificarTramiteCreadoAsync(tramiteId);
             return Result.Success(true);
         }
         catch (Exception ex)
@@ -775,6 +739,32 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             var turno = FirmanteDeTurno(aprobaciones, tramite.OrdenActual);
             if (turno != null)
                 await EnviarCorreoAprobadorAsync(turno.AprobadorCi);
+        }
+        catch
+        {
+            // Correo es un efecto secundario: nunca debe tumbar la operación principal.
+        }
+    }
+
+    /// <summary>
+    /// Aviso al crear un trámite: si nació Aprobado (empleado sin firmantes) se le informa al empleado y
+    /// se avisa a los administradores para que lo tramiten; si no, se le escribe al primer firmante.
+    /// </summary>
+    private async Task NotificarTramiteCreadoAsync(int tramiteId)
+    {
+        try
+        {
+            var tramite = await _tramitesService.GetTramiteById(tramiteId);
+
+            if (tramite.Estado == EstadoTramiteEnum.Aprobado)
+            {
+                await NotifyCambioEstadoAsync(tramiteId);
+                await NotificarAdministradoresAsync();
+            }
+            else
+            {
+                await NotificarFirmanteDeTurnoAsync(tramiteId);
+            }
         }
         catch
         {
