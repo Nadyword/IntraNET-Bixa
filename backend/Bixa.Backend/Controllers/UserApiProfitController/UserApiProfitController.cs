@@ -255,7 +255,10 @@ public class UserApiProfitController(
         return File(bytes, "application/pdf", $"ARC_{normalizedCi}_{year}.pdf");
     }
 
-    private static readonly string[] MesesAriValidos = ["Enero", "Marzo", "Junio", "Septiembre", "Diciembre"];
+    private static readonly Dictionary<string, int> MesesAriValidos = new()
+    {
+        ["Enero"] = 1, ["Marzo"] = 3, ["Junio"] = 6, ["Septiembre"] = 9, ["Diciembre"] = 12,
+    };
     private static readonly string[] DesgravamenTiposValidos = ["Unico", "Detallado"];
 
     private const string ContentTypeXls = "application/vnd.ms-excel";
@@ -344,14 +347,14 @@ public class UserApiProfitController(
     /// </summary>
     private async Task<Result<AriReportModel>> ConstruirModeloAriAsync(string ci, AriReportRequestDTO request)
     {
-        if (!MesesAriValidos.Contains(request.Mes))
+        if (!MesesAriValidos.TryGetValue(request.Mes, out var numeroMes))
             return Result.Fail<AriReportModel>("El mes indicado no es válido.", ErrorTypeEnum.Validation);
 
         if (!DesgravamenTiposValidos.Contains(request.DesgravamenTipo))
             return Result.Fail<AriReportModel>("El tipo de desgravamen indicado no es válido.", ErrorTypeEnum.Validation);
 
         var normalizedCi = UtilityService.NormalizeCiFormat(ci);
-        var ariResult = await _readOnlyUnitOfWork.Ari.GetAriByCiAsync(normalizedCi);
+        var ariResult = await _readOnlyUnitOfWork.Ari.GetAriByCiAsync(normalizedCi, numeroMes);
         if (!ariResult.IsSuccess) return Result.Fail<AriReportModel>(ariResult.Error, ariResult.ErrorTypeEnum);
 
         var datos = ariResult.Value;

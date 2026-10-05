@@ -933,7 +933,8 @@ internal static class ProfitSqlTemplates
     /// <summary>
     /// Datos base de la planilla AR-I: identidad del contribuyente, valor de la U.T., carga familiar
     /// y la estimación de remuneraciones por percibir en el año gravable (casilla A de la planilla).
-    /// Parámetro: @ciEmplea.
+    /// Parámetros: @ciEmplea y @mesSeleccionado (1-12): solo se toman los recibos hasta ese mes y su
+    /// sueldo se proyecta hasta diciembre.
     /// </summary>
     internal const string GetARI = """
         IF OBJECT_ID('tempdb..#temprestaIntra') IS NOT NULL
@@ -983,7 +984,9 @@ internal static class ProfitSqlTemplates
           AND ((@sdFec_Nomina_d IS NULL OR @sdFec_Nomina_d <= dbo.snrecibo.fec_emis)
                 AND (@sdFec_Nomina_h IS NULL OR dbo.snrecibo.fec_emis <= @sdFec_Nomina_h))
           AND (snemple.status = 'A' OR snemple.status = 'PL')
-          AND YEAR(snrecibo.fec_emis) = YEAR(GETDATE());
+          AND YEAR(snrecibo.fec_emis) = YEAR(GETDATE())
+          -- Los recibos posteriores al mes seleccionado no cuentan: desde ese mes se proyecta.
+          AND MONTH(snrecibo.fec_emis) <= @mesSeleccionado;
 
         CREATE TABLE #ResultadoFinal (
             Mes INT,
@@ -1001,11 +1004,15 @@ internal static class ProfitSqlTemplates
         DECLARE @UltimaFecha DATE;
         DECLARE @UltimoSueldo DECIMAL(18,2);
 
-        SET @UltimoMes = MONTH(GETDATE());
-        SET @UltimaFecha = CAST(GETDATE() AS DATE);
-        SET @UltimoSueldo = (SELECT val_n FROM snem_va a INNER JOIN snemple b ON a.cod_emp = b.cod_emp WHERE a.co_var = 'A001' AND b.ci = @ciEmplea);
+        SET @UltimoMes = @mesSeleccionado;
+        SET @UltimaFecha = DATEFROMPARTS(YEAR(GETDATE()), @mesSeleccionado, 1);
+        -- Sueldo del mes seleccionado; si ese mes no tiene recibo, el del último mes anterior que sí
+        -- lo tenga. Sin recibos en el año se usa el sueldo vigente.
+        SET @UltimoSueldo = ISNULL(
+            (SELECT TOP(1) sueldo FROM #ResultadoFinal ORDER BY Mes DESC),
+            (SELECT val_n FROM snem_va a INNER JOIN snemple b ON a.cod_emp = b.cod_emp WHERE a.co_var = 'A001' AND b.ci = @ciEmplea));
 
-        -- Proyecta el último sueldo conocido hasta diciembre para completar el año gravable.
+        -- Proyecta el sueldo del mes seleccionado hasta diciembre para completar el año gravable.
         WHILE @UltimoMes <= 12
         BEGIN
 

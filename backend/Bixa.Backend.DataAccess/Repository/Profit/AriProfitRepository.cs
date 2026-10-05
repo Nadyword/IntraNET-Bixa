@@ -17,13 +17,16 @@ public class AriProfitRepository(ProfitDbContext context) : IAriProfitRepository
     /// Obtiene los datos base de la planilla AR-I del empleado identificado por su CI.
     /// </summary>
     /// <param name="ci">La cédula de identidad del empleado.</param>
+    /// <param name="mes">Mes (1-12) seleccionado en el formulario: su sueldo se proyecta hasta diciembre.</param>
     /// <returns>Un resultado con la fila de datos. Si el empleado no existe, el resultado indica un error de tipo NotFound.</returns>
-    public async Task<Result<AriProfit>> GetAriByCiAsync(string ci)
+    public async Task<Result<AriProfit>> GetAriByCiAsync(string ci, int mes)
     {
         try
         {
             var registros = await _context.Ari
-                .FromSqlRaw(ProfitSqlTemplates.GetARI, new SqlParameter("@ciEmplea", ci))
+                .FromSqlRaw(ProfitSqlTemplates.GetARI,
+                    new SqlParameter("@ciEmplea", ci),
+                    new SqlParameter("@mesSeleccionado", mes))
                 .ToListAsync();
 
             var registro = registros.FirstOrDefault();
