@@ -1013,9 +1013,10 @@ internal static class ProfitSqlTemplates
             (SELECT val_n FROM snem_va a INNER JOIN snemple b ON a.cod_emp = b.cod_emp WHERE a.co_var = 'A001' AND b.ci = @ciEmplea));
 
         -- Proyecta el sueldo del mes seleccionado hasta diciembre para completar el año gravable.
-        WHILE @UltimoMes <= 12
+        WHILE @UltimoMes <= 11
         BEGIN
 
+            SET @UltimoMes = @UltimoMes + 1;
             SET @UltimaFecha = DATEADD(MONTH, 1, @UltimaFecha);
 
             INSERT INTO #ResultadoFinal (Mes, fec_emis, fecha, sueldo)
@@ -1024,7 +1025,6 @@ internal static class ProfitSqlTemplates
                 CAST(@UltimoMes AS VARCHAR(2)) + '-' + CAST(YEAR(@UltimaFecha) AS VARCHAR(4)),
                 @UltimoSueldo
             );
-            SET @UltimoMes = @UltimoMes + 1;
         END;
 
         DECLARE @SumaTotalMeses DECIMAL(18,2), @CalculoUltimoSueldo DECIMAL(18,2), @GranTotal DECIMAL(18,2), @DiasExtraPorAno INT, @UnidadTribu DECIMAL(18,4);

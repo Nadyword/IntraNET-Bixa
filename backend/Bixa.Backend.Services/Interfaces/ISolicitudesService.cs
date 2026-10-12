@@ -161,6 +161,14 @@ public interface ISolicitudesService
     Task<Result<bool>> RechazarTramite(int tramiteId, string razon);
 
     /// <summary>
+    /// Elimina definitivamente un trámite y todo lo asociado (aprobaciones, detalle de la solicitud,
+    /// notificaciones y archivo adjunto).
+    /// </summary>
+    /// <param name="tramiteId">El ID del trámite a eliminar.</param>
+    /// <returns>Un resultado indicando si la operación fue exitosa o no.</returns>
+    Task<Result<bool>> EliminarTramite(int tramiteId);
+
+    /// <summary>
     /// Calcula la cantidad de días hábiles dentro de un rango de fechas, excluyendo fines de semana y feriados.
     /// </summary>
     /// <param name="desde">Fecha de inicio del rango (inclusive).</param>

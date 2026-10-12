@@ -44,4 +44,12 @@ public interface ITramitesRepository
     /// <param name="tramiteId">El ID del trámite a archivar.</param>
     /// <returns></returns>
     Task<bool> ArchivarTramite(int tramiteId);
+
+    /// <summary>
+    /// Elimina físicamente un trámite y todo lo asociado: aprobaciones, detalle de la solicitud
+    /// y notificaciones que lo referencian. Debe ejecutarse dentro de una transacción.
+    /// </summary>
+    /// <param name="tramiteId">El ID del trámite a eliminar.</param>
+    /// <returns><c>true</c> si el trámite existía y fue eliminado.</returns>
+    Task<bool> EliminarTramite(int tramiteId);
 }

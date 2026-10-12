@@ -7,6 +7,7 @@ import { soporteService, ordenarFAQs, type SolicitudChatDTO, type FAQsDTO } from
 import { SoporteChatAdminModal } from '../components/ui/SoporteChatAdminModal';
 import { CreateUserModal } from '../components/ui/CreateUserModal';
 import { DeleteUserModal } from '../components/ui/DeleteUserModal';
+import { DeleteTramiteModal } from '../components/ui/DeleteTramiteModal';
 import { EditUserModal } from '../components/ui/EditUserModal';
 import { ResendWelcomeEmailModal } from '../components/ui/ResendWelcomeEmailModal';
 import { EmployeeProfileModal } from '../components/ui/EmployeeProfileModal';
@@ -38,6 +39,7 @@ export const LeaderPage: React.FC = () => {
   const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
   const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [showResendWelcomeEmailModal, setShowResendWelcomeEmailModal] = useState(false);
+  const [showDeleteTramiteModal, setShowDeleteTramiteModal] = useState(false);
 
   // Estado del equipo
   const [teamUsers, setTeamUsers] = useState<UserProfile[]>([]);
@@ -358,6 +360,9 @@ export const LeaderPage: React.FC = () => {
               </button>
               <button className="tramites-nueva-btn" onClick={() => setShowResendWelcomeEmailModal(true)}>
                 Reenviar correo de bienvenida
+              </button>
+              <button className="tramites-nueva-btn" onClick={() => setShowDeleteTramiteModal(true)}>
+                Eliminar trámite
               </button>
             </div>
 
@@ -814,6 +819,9 @@ export const LeaderPage: React.FC = () => {
       )}
       {showResendWelcomeEmailModal && (
         <ResendWelcomeEmailModal onClose={() => setShowResendWelcomeEmailModal(false)} />
+      )}
+      {showDeleteTramiteModal && (
+        <DeleteTramiteModal onClose={() => setShowDeleteTramiteModal(false)} />
       )}
       {selectedCi && (
         <EmployeeProfileModal ci={selectedCi} onClose={() => setSelectedCi(null)} />

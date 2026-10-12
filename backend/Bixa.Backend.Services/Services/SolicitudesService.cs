@@ -677,6 +677,50 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         return Result.Success(result);
     }
 
+    public async Task<Result<bool>> EliminarTramite(int tramiteId)
+    {
+        var tramite = await _tramitesService.GetTramiteDetalladoById(tramiteId);
+        if (tramite == null)
+        {
+            return Result.Fail<bool>($"No se encontró el trámite con ID {tramiteId}", ErrorTypeEnum.NotFound);
+        }
+
+        string? archivoAdjunto = tramite.SolicitudPrestaciones?.ArchivoAdjunto;
+
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            bool eliminado = await _tramitesService.EliminarTramite(tramiteId);
+            if (!eliminado)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return Result.Fail<bool>($"No se pudo eliminar el trámite con ID {tramiteId}");
+            }
+
+            await _unitOfWork.CommitTransactionAsync();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            return Result.Fail<bool>($"Error al eliminar el trámite: {ex.Message}");
+        }
+
+        // El archivo se borra después del commit: si fallara, el trámite ya no existe y solo queda un huérfano en disco
+        if (!string.IsNullOrEmpty(archivoAdjunto))
+        {
+            try
+            {
+                _adjuntoService.Delete(archivoAdjunto);
+            }
+            catch
+            {
+                // Best effort: no se revierte la eliminación por un archivo que no se pudo borrar
+            }
+        }
+
+        return Result.Success(true);
+    }
+
     public async Task<Result<int>> GetDiasHabiles(DateTime desde, DateTime hasta)
     {
         if (hasta.Date < desde.Date)

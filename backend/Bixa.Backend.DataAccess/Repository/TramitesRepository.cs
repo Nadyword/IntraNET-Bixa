@@ -76,4 +76,22 @@ public class TramitesRepository(AppDbContext dbContext) : ITramitesRepository
 
         return await _context.SaveChangesAsync() > 0;
     }
+
+    public async Task<bool> EliminarTramite(int tramiteId)
+    {
+        // Las notificaciones referencian al trámite sin FK, así que el cascade no las alcanza
+        await _context.Notifications
+            .Where(n => n.ReferenceType == "Tramite" && n.ReferenceId == tramiteId)
+            .ExecuteDeleteAsync();
+
+        // Se borran explícitamente aunque tengan cascade, por si la BD no lo tiene configurado
+        await _context.Aprobaciones.Where(a => a.TramiteId == tramiteId).ExecuteDeleteAsync();
+        await _context.SolicitudesVacaciones.Where(s => s.TramiteId == tramiteId).ExecuteDeleteAsync();
+        await _context.SolicitudesDiasEspeciales.Where(s => s.TramiteId == tramiteId).ExecuteDeleteAsync();
+        await _context.SolicitudesUtilidades.Where(s => s.TramiteId == tramiteId).ExecuteDeleteAsync();
+        await _context.SolicitudesPrestaciones.Where(s => s.TramiteId == tramiteId).ExecuteDeleteAsync();
+        await _context.SolicitudesConstanciaTrabajo.Where(s => s.TramiteId == tramiteId).ExecuteDeleteAsync();
+
+        return await _context.Tramites.Where(t => t.Id == tramiteId).ExecuteDeleteAsync() > 0;
+    }
 }

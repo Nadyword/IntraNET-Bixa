@@ -36,4 +36,14 @@ public class AdjuntoService(string adjuntosPath) : IAdjuntoService
 
         return Result.Success(fileName);
     }
+
+    public void Delete(string fileName)
+    {
+        // Path.GetFileName evita que un nombre con rutas relativas salga del directorio de adjuntos
+        var fullPath = Path.Combine(_adjuntosPath, Path.GetFileName(fileName));
+        if (File.Exists(fullPath))
+        {
+            File.Delete(fullPath);
+        }
+    }
 }

@@ -10,4 +10,9 @@ public interface IAdjuntoService
     /// almacén de adjuntos de solicitudes. Retorna el nombre de archivo guardado.
     /// </summary>
     Task<Result<string>> ValidateAndSaveAsync(IFormFile archivo, string ci);
+
+    /// <summary>
+    /// Elimina del almacén un adjunto guardado previamente. No falla si el archivo ya no existe.
+    /// </summary>
+    void Delete(string fileName);
 }

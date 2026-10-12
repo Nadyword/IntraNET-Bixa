@@ -37,4 +37,9 @@ public class TramitesService(ITramitesRepository tramitesRepository) : ITramites
     {
         return await _tramitesRepository.ArchivarTramite(tramiteId);
     }
+
+    public async Task<bool> EliminarTramite(int tramiteId)
+    {
+        return await _tramitesRepository.EliminarTramite(tramiteId);
+    }
 }

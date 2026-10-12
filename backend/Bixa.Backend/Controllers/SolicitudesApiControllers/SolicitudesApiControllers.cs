@@ -430,4 +430,23 @@ public class SolicitudesApiControllers(ISolicitudesService solicitudesService,
         var result = await _solicitudesService.RechazarTramite(tramiteId, razon);
         return HandleServiceResult(result);
     }
+
+    /// <summary>
+    /// Elimina definitivamente un trámite y todo lo asociado. Solo para administración.
+    /// </summary>
+    /// <param name="tramiteId">El ID del trámite a eliminar.</param>
+    /// <returns>Un resultado indicando si la operación fue exitosa o no.</returns>
+    [HttpDelete("Eliminar/{tramiteId:int}")]
+    [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> EliminarTramite(int tramiteId)
+    {
+        var authResult = RequireUserRol(UserRolEnum.Administrador);
+        if (authResult != null) return authResult;
+
+        var result = await _solicitudesService.EliminarTramite(tramiteId);
+        return HandleServiceResult(result);
+    }
 }

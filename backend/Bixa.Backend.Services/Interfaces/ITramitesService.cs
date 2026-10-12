@@ -15,4 +15,6 @@ public interface ITramitesService
     Task<Tramite?> GetTramiteDetalladoById(int tramiteId);
 
     Task<bool> ArchivarTramite(int tramiteId);
+
+    Task<bool> EliminarTramite(int tramiteId);
 }
