@@ -59,7 +59,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
     /// <summary>
     /// Guarda el trámite junto con su cadena de firmas pendientes. Si el empleado no tiene firmantes
     /// (sin supervisor en Profit ni ajustes manuales) no hay a quién pedir la firma, así que el trámite
-    /// nace Aprobado y pasa directo al administrador para su tramitación y archivo.
+    /// nace Firmado y queda entre las solicitudes activas esperando la aprobación del administrador.
     /// Debe llamarse dentro de la transacción del llamador, que es quien hace el rollback si falla.
     /// </summary>
     private async Task<Result<int>> RegistrarTramiteConAprobacionesAsync(Tramite tramite)
@@ -68,7 +68,7 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
 
         if (aprobadores.Count == 0)
         {
-            tramite.Estado = EstadoTramiteEnum.Aprobado;
+            tramite.Estado = EstadoTramiteEnum.Firmado;
         }
 
         int tramiteId = await _solicitudesRepository.AddNewTramite(tramite);
@@ -792,8 +792,8 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
     }
 
     /// <summary>
-    /// Aviso al crear un trámite: si nació Aprobado (empleado sin firmantes) se le informa al empleado y
-    /// se avisa a los administradores para que lo tramiten; si no, se le escribe al primer firmante.
+    /// Aviso al crear un trámite: si nació Firmado (empleado sin firmantes) se avisa a los administradores
+    /// para que lo aprueben; si no, se le escribe al primer firmante.
     /// </summary>
     private async Task NotificarTramiteCreadoAsync(int tramiteId)
     {
@@ -801,9 +801,8 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
         {
             var tramite = await _tramitesService.GetTramiteById(tramiteId);
 
-            if (tramite.Estado == EstadoTramiteEnum.Aprobado)
+            if (tramite.Estado == EstadoTramiteEnum.Firmado)
             {
-                await NotifyCambioEstadoAsync(tramiteId);
                 await NotificarAdministradoresAsync();
             }
             else
