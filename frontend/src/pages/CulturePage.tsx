@@ -60,7 +60,7 @@ export const CulturePage: React.FC = () => {
     },
     {
       title: 'Permiso para la Obtención de Documentos',
-      detail: 'Se concede cuatro (04) días de permiso al año remunerados a salario básico para la tramitación de cédula de identidad, libreta militar, certificado de salud, licencia de conducir, pasaporte, atender citaciones de autoridades judiciales, policiales o civiles, inscripción escolar de sus hijos, carta de soltería, concubinato y constancia de residencia. El trabajador presentará constancia de la gestión realizada. Adicionalmente se cancelará el beneficio de alimentación. Período (Junio - Mayo).',
+        detail: 'Se concede cuatro (04) días de permiso al año remunerados a salario básico para la tramitación de cédula de identidad, libreta militar, partida de nacimiento, licencia de conducir, pasaporte, atender citaciones de autoridades judiciales, policiales o civiles, inscripción escolar de sus hijos, carta de soltería, concubinato y constancia de residencia. El trabajador presentará constancia de la gestión realizada. Adicionalmente se cancelará el beneficio de alimentación. Período (Junio - Mayo).',
     },
     {
       title: 'Sábados y Domingos en Feriados',

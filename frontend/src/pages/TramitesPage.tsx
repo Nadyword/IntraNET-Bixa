@@ -13,6 +13,7 @@ interface VacacionesDetalle {
   hasta: string;
   diasTotales: number;
   observaciones?: string;
+  esColectiva?: boolean;
 }
 
 interface PrestacionesDetalle {
@@ -107,8 +108,9 @@ function formatDate(dateStr: string): string {
 
 function getTramiteDetalle(tramite: TramiteAPI): string {
   if (tramite.vacaciones) {
-    const { desde, hasta, diasTotales } = tramite.vacaciones;
-    return `Del ${formatDate(desde)} al ${formatDate(hasta)} · ${diasTotales} días`;
+    const { desde, hasta, diasTotales, esColectiva } = tramite.vacaciones;
+    const base = `Del ${formatDate(desde)} al ${formatDate(hasta)} · ${diasTotales} días`;
+    return esColectiva ? `${base} · Vacaciones colectivas` : base;
   }
   if (tramite.prestaciones) {
     const { monto, destino, esPrestamo, cuotas, montoCuota } = tramite.prestaciones;

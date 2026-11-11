@@ -139,7 +139,11 @@ public class VacacionesDocument(TramiteReportModel model) : IDocument
             });
 
             // Fila 2: Días solicitados
-            col.Item().Element(c => FormField(c, "TOTAL DÍAS SOLICITADOS:", model.Vacaciones?.DiasTotales.ToString() ?? "—"));
+            col.Item().Row(row =>
+            {
+                row.RelativeItem().PaddingRight(20).Element(c => FormField(c, "TOTAL DÍAS SOLICITADOS:", model.Vacaciones?.DiasTotales.ToString() ?? "—"));
+                row.RelativeItem().Element(c => FormField(c, "VACACIONES COLECTIVAS:", model.Vacaciones?.EsColectiva == true ? "SÍ (PUEDE GENERAR SALDO NEGATIVO)" : "NO"));
+            });
 
             // Fila 3: Desde | Hasta
             col.Item().Row(row =>

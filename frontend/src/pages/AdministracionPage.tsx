@@ -12,6 +12,7 @@ interface VacacionesDetalle {
   hasta: string;
   diasTotales: number;
   observaciones?: string;
+  esColectiva?: boolean;
 }
 
 interface DiaEspecialDetalle {
@@ -297,6 +298,16 @@ const TramiteRow: React.FC<{ tramite: TramiteDTO }> = ({ tramite }) => {
                     <div className="detalle-field">
                       <span className="detalle-label">Días totales</span>
                       <span className="detalle-value detalle-value--highlight">{tramite.vacaciones.diasTotales} días</span>
+                    </div>
+                    <div className="detalle-field detalle-field--full">
+                      <span className="detalle-label">Tipo de vacaciones</span>
+                      {tramite.vacaciones.esColectiva ? (
+                        <span className="detalle-value vac-colectivas-badge">
+                          🏖️ Vacaciones colectivas · puede dejar saldo negativo
+                        </span>
+                      ) : (
+                        <span className="detalle-value">Regulares</span>
+                      )}
                     </div>
                     {tramite.vacaciones.observaciones && (
                       <div className="detalle-field detalle-field--full">

@@ -38,6 +38,7 @@ interface VacacionesDetalle {
   hasta: string;
   diasTotales: number;
   observaciones?: string;
+  esColectiva?: boolean;
 }
 
 interface DiaEspecialDetalle {
@@ -517,6 +518,16 @@ export const SolicitudesPage: React.FC = () => {
                         <div className="sol-detalle-field">
                           <span className="sol-detalle-label">Días totales</span>
                           <span className="sol-detalle-value sol-detalle-value--highlight">{detalle.vacaciones.diasTotales} días</span>
+                        </div>
+                        <div className="sol-detalle-field sol-detalle-field--full">
+                          <span className="sol-detalle-label">Tipo de vacaciones</span>
+                          {detalle.vacaciones.esColectiva ? (
+                            <span className="sol-detalle-value vac-colectivas-badge">
+                              🏖️ Vacaciones colectivas · puede dejar saldo negativo
+                            </span>
+                          ) : (
+                            <span className="sol-detalle-value">Regulares</span>
+                          )}
                         </div>
                         {detalle.vacaciones.observaciones && (
                           <div className="sol-detalle-field sol-detalle-field--full">

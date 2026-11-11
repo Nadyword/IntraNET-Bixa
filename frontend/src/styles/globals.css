@@ -85,3 +85,18 @@ a {
 .shadow-lg { box-shadow: var(--shadow-lg); }
 .w-full { width: 100%; }
 .h-full { height: 100%; }
+
+/* Indicador de vacaciones colectivas (aprobación / trámite / historial) */
+.vac-colectivas-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #fff8e1;
+  color: #b26a00;
+  border: 1px solid #f59e0b;
+  font-size: 13px;
+  font-weight: 600;
+}

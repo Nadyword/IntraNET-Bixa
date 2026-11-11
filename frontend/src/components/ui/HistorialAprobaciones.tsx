@@ -40,6 +40,7 @@ interface TramiteDetalleAPI {
     hasta: string;
     diasTotales: number;
     observaciones?: string;
+    esColectiva?: boolean;
   };
   diaEspecial?: {
     fecha: string;
@@ -178,6 +179,11 @@ const DetalleSolicitud: React.FC<{ tramiteId: number }> = ({ tramiteId }) => {
         <Campo label="Hasta">{formatDate(vacaciones.hasta)}</Campo>
         <Campo label="Días solicitados" highlight>
           {vacaciones.diasTotales} día{vacaciones.diasTotales !== 1 ? 's' : ''}
+        </Campo>
+        <Campo label="Tipo de vacaciones" full>
+          {vacaciones.esColectiva ? (
+            <span className="vac-colectivas-badge">🏖️ Vacaciones colectivas · puede dejar saldo negativo</span>
+          ) : 'Regulares'}
         </Campo>
         {vacaciones.observaciones && (
           <Campo label="Observaciones" full>{vacaciones.observaciones}</Campo>

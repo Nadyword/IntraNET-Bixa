@@ -479,7 +479,8 @@ public class SolicitudesService(ISolicitudesRepository solicitudesRepository, IM
             Desde = solicitudVacaciones.Desde,
             Hasta = solicitudVacaciones.Hasta,
             DiasTotales = solicitudVacaciones.DiasTotales,
-            Observaciones = solicitudVacaciones.Observaciones
+            Observaciones = solicitudVacaciones.Observaciones,
+            EsColectiva = solicitudVacaciones.EsColectiva
         };
 
         // Solo las firmas efectivamente otorgadas: las rechazadas y anuladas se conservan para el

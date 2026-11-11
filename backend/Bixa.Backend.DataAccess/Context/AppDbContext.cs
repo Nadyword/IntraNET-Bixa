@@ -362,6 +362,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<SolicitudVacaciones>().Property(sv => sv.Hasta).IsRequired();
         modelBuilder.Entity<SolicitudVacaciones>().Property(sv => sv.DiasTotales).IsRequired();
         modelBuilder.Entity<SolicitudVacaciones>().Property(sv => sv.Observaciones).IsRequired(false).HasMaxLength(ModelLengths.Observation);
+        modelBuilder.Entity<SolicitudVacaciones>().Property(sv => sv.EsColectiva).IsRequired();
 
         modelBuilder.Entity<SolicitudVacaciones>()
             .HasOne(sv => sv.Tramite)

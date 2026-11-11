@@ -9,6 +9,11 @@ public class SolicitudVacaciones
     public int DiasTotales { get; set; }
     public string? Observaciones { get; set; }
 
+    /// <summary>
+    /// Vacaciones colectivas: permite solicitar más días que el saldo disponible (saldo negativo).
+    /// </summary>
+    public bool EsColectiva { get; set; }
+
     /*-----------------------*/
     public virtual Tramite? Tramite { get; set; }
 }

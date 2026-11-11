@@ -78,7 +78,7 @@ const DESTINOS_PRESTAMO: DestinoConfig[] = [
 const MOTIVOS_DIA_ESPECIAL: string[] = [
   'Cédula de identidad',
   'Libreta militar',
-  'Certificado de salud',
+  'Partida de nacimiento',
   'Licencia de conducir',
   'Pasaporte',
   'Citaciones judiciales, policiales o civiles',
@@ -93,6 +93,7 @@ interface FormVacaciones {
   fechaFin: string;
   diasTotales: number;
   observaciones: string;
+  esColectiva: boolean;
 }
 
 interface FormDiaEspecial {
@@ -180,7 +181,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess, ariFo
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [vacaciones, setVacaciones] = useState<FormVacaciones>({
-    fechaInicio: '', fechaFin: '', diasTotales: 0, observaciones: '',
+    fechaInicio: '', fechaFin: '', diasTotales: 0, observaciones: '', esColectiva: false,
   });
   const [diaEspecial, setDiaEspecial] = useState<FormDiaEspecial>({ fecha: '', motivo: '' });
   const [monto, setMonto] = useState<FormMonto>({ monto: '', observaciones: '', cuotas: '', archivo: null });
@@ -282,6 +283,8 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess, ariFo
   }, [tipo, user?.ci]);
 
   const [diasDisponiblesVacaciones, setDiasDisponiblesVacaciones] = useState<number | null>(null);
+  // Saldo acumulado sin descontar la reserva de colectivas: es el que consumen las vacaciones colectivas.
+  const [saldoRealVacaciones, setSaldoRealVacaciones] = useState<number | null>(null);
   const [vacacionesSaldoLoading, setVacacionesSaldoLoading] = useState(false);
   const [vacacionesSaldoError, setVacacionesSaldoError] = useState<string | null>(null);
 
@@ -298,6 +301,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess, ariFo
         if (res.data.success) {
           const registros = res.data.data ?? [];
           const disponibleReal = registros.length > 0 ? registros[registros.length - 1].disponibleAcumulado ?? 0 : 0;
+          setSaldoRealVacaciones(disponibleReal);
           setDiasDisponiblesVacaciones(ajustarSaldoVacaciones(disponibleReal));
         } else {
           setVacacionesSaldoError('No se pudo obtener el saldo de vacaciones disponible.');
@@ -306,6 +310,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess, ariFo
       .catch((err) => {
         if (cancelado) return;
         if (err.response?.status === 404) {
+          setSaldoRealVacaciones(0);
           setDiasDisponiblesVacaciones(0);
         } else {
           setVacacionesSaldoError('No se pudo obtener el saldo de vacaciones disponible.');
@@ -394,7 +399,8 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess, ariFo
         errs.fechaFin = 'La fecha de inicio no puede ser posterior a la fecha de fin';
       else if (diasLoading) errs.fechaFin = 'Espera a que se calculen los días hábiles';
       else if (diasError) errs.fechaFin = diasError;
-      if (!errs.fechaFin && !diasLoading && !diasError && vacaciones.fechaInicio && vacaciones.fechaFin) {
+      // Las vacaciones colectivas pueden dejar el saldo en negativo, así que no se limita por días disponibles.
+      if (!vacaciones.esColectiva && !errs.fechaFin && !diasLoading && !diasError && vacaciones.fechaInicio && vacaciones.fechaFin) {
         if (vacacionesSaldoLoading) errs.fechaFin = 'Espera a que se consulte tu saldo de vacaciones disponible';
         else if (vacacionesSaldoError) errs.fechaFin = vacacionesSaldoError;
         else if (diasDisponiblesVacaciones === null) errs.fechaFin = 'No se pudo determinar tu saldo disponible, intenta de nuevo';
@@ -474,6 +480,7 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess, ariFo
           fechaFin: vacaciones.fechaFin,
           diasTotales: vacaciones.diasTotales,
           observaciones: vacaciones.observaciones || null,
+          esColectiva: vacaciones.esColectiva,
         };
         await api.post('/solicitudes/Vacaciones', payload);
         setEnviado(true);
@@ -743,15 +750,56 @@ export const NuevaSolicitudModal: React.FC<Props> = ({ onClose, onSuccess, ariFo
                   </div>
                 )}
 
-                <div className="ns-dias-badge">
-                  {vacacionesSaldoLoading
-                    ? 'Consultando saldo disponible...'
-                    : vacacionesSaldoError
-                    ? <span className="ns-error">{vacacionesSaldoError}</span>
-                    : diasDisponiblesVacaciones !== null
-                    ? <>🏖️ Días disponibles para solicitar: <strong>{diasDisponiblesVacaciones}</strong></>
-                    : ''}
-                </div>
+                <button
+                  type="button"
+                  className={`ns-colectivas-btn ${vacaciones.esColectiva ? 'active' : ''}`}
+                  aria-pressed={vacaciones.esColectiva}
+                  onClick={() => {
+                    setVacaciones((v) => ({ ...v, esColectiva: !v.esColectiva }));
+                    setErrors((e) => {
+                      const resto = { ...e };
+                      delete resto.fechaFin;
+                      return resto;
+                    });
+                  }}
+                >
+                  <span className="ns-colectivas-check">{vacaciones.esColectiva ? '✓' : ''}</span>
+                  <span>
+                    <strong>Vacaciones colectivas</strong>
+                    <small>Permite solicitar más días de los disponibles (saldo negativo)</small>
+                  </span>
+                </button>
+
+                {vacaciones.esColectiva ? (
+                  <div className="ns-dias-badge ns-dias-badge--colectivas">
+                    {vacacionesSaldoLoading
+                      ? 'Consultando saldo disponible...'
+                      : saldoRealVacaciones !== null
+                      ? (() => {
+                          const saldoResultante = saldoRealVacaciones - vacaciones.diasTotales;
+                          return (
+                            <>
+                              🏖️ Saldo actual: <strong>{saldoRealVacaciones}</strong>
+                              {vacaciones.diasTotales > 0 && (
+                                <> · Saldo tras la solicitud: <strong>{saldoResultante}</strong>
+                                  {saldoResultante < 0 && ' (negativo)'}</>
+                              )}
+                            </>
+                          );
+                        })()
+                      : 'Vacaciones colectivas: se permite saldo negativo'}
+                  </div>
+                ) : (
+                  <div className="ns-dias-badge">
+                    {vacacionesSaldoLoading
+                      ? 'Consultando saldo disponible...'
+                      : vacacionesSaldoError
+                      ? <span className="ns-error">{vacacionesSaldoError}</span>
+                      : diasDisponiblesVacaciones !== null
+                      ? <>🏖️ Días disponibles para solicitar: <strong>{diasDisponiblesVacaciones}</strong></>
+                      : ''}
+                  </div>
+                )}
 
                 <div className="ns-field">
                   <label>Observaciones</label>

@@ -191,6 +191,7 @@ public class BllMappingProfile : Profile
             .ForMember(dest => dest.Hasta, opt => opt.MapFrom(src => src.FechaFin))
             .ForMember(dest => dest.DiasTotales, opt => opt.MapFrom(src => src.DiasTotales))
             .ForMember(dest => dest.Observaciones, opt => opt.MapFrom(src => src.Observaciones))
+            .ForMember(dest => dest.EsColectiva, opt => opt.MapFrom(src => src.EsColectiva))
             .ReverseMap();
 
         #endregion Vacaciones

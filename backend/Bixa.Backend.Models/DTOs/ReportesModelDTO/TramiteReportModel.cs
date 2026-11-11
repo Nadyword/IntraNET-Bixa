@@ -53,6 +53,7 @@ public class VacacionesReportModel
     public int DiasTotales { get; set; }
     public int DiasPendientes { get; set; }
     public string? Observaciones { get; set; }
+    public bool EsColectiva { get; set; }
 }
 
 public class AprobacionReportModel

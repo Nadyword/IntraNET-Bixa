@@ -135,6 +135,7 @@ public class GenericTramiteDocument(TramiteReportModel model) : IDocument
                 DataRow(table, "Desde", vac.Desde.ToString("dd/MM/yyyy"));
                 DataRow(table, "Hasta", vac.Hasta.ToString("dd/MM/yyyy"));
                 DataRow(table, "Días Totales", vac.DiasTotales.ToString());
+                DataRow(table, "Vacaciones colectivas", vac.EsColectiva ? "Sí (puede generar saldo negativo)" : "No");
                 DataRow(table, "Observaciones", vac.Observaciones ?? "—");
             });
         });
